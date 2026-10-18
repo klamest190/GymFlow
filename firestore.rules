@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// The exercise catalog ships with the app, so Firestore only holds private user data.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // One document per day, ID = YYYY-MM-DD.
+      match /workout_logs/{date} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.date == date
+          && request.resource.data.userId == uid
+          && request.resource.data.entries is list
+          && request.resource.data.entries.size() <= 100;
+      }
+    }
+  }
+}

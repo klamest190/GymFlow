@@ -1,0 +1,122 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Semantic tokens (switch with the `.dark` class on <html>) ─────────────── */
+:root {
+  --bg: #f2f2f7;
+  --surface: rgb(255 255 255 / 0.72);
+  --surface-solid: #ffffff;
+  --surface-sunken: rgb(118 118 128 / 0.12);
+  --line: rgb(60 60 67 / 0.12);
+  --text: #0b0b0f;
+  --muted: rgb(60 60 67 / 0.62);
+  --accent: #b8f83a;
+  --accent-fg: #3f6b00; /* accent used as text on light surfaces */
+  --accent-ink: #0d1a00; /* text on accent fills */
+  --danger: #ff3b30;
+  --shadow-color: 15 23 42;
+  --shadow-strength: 0.14;
+  --glow-a: rgb(184 248 58 / 0.32);
+  --glow-b: rgb(10 132 255 / 0.18);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #050506;
+  --surface: rgb(28 28 32 / 0.58);
+  --surface-solid: #141416;
+  --surface-sunken: rgb(118 118 128 / 0.2);
+  --line: rgb(255 255 255 / 0.08);
+  --text: #f5f5f7;
+  --muted: rgb(235 235 245 / 0.56);
+  --accent: #c6ff3d;
+  --accent-fg: #c6ff3d;
+  --accent-ink: #0d1a00;
+  --danger: #ff453a;
+  --shadow-color: 0 0 0;
+  --shadow-strength: 0.55;
+  --glow-a: rgb(198 255 61 / 0.16);
+  --glow-b: rgb(94 92 230 / 0.2);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-solid: var(--surface-solid);
+  --color-sunken: var(--surface-sunken);
+  --color-line: var(--line);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+}
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  --radius-4xl: 2rem;
+  --shadow-soft: 0 1px 2px rgb(var(--shadow-color) / calc(var(--shadow-strength) * 0.4)),
+    0 24px 48px -20px rgb(var(--shadow-color) / var(--shadow-strength));
+  --shadow-float: 0 2px 6px rgb(var(--shadow-color) / calc(var(--shadow-strength) * 0.5)),
+    0 32px 64px -16px rgb(var(--shadow-color) / calc(var(--shadow-strength) * 1.4));
+  --shadow-accent: 0 10px 30px -8px rgb(184 248 58 / 0.55);
+}
+
+/* Frosted glass surface: translucent fill, background blur, hairline border, soft shadow. */
+@utility glass {
+  background-color: var(--surface);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  html {
+    background-color: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--bg);
+    transition: background-color 300ms ease;
+  }
+
+  /* Hide native number spinners; the app has its own steppers. */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

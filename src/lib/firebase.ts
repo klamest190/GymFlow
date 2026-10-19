@@ -32,6 +32,8 @@ export function getFirebase() {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
     auth = getAuth(app)
+    // German texts in Firebase-sent e-mails (password reset).
+    auth.languageCode = 'de'
     // Analytics is optional and unavailable in some browsers (e.g. with tracking protection);
     // loaded lazily so it never delays the first render.
     if (config.measurementId) {

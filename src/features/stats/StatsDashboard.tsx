@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
-import { useLogsInRange, useProfile } from '../../hooks/useData'
-import { useUserId } from '../../hooks/useSession'
+import { useLogsInRange } from '../../hooks/useData'
+import { useSession } from '../../auth/authContext'
 import { useIsDesktop } from '../../hooks/useUi'
 import { addDays, daysBetween, startOfWeek, todayKey } from '../../lib/dates'
 import { activeWeekStreak, METRIC_SHORT_LABELS, summarize, weeklySeries, type Metric } from '../../lib/stats'
@@ -16,10 +16,10 @@ const HISTORY_DAYS = 365
 const METRICS: Metric[] = ['reps', 'sets', 'volumeKg']
 
 export function StatsDashboard() {
-  const userId = useUserId()
+  const { user, profile } = useSession()
+  const userId = user.uid
   const today = todayKey()
   const { logs, ready } = useLogsInRange(userId, addDays(today, -(HISTORY_DAYS - 1)), today)
-  const profile = useProfile(userId)
   const isDesktop = useIsDesktop()
   const [metric, setMetric] = useState<Metric>('reps')
 

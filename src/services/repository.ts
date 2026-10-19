@@ -1,30 +1,41 @@
 import { isFirebaseConfigured } from '../lib/firebase'
-import type { AccountInfo, DateKey, LinkResult, UserProfile, WorkoutLog } from '../types/models'
+import type { AuthUser, DateKey, NewUserInput, UserProfile, UserUpdate, WorkoutLog } from '../types/models'
 import { createFirestoreRepository } from './firestoreRepository'
 import { createLocalRepository } from './localRepository'
 
 export type Unsubscribe = () => void
 
 /**
- * Storage abstraction so the UI never talks to Firestore directly. Only user data lives here;
+ * Storage abstraction so the UI never talks to Firebase directly. Only user data lives here;
  * the exercise catalog is static (`data/exercises.ts`).
  */
 export interface GymflowRepository {
   mode: 'firebase' | 'local'
 
-  // ─── Auth ───
-  /** Resolves with the current user's uid, signing in anonymously if needed. */
-  signIn(): Promise<string>
-  subscribeAccount(onChange: (account: AccountInfo) => void): Unsubscribe
-  /** Upgrades the anonymous account to Google so the data survives a device change. */
-  linkWithGoogle(): Promise<LinkResult>
-  /** Signs out; the caller reloads the app, which then starts a fresh anonymous session. */
+  // ─── Auth (e-mail/password, no self sign-up) ───
+  /** Emits the signed-in identity, or `null` when signed out. */
+  onAuthChange(onChange: (user: AuthUser | null) => void): Unsubscribe
+  signInWithEmail(email: string, password: string): Promise<void>
   signOut(): Promise<void>
+  /** Sends Firebase's password reset mail (German template). */
+  sendPasswordReset(email: string): Promise<void>
 
-  // ─── users/{uid} ───
-  /** Emits `null` while no profile document exists yet (callers fall back to defaults). */
-  subscribeProfile(userId: string, onChange: (profile: UserProfile | null) => void): Unsubscribe
+  // ─── users/{uid}: own account ───
+  /** Emits `null` if the account document doesn't exist (not provisioned or deleted). */
+  subscribeProfile(userId: string, onChange: (profile: UserProfile | null) => void, onError: (error: Error) => void): Unsubscribe
   saveProfile(userId: string, changes: Pick<UserProfile, 'weeklyGoalDays'>): Promise<void>
+  recordLogin(userId: string): Promise<void>
+
+  // ─── users: admin only (enforced by the security rules) ───
+  subscribeUsers(onChange: (users: UserProfile[]) => void, onError: (error: Error) => void): Unsubscribe
+  /** Creates the login and the account document; the admin stays signed in. */
+  createUser(input: NewUserInput, adminId: string): Promise<UserProfile>
+  updateUser(userId: string, changes: UserUpdate): Promise<void>
+  /**
+   * Deletes the account document and all workout logs, which removes every access. The Auth
+   * login itself can only be deleted server-side (Firebase Console) on the free plan.
+   */
+  deleteUser(userId: string): Promise<void>
 
   // ─── users/{uid}/workout_logs ───
   /** All logs with `from <= date <= to` (inclusive). */

@@ -1,29 +1,50 @@
-import { Dumbbell, TriangleAlert } from 'lucide-react'
+import { Dumbbell } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
+import { useAuth } from './auth/authContext'
 import { AppShell } from './components/layout/AppShell'
-import { SessionProvider } from './components/layout/SessionProvider'
 import type { TabId } from './components/layout/tabs'
+import { LoginScreen } from './features/auth/LoginScreen'
+import { NoAccessScreen } from './features/auth/NoAccessScreen'
 import { DailyTracker } from './features/tracker/DailyTracker'
 
 // The start tab ships in the main bundle; the others (incl. Recharts) load on first visit.
 const ExerciseCatalog = lazy(() => import('./features/exercises/ExerciseCatalog').then((m) => ({ default: m.ExerciseCatalog })))
 const StatsDashboard = lazy(() => import('./features/stats/StatsDashboard').then((m) => ({ default: m.StatsDashboard })))
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const AdminDashboard = lazy(() => import('./features/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })))
 
+/** Auth gate: every screen behind it can rely on an active, signed-in account (useSession). */
 export default function App() {
+  const { state } = useAuth()
+
+  switch (state.status) {
+    case 'loading':
+      return <SplashScreen />
+    case 'signed-out':
+      return <LoginScreen />
+    case 'no-access':
+      return <NoAccessScreen email={state.user.email} reason={state.reason} />
+    case 'signed-in':
+      // Keyed by uid so switching accounts never leaks state (tab, drafts) from the previous user.
+      return <SignedInApp key={state.user.uid} isAdmin={state.isAdmin} />
+  }
+}
+
+function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
   const [tab, setTab] = useState<TabId>('today')
+  // A demoted admin must not stay on the admin tab.
+  const activeTab = tab === 'admin' && !isAdmin ? 'today' : tab
 
   return (
-    <SessionProvider fallback={(state) => <SplashScreen error={state.status === 'error' ? state.message : null} />}>
-      <AppShell tab={tab} onTabChange={setTab}>
-        <Suspense fallback={<TabSkeleton />}>
-          {tab === 'today' && <DailyTracker />}
-          {tab === 'exercises' && <ExerciseCatalog />}
-          {tab === 'stats' && <StatsDashboard />}
-          {tab === 'profile' && <ProfilePage />}
-        </Suspense>
-      </AppShell>
-    </SessionProvider>
+    <AppShell tab={activeTab} onTabChange={setTab}>
+      <Suspense fallback={<TabSkeleton />}>
+        {activeTab === 'today' && <DailyTracker />}
+        {activeTab === 'exercises' && <ExerciseCatalog />}
+        {activeTab === 'stats' && <StatsDashboard />}
+        {activeTab === 'admin' && <AdminDashboard />}
+        {activeTab === 'profile' && <ProfilePage />}
+      </Suspense>
+    </AppShell>
   )
 }
 
@@ -37,22 +58,11 @@ function TabSkeleton() {
   )
 }
 
-function SplashScreen({ error }: { error: string | null }) {
+function SplashScreen() {
   return (
-    <div className="grid min-h-dvh place-items-center p-6">
-      <div className="flex flex-col items-center text-center">
-        <div className={`grid size-16 place-items-center rounded-2xl ${error ? 'bg-danger/15 text-danger' : 'animate-pulse bg-accent text-accent-ink shadow-accent'}`}>
-          {error ? <TriangleAlert className="size-7" /> : <Dumbbell className="size-7" strokeWidth={2.5} />}
-        </div>
-        {error && (
-          <>
-            <h1 className="mt-5 text-xl font-bold tracking-tight">Anmeldung fehlgeschlagen</h1>
-            <p className="mt-1.5 max-w-sm text-[15px] text-muted">
-              Ist „Anonym“ unter Firebase Console → Authentication → Anmeldemethoden aktiviert?
-            </p>
-            <code className="mt-4 max-w-sm rounded-xl bg-sunken px-3 py-2 text-[12px] text-muted">{error}</code>
-          </>
-        )}
+    <div className="grid min-h-dvh place-items-center p-6" aria-busy>
+      <div className="grid size-16 animate-pulse place-items-center rounded-2xl bg-accent text-accent-ink shadow-accent">
+        <Dumbbell className="size-7" strokeWidth={2.5} />
       </div>
     </div>
   )

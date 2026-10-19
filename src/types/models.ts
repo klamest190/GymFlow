@@ -115,29 +115,57 @@ export interface WorkoutLog {
 }
 
 // ─── users/{uid} ─────────────────────────────────────────────────────────────
+// The account document is the single source of truth for access control: Firebase Auth only
+// proves identity, the security rules grant access only while this document says 'active'.
+
+export type UserRole = 'admin' | 'user'
+export type UserStatus = 'active' | 'disabled'
 
 export interface UserProfile {
+  /** Firebase Auth uid (= document ID). */
+  id: string
+  /** Login e-mail, copied from Auth when the admin creates the account (informational, immutable). */
+  email: string
+  displayName: string
+  /** Only admins can change roles; nobody can change their own. */
+  role: UserRole
+  /** 'disabled' locks the user out of all data immediately (enforced by the security rules). */
+  status: UserStatus
   /** Target number of training days per week (1–7), shown as goal ring on the dashboard. */
   weeklyGoalDays: number
+  createdAt: number
+  /** uid of the admin who created the account; `null` for the bootstrap admin created in the console. */
+  createdBy: string | null
   updatedAt: number
+  lastLoginAt: number | null
 }
 
-export const DEFAULT_PROFILE: UserProfile = { weeklyGoalDays: 3, updatedAt: 0 }
+export const DEFAULT_WEEKLY_GOAL_DAYS = 3
 
-// ─── Auth (not stored in Firestore) ─────────────────────────────────────────
+/** What an admin enters to create an account. */
+export interface NewUserInput {
+  email: string
+  displayName: string
+  password: string
+  role: UserRole
+}
 
-/** `local` = demo mode without Firebase. */
-export type AccountProvider = 'anonymous' | 'google' | 'local'
+/** Fields an admin may change on an existing account. */
+export type UserUpdate = Partial<Pick<UserProfile, 'displayName' | 'role' | 'status'>>
 
-export interface AccountInfo {
-  provider: AccountProvider
+// ─── Auth state (client only) ───────────────────────────────────────────────
+
+/** Identity as reported by Firebase Auth, before the account document is checked. */
+export interface AuthUser {
+  uid: string
   email: string | null
-  displayName: string | null
-  photoURL: string | null
 }
 
-export type LinkResult =
-  | { status: 'linked' }
-  | { status: 'cancelled' }
-  /** The Google account already belongs to another GymFlow user; switching drops this device's anonymous data. */
-  | { status: 'account-exists'; switchAccount: () => Promise<void> }
+export type NoAccessReason = 'missing-profile' | 'disabled'
+
+export type AuthState =
+  | { status: 'loading' }
+  | { status: 'signed-out' }
+  /** Signed in, but without an active account document: deleted or disabled by an admin, or never provisioned. */
+  | { status: 'no-access'; user: AuthUser; reason: NoAccessReason }
+  | { status: 'signed-in'; user: AuthUser; profile: UserProfile; isAdmin: boolean }

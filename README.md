@@ -14,9 +14,49 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 ### Einmalig in der Firebase Console
 
 1. **Firestore Database** anlegen (Production Mode).
-2. **Authentication → Anmeldemethoden → Anonym** aktivieren. Jeder startet als Gast, ohne Registrierung.
-3. **Authentication → Anmeldemethoden → Google** aktivieren. Damit lässt sich das Gastkonto im Profil-Tab per „Mit Google sichern“ verknüpfen, und die Daten bleiben bei einem Gerätewechsel erhalten. Für eine eigene Domain diese unter *Authentication → Einstellungen → Autorisierte Domains* eintragen.
-4. Security Rules deployen: `npx firebase-tools deploy --only firestore:rules`
+2. **Authentication → Anmeldemethoden → E-Mail/Passwort** aktivieren. Die Option „Anonym“ und gegebenenfalls „Google“ deaktivieren, beide werden nicht mehr genutzt.
+3. Security Rules deployen: `npx firebase-tools deploy --only firestore:rules`
+4. **Ersten Admin anlegen.** Danach legt der Admin alle weiteren Nutzer im Admin-Bereich der App an.
+   1. *Authentication → Nutzer → Nutzer hinzufügen*: E-Mail und Passwort eingeben und die angezeigte **Nutzer-UID** kopieren.
+   2. *Firestore Database → Sammlung `users`* (bei Bedarf „Sammlung starten“) → Dokument mit **Dokument-ID = UID** und diesen Feldern:
+
+      | Feld | Typ | Wert |
+      |---|---|---|
+      | `email` | string | die Login-E-Mail |
+      | `displayName` | string | z. B. „Karsten Lamest“ |
+      | `role` | string | `admin` |
+      | `status` | string | `active` |
+      | `weeklyGoalDays` | number | `3` |
+      | `createdBy` | null | – |
+
+   3. In der App mit dieser E-Mail anmelden. Der Tab „Admin“ erscheint.
+
+## Authentifizierung & Rollen
+
+- **Geschlossenes System:** Login nur mit E-Mail und Passwort, und es gibt keine Registrierungsseite. Konten legt ausschließlich ein Admin im Admin-Bereich an. Dafür nutzt die App eine zweite, unsichtbare Firebase-Instanz, damit der Admin angemeldet bleibt.
+- **Zugriff:** Firebase Auth weist nur die Identität nach. Zugriff auf Daten gibt es erst, wenn das Dokument `users/{uid}` existiert und `status: 'active'` hat. Das prüfen die Security Rules bei jeder Anfrage. Wer sich über die öffentliche Firebase-API selbst registriert, hat daher keinen Zugriff.
+- **Rollen** (`role: 'admin' | 'user'`) stehen im selben Dokument. Niemand kann die eigene Rolle oder den eigenen Status ändern, damit sich auch kein Admin aussperrt. Im Client steuert die Rolle nur, was angezeigt wird. Durchgesetzt wird sie von den Rules.
+- **Sperren** setzt `status: 'disabled'`. Die Sperre wirkt sofort, auch in bereits offenen Sitzungen, weil das Konto-Dokument live abonniert wird.
+- **Löschen** entfernt das Konto-Dokument und alle Trainingsdaten. Den Login selbst kann man im kostenlosen Spark-Tarif nur in der Firebase Console löschen (Authentication → Nutzer). Er hat ohne Konto-Dokument aber keinerlei Zugriff mehr.
+- **Passwort vergessen / ändern:** über Firebases Reset-Mail mit deutscher Vorlage, erreichbar über den Login-Screen, das Profil oder den Admin.
+
+**Rechteverteilung** (umgesetzt in [firestore.rules](firestore.rules), geprüft mit `npm run test:rules`):
+
+| Daten | Nutzer (aktiv) | Nutzer (gesperrt) | Admin | Login ohne Konto |
+|---|---|---|---|---|
+| eigenes `users/{uid}` | lesen; nur `weeklyGoalDays`/`lastLoginAt` ändern | lesen | lesen; Name ändern | (fehlt) lesen |
+| fremde `users/{uid}` | – | – | lesen, anlegen, Name/Rolle/Status ändern, löschen | – |
+| eigene `workout_logs` | lesen, schreiben, löschen | – | lesen, schreiben, löschen | – |
+| fremde `workout_logs` | – | – | lesen und löschen (für Kontolöschung), **nie** schreiben | – |
+| `exercises` | gibt es nicht: fester Katalog im Code | | | |
+
+### Rules testen
+
+```bash
+npm run test:rules
+```
+
+Startet den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf echte Daten, und prüft 48 Fälle über alle Rollen hinweg. Voraussetzungen: Firebase CLI und Java 21+ im PATH.
 
 ## Übungskatalog
 
@@ -29,8 +69,21 @@ Felder: `id`, `name`, `description`, `instructions`, `formCues[]`, `primaryMuscl
 ## Firestore-Schema
 
 ```
-users/{uid}                               Profil: { weeklyGoalDays: 1–7, updatedAt }
+users/{uid}                               Konto: Rolle, Status, Profil
 users/{uid}/workout_logs/{YYYY-MM-DD}     Genau ein Dokument pro Trainingstag
+```
+
+**`users/{uid}`** (Dokument-ID = Firebase-Auth-UID):
+```jsonc
+{
+  "email": "anna@example.de",     // vom Admin beim Anlegen gesetzt, unveränderlich
+  "displayName": "Anna Schneider",
+  "role": "user",                 // "admin" | "user", nur ein anderer Admin darf es ändern
+  "status": "active",             // "active" | "disabled", nur ein anderer Admin darf es ändern
+  "weeklyGoalDays": 3,            // 1–7, vom Nutzer selbst änderbar
+  "createdAt": Timestamp, "createdBy": "admin-uid", "updatedAt": Timestamp,
+  "lastLoginAt": Timestamp        // für „Zuletzt aktiv“ in der Nutzerverwaltung
+}
 ```
 
 Das Farbschema (Hell/Dunkel/System) wird pro Gerät in `localStorage` gespeichert, nicht in Firestore.
@@ -85,12 +138,17 @@ src/
   services/                  Repository-Interface + Firestore- und localStorage-Implementierung
   lib/stats.ts               Auswertungen für das Dashboard
   lib/pwa.ts                 Service-Worker-Registrierung, Install-Prompt
-  hooks/                     useLogsInRange, useProfile, useAccount, useDayDraft, useTheme
-  components/                AppShell (Sidebar/TabBar), Sheet, SegmentedControl, NumberStepper, AnimatedNumber
+  lib/passwords.ts           Sichere Startpasswörter für neue Konten
+  auth/                      AuthProvider, useAuth/useSession, deutsche Fehlermeldungen
+  hooks/                     useLogsInRange, useAllUsers, useDayDraft, useTheme
+  components/                AppShell (Sidebar/TabBar), Sheet, Toasts, SegmentedControl, NumberStepper, AnimatedNumber
   features/tracker/          Daily Tracker (WeekStrip, DaySummary, ExerciseEntryCard, ExercisePicker)
   features/exercises/        Übungskatalog und Detail-Sheet
   features/stats/            Statistik-Dashboard (Recharts, lazy geladen)
-  features/profile/          Profil: Konto/Google, Wochenziel, Darstellung, App installieren
+  features/auth/             Login-Screen (inkl. Passwort vergessen), Kein-Zugang-Screen
+  features/admin/            Nutzerverwaltung: Liste, Anlegen, Bearbeiten, Sperren, Löschen
+  features/profile/          Profil: Konto, Passwort ändern, Wochenziel, Darstellung, App installieren
 public/                      Manifest, Icons, Service Worker
-firestore.rules              Security Rules
+firestore.rules              Security Rules (RBAC)
+tests/                       Rules-Tests gegen den Firestore-Emulator
 ```

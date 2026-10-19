@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Cloud, Dumbbell, HardDrive, Moon, Sun } from 'lucide-react'
+import { Dumbbell, LogOut, Moon, Sun } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useAuth, useSession } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
 import { repository } from '../../services/repository'
-import { TABS, type TabId } from './tabs'
+import { tabsFor, type TabId } from './tabs'
 
 interface AppShellProps {
   tab: TabId
@@ -60,7 +61,8 @@ function Logo() {
 
 function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
   const { isDark, toggle } = useTheme()
-  const isCloud = repository.mode === 'firebase'
+  const { profile, isAdmin } = useSession()
+  const { signOut } = useAuth()
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-[272px] shrink-0 p-4 lg:block">
@@ -69,7 +71,7 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
           <Logo />
         </div>
         <nav className="mt-10 flex flex-col gap-1">
-          {TABS.map(({ id, label, icon: Icon }) => {
+          {tabsFor(isAdmin).map(({ id, label, icon: Icon }) => {
             const active = id === tab
             return (
               <button
@@ -94,9 +96,22 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
           })}
         </nav>
         <div className="mt-auto space-y-3">
-          <div className="flex items-center gap-2.5 rounded-2xl bg-sunken px-3.5 py-3 text-[13px] text-muted">
-            {isCloud ? <Cloud className="size-4 text-accent-fg" /> : <HardDrive className="size-4" />}
-            {isCloud ? 'Cloud-Sync aktiv' : 'Demo-Modus (lokal)'}
+          <div className="flex items-center gap-3 rounded-2xl bg-sunken p-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[14px] font-semibold tracking-tight">{profile.displayName}</p>
+              <p className="truncate text-[12px] text-muted">
+                {repository.mode === 'firebase' ? profile.email : 'Demo-Modus (lokal)'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="grid size-9 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-surface-solid hover:text-danger"
+              aria-label="Abmelden"
+              title="Abmelden"
+            >
+              <LogOut className="size-4.5" />
+            </button>
           </div>
           <button
             type="button"
@@ -115,10 +130,11 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
 }
 
 function TabBar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
+  const { isAdmin } = useSession()
   return (
     <nav className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-40 lg:hidden">
       <div className="glass mx-auto flex max-w-md items-center justify-between rounded-[28px] p-1.5 shadow-float">
-        {TABS.map(({ id, label, icon: Icon }) => {
+        {tabsFor(isAdmin).map(({ id, label, icon: Icon }) => {
           const active = id === tab
           return (
             <button

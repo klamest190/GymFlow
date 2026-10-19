@@ -1,28 +1,31 @@
-import type { FirebaseError } from 'firebase/app'
+import { deleteApp, initializeApp } from 'firebase/app'
 import {
-  GoogleAuthProvider,
-  linkWithPopup,
-  onIdTokenChanged,
-  signInAnonymously,
-  signInWithCredential,
+  createUserWithEmailAndPassword,
+  inMemoryPersistence,
+  initializeAuth,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
   signOut,
-  type User,
 } from 'firebase/auth'
 import {
   Timestamp,
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
+  writeBatch,
   type DocumentData,
   type DocumentSnapshot,
 } from 'firebase/firestore'
 import { getFirebase } from '../lib/firebase'
-import type { AccountInfo, UserProfile, WorkoutLog } from '../types/models'
+import { DEFAULT_WEEKLY_GOAL_DAYS, type UserProfile, type WorkoutLog } from '../types/models'
 import type { GymflowRepository } from './repository'
 
 export const COLLECTIONS = {
@@ -33,6 +36,7 @@ export const COLLECTIONS = {
 const logError = (context: string) => (error: Error) => console.error(`[GymFlow] ${context}`, error)
 
 const toMillis = (value: unknown) => (value instanceof Timestamp ? value.toMillis() : Date.now())
+const toMillisOrNull = (value: unknown) => (value instanceof Timestamp ? value.toMillis() : null)
 
 /** Reads a document with pending server timestamps estimated locally instead of `null`. */
 function readDoc<T>(snapshot: DocumentSnapshot<DocumentData>): T {
@@ -40,103 +44,131 @@ function readDoc<T>(snapshot: DocumentSnapshot<DocumentData>): T {
   return { ...data, id: snapshot.id, createdAt: toMillis(data.createdAt), updatedAt: toMillis(data.updatedAt) } as T
 }
 
-function toAccount(user: User): AccountInfo {
-  const google = user.providerData.find((provider) => provider.providerId === 'google.com')
+function readProfile(snapshot: DocumentSnapshot<DocumentData>): UserProfile {
+  const data = snapshot.data({ serverTimestamps: 'estimate' }) ?? {}
   return {
-    provider: google ? 'google' : 'anonymous',
-    email: google?.email ?? user.email,
-    displayName: google?.displayName ?? user.displayName,
-    photoURL: google?.photoURL ?? user.photoURL,
+    id: snapshot.id,
+    email: data.email ?? '',
+    displayName: data.displayName ?? '',
+    role: data.role === 'admin' ? 'admin' : 'user',
+    status: data.status === 'active' ? 'active' : 'disabled',
+    weeklyGoalDays: data.weeklyGoalDays ?? DEFAULT_WEEKLY_GOAL_DAYS,
+    createdAt: toMillis(data.createdAt),
+    createdBy: data.createdBy ?? null,
+    updatedAt: toMillis(data.updatedAt),
+    lastLoginAt: toMillisOrNull(data.lastLoginAt),
   }
 }
 
-const errorCode = (error: unknown) => (error as FirebaseError | undefined)?.code ?? ''
-
 export function createFirestoreRepository(): GymflowRepository {
-  const { db, auth } = getFirebase()
-
-  let signInPromise: Promise<string> | null = null
-  // Linking keeps the uid, so auth listeners don't reliably fire; notify account subscribers manually.
-  const accountListeners = new Set<(account: AccountInfo) => void>()
-  const notifyAccount = () => {
-    if (auth.currentUser) accountListeners.forEach((listener) => listener(toAccount(auth.currentUser!)))
-  }
+  const { app, db, auth } = getFirebase()
+  const userDoc = (userId: string) => doc(db, COLLECTIONS.users, userId)
+  const logsCollection = (userId: string) => collection(db, COLLECTIONS.users, userId, COLLECTIONS.workoutLogs)
 
   return {
     mode: 'firebase',
 
-    signIn() {
-      // Shared promise: concurrent callers (e.g. React StrictMode running effects twice) must not
-      // create two anonymous users, or the app would keep the uid of the one that lost the race.
-      signInPromise ??= (async () => {
-        await auth.authStateReady()
-        const user = auth.currentUser ?? (await signInAnonymously(auth)).user
-        return user.uid
-      })().catch((error: unknown) => {
-        signInPromise = null
-        throw error
-      })
-      return signInPromise
+    onAuthChange(onChange) {
+      return onAuthStateChanged(auth, (user) => onChange(user ? { uid: user.uid, email: user.email } : null))
     },
 
-    subscribeAccount(onChange) {
-      accountListeners.add(onChange)
-      const stop = onIdTokenChanged(auth, (user) => user && onChange(toAccount(user)))
-      return () => {
-        accountListeners.delete(onChange)
-        stop()
-      }
-    },
-
-    async linkWithGoogle() {
-      const user = auth.currentUser
-      if (!user) throw new Error('Not signed in')
-      try {
-        await linkWithPopup(user, new GoogleAuthProvider())
-        await user.reload()
-        notifyAccount()
-        return { status: 'linked' }
-      } catch (error) {
-        const code = errorCode(error)
-        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return { status: 'cancelled' }
-        if (code === 'auth/credential-already-in-use') {
-          const credential = GoogleAuthProvider.credentialFromError(error as FirebaseError)
-          if (credential) {
-            return {
-              status: 'account-exists',
-              switchAccount: async () => {
-                await signInWithCredential(auth, credential)
-              },
-            }
-          }
-        }
-        throw error
-      }
+    async signInWithEmail(email, password) {
+      await signInWithEmailAndPassword(auth, email.trim(), password)
     },
 
     async signOut() {
       await signOut(auth)
     },
 
-    subscribeProfile(userId, onChange) {
-      return onSnapshot(
-        doc(db, COLLECTIONS.users, userId),
-        (snap) => onChange(snap.exists() ? readDoc<UserProfile>(snap) : null),
-        logError('profile'),
-      )
+    async sendPasswordReset(email) {
+      await sendPasswordResetEmail(auth, email.trim())
+    },
+
+    subscribeProfile(userId, onChange, onError) {
+      return onSnapshot(userDoc(userId), (snap) => onChange(snap.exists() ? readProfile(snap) : null), onError)
     },
 
     async saveProfile(userId, changes) {
-      await setDoc(doc(db, COLLECTIONS.users, userId), { ...changes, updatedAt: serverTimestamp() }, { merge: true })
+      await updateDoc(userDoc(userId), { ...changes, updatedAt: serverTimestamp() })
+    },
+
+    async recordLogin(userId) {
+      await updateDoc(userDoc(userId), { lastLoginAt: serverTimestamp() })
+    },
+
+    subscribeUsers(onChange, onError) {
+      return onSnapshot(
+        collection(db, COLLECTIONS.users),
+        (snap) => onChange(snap.docs.map(readProfile).sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))),
+        onError,
+      )
+    },
+
+    async createUser(input, adminId) {
+      // A throwaway app instance with in-memory auth: creating a login there doesn't replace the
+      // admin's own session (createUserWithEmailAndPassword always signs the new user in).
+      const provisioning = initializeApp(app.options, `user-provisioning-${Date.now()}`)
+      const email = input.email.trim().toLowerCase()
+      const displayName = input.displayName.trim()
+      try {
+        const provisioningAuth = initializeAuth(provisioning, { persistence: inMemoryPersistence })
+        const credential = await createUserWithEmailAndPassword(provisioningAuth, email, input.password)
+        const uid = credential.user.uid
+        try {
+          await setDoc(userDoc(uid), {
+            email,
+            displayName,
+            role: input.role,
+            status: 'active',
+            weeklyGoalDays: DEFAULT_WEEKLY_GOAL_DAYS,
+            createdAt: serverTimestamp(),
+            createdBy: adminId,
+            updatedAt: serverTimestamp(),
+            lastLoginAt: null,
+          })
+        } catch (error) {
+          // Roll back: the new user is still signed in on the throwaway instance and may delete
+          // their own login, so no orphaned login without account document is left behind.
+          await credential.user.delete().catch(logError('rollback of new login'))
+          throw error
+        }
+        await signOut(provisioningAuth)
+        const now = Date.now()
+        return {
+          id: uid,
+          email,
+          displayName,
+          role: input.role,
+          status: 'active',
+          weeklyGoalDays: DEFAULT_WEEKLY_GOAL_DAYS,
+          createdAt: now,
+          createdBy: adminId,
+          updatedAt: now,
+          lastLoginAt: null,
+        }
+      } finally {
+        await deleteApp(provisioning)
+      }
+    },
+
+    async updateUser(userId, changes) {
+      await updateDoc(userDoc(userId), { ...changes, updatedAt: serverTimestamp() })
+    },
+
+    async deleteUser(userId) {
+      // Batches are limited to 500 writes; one doc per training day stays far below that per chunk.
+      const logs = await getDocs(logsCollection(userId))
+      for (let index = 0; index < logs.docs.length; index += 450) {
+        const batch = writeBatch(db)
+        logs.docs.slice(index, index + 450).forEach((log) => batch.delete(log.ref))
+        await batch.commit()
+      }
+      await deleteDoc(userDoc(userId))
     },
 
     subscribeLogs(userId, from, to, onChange) {
       // Range on a single field inside the user's own subcollection: no composite index needed.
-      const logs = query(
-        collection(db, COLLECTIONS.users, userId, COLLECTIONS.workoutLogs),
-        where('date', '>=', from),
-        where('date', '<=', to),
-      )
+      const logs = query(logsCollection(userId), where('date', '>=', from), where('date', '<=', to))
       return onSnapshot(
         logs,
         (snap) => onChange(snap.docs.map((d) => readDoc<WorkoutLog>(d))),
@@ -145,7 +177,7 @@ export function createFirestoreRepository(): GymflowRepository {
     },
 
     async saveLog(log) {
-      const ref = doc(db, COLLECTIONS.users, log.userId, COLLECTIONS.workoutLogs, log.id)
+      const ref = doc(logsCollection(log.userId), log.id)
       if (log.entries.length === 0) {
         await deleteDoc(ref)
         return

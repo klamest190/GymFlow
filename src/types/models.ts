@@ -116,16 +116,28 @@ export interface WorkoutLog {
 
 // ─── users/{uid} ─────────────────────────────────────────────────────────────
 
-export type ThemePreference = 'light' | 'dark' | 'system'
-
 export interface UserProfile {
-  id: string
-  displayName: string | null
-  theme: ThemePreference
-  /** Target number of training days per week (dashboard goal ring). */
+  /** Target number of training days per week (1–7), shown as goal ring on the dashboard. */
   weeklyGoalDays: number
-  /** Exercises pinned to the top of the picker. */
-  favoriteExerciseIds: string[]
-  createdAt: number
   updatedAt: number
 }
+
+export const DEFAULT_PROFILE: UserProfile = { weeklyGoalDays: 3, updatedAt: 0 }
+
+// ─── Auth (not stored in Firestore) ─────────────────────────────────────────
+
+/** `local` = demo mode without Firebase. */
+export type AccountProvider = 'anonymous' | 'google' | 'local'
+
+export interface AccountInfo {
+  provider: AccountProvider
+  email: string | null
+  displayName: string | null
+  photoURL: string | null
+}
+
+export type LinkResult =
+  | { status: 'linked' }
+  | { status: 'cancelled' }
+  /** The Google account already belongs to another GymFlow user; switching drops this device's anonymous data. */
+  | { status: 'account-exists'; switchAccount: () => Promise<void> }

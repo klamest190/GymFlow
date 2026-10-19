@@ -1,25 +1,30 @@
-import type { WorkoutLog } from '../types/models'
+import type { AccountInfo, UserProfile, WorkoutLog } from '../types/models'
 import type { GymflowRepository } from './repository'
 
 /**
  * Demo mode used when no Firebase config is present. Mirrors the Firestore
- * workout logs in localStorage so the UI behaves identically.
+ * documents in localStorage so the UI behaves identically.
  */
-const LOGS_KEY = 'gymflow:workout_logs'
+const KEYS = {
+  logs: 'gymflow:workout_logs',
+  profile: 'gymflow:profile',
+} as const
 
 const LOCAL_USER_ID = 'local-user'
+const LOCAL_ACCOUNT: AccountInfo = { provider: 'local', email: null, displayName: null, photoURL: null }
 
-function readLogs(): Record<string, WorkoutLog> {
+function read<T>(key: string, fallback: T): T {
   try {
-    return JSON.parse(localStorage.getItem(LOGS_KEY) ?? '{}') as Record<string, WorkoutLog>
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : fallback
   } catch {
-    return {}
+    return fallback
   }
 }
 
-function writeLogs(logs: Record<string, WorkoutLog>) {
+function write(key: string, value: unknown) {
   try {
-    localStorage.setItem(LOGS_KEY, JSON.stringify(logs))
+    localStorage.setItem(key, JSON.stringify(value))
   } catch {
     // Storage full or blocked: keep working in memory for this session.
   }
@@ -35,7 +40,7 @@ export function createLocalRepository(): GymflowRepository {
   }
   // Keep multiple tabs in sync.
   window.addEventListener('storage', (event) => {
-    if (event.key === LOGS_KEY) notify()
+    if (event.key === KEYS.logs || event.key === KEYS.profile) notify()
   })
 
   return {
@@ -43,19 +48,41 @@ export function createLocalRepository(): GymflowRepository {
 
     signIn: async () => LOCAL_USER_ID,
 
+    subscribeAccount(onChange) {
+      onChange(LOCAL_ACCOUNT)
+      return () => {}
+    },
+
+    async linkWithGoogle() {
+      throw new Error('Google sign-in needs the Firebase config (.env.local).')
+    },
+
+    async signOut() {},
+
+    subscribeProfile(_userId, onChange) {
+      return listen(() => onChange(read<UserProfile | null>(KEYS.profile, null)))
+    },
+
+    async saveProfile(_userId, changes) {
+      write(KEYS.profile, { ...read<UserProfile | null>(KEYS.profile, null), ...changes, updatedAt: Date.now() })
+      notify()
+    },
+
     subscribeLogs(userId, from, to, onChange) {
       return listen(() => {
-        const logs = Object.values(readLogs()).filter((log) => log.userId === userId && log.date >= from && log.date <= to)
+        const logs = Object.values(read<Record<string, WorkoutLog>>(KEYS.logs, {})).filter(
+          (log) => log.userId === userId && log.date >= from && log.date <= to,
+        )
         onChange(logs)
       })
     },
 
     async saveLog(log) {
-      const logs = readLogs()
+      const logs = read<Record<string, WorkoutLog>>(KEYS.logs, {})
       const key = `${log.userId}/${log.id}`
       if (log.entries.length === 0) delete logs[key]
       else logs[key] = log
-      writeLogs(logs)
+      write(KEYS.logs, logs)
       notify()
     },
   }

@@ -8,8 +8,14 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Profile: only the weekly goal (1–7 training days) and its timestamp.
     match /users/{uid} {
-      allow read, write: if isOwner(uid);
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['weeklyGoalDays', 'updatedAt'])
+        && request.resource.data.weeklyGoalDays is int
+        && request.resource.data.weeklyGoalDays >= 1
+        && request.resource.data.weeklyGoalDays <= 7;
 
       // One document per day, ID = YYYY-MM-DD.
       match /workout_logs/{date} {

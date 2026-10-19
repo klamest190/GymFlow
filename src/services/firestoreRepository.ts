@@ -1,4 +1,13 @@
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth'
+import type { FirebaseError } from 'firebase/app'
+import {
+  GoogleAuthProvider,
+  linkWithPopup,
+  onIdTokenChanged,
+  signInAnonymously,
+  signInWithCredential,
+  signOut,
+  type User,
+} from 'firebase/auth'
 import {
   Timestamp,
   collection,
@@ -10,10 +19,10 @@ import {
   setDoc,
   where,
   type DocumentData,
-  type QueryDocumentSnapshot,
+  type DocumentSnapshot,
 } from 'firebase/firestore'
 import { getFirebase } from '../lib/firebase'
-import type { WorkoutLog } from '../types/models'
+import type { AccountInfo, UserProfile, WorkoutLog } from '../types/models'
 import type { GymflowRepository } from './repository'
 
 export const COLLECTIONS = {
@@ -26,31 +35,99 @@ const logError = (context: string) => (error: Error) => console.error(`[GymFlow]
 const toMillis = (value: unknown) => (value instanceof Timestamp ? value.toMillis() : Date.now())
 
 /** Reads a document with pending server timestamps estimated locally instead of `null`. */
-function readDoc<T>(snapshot: QueryDocumentSnapshot<DocumentData>): T {
-  const data = snapshot.data({ serverTimestamps: 'estimate' })
+function readDoc<T>(snapshot: DocumentSnapshot<DocumentData>): T {
+  const data = snapshot.data({ serverTimestamps: 'estimate' }) ?? {}
   return { ...data, id: snapshot.id, createdAt: toMillis(data.createdAt), updatedAt: toMillis(data.updatedAt) } as T
 }
 
+function toAccount(user: User): AccountInfo {
+  const google = user.providerData.find((provider) => provider.providerId === 'google.com')
+  return {
+    provider: google ? 'google' : 'anonymous',
+    email: google?.email ?? user.email,
+    displayName: google?.displayName ?? user.displayName,
+    photoURL: google?.photoURL ?? user.photoURL,
+  }
+}
+
+const errorCode = (error: unknown) => (error as FirebaseError | undefined)?.code ?? ''
+
 export function createFirestoreRepository(): GymflowRepository {
   const { db, auth } = getFirebase()
+
+  let signInPromise: Promise<string> | null = null
+  // Linking keeps the uid, so auth listeners don't reliably fire; notify account subscribers manually.
+  const accountListeners = new Set<(account: AccountInfo) => void>()
+  const notifyAccount = () => {
+    if (auth.currentUser) accountListeners.forEach((listener) => listener(toAccount(auth.currentUser!)))
+  }
 
   return {
     mode: 'firebase',
 
     signIn() {
-      return new Promise((resolve, reject) => {
-        const stop = onAuthStateChanged(auth, (user) => {
-          if (user) {
-            stop()
-            resolve(user.uid)
-          } else {
-            signInAnonymously(auth).catch((error) => {
-              stop()
-              reject(error)
-            })
-          }
-        })
+      // Shared promise: concurrent callers (e.g. React StrictMode running effects twice) must not
+      // create two anonymous users, or the app would keep the uid of the one that lost the race.
+      signInPromise ??= (async () => {
+        await auth.authStateReady()
+        const user = auth.currentUser ?? (await signInAnonymously(auth)).user
+        return user.uid
+      })().catch((error: unknown) => {
+        signInPromise = null
+        throw error
       })
+      return signInPromise
+    },
+
+    subscribeAccount(onChange) {
+      accountListeners.add(onChange)
+      const stop = onIdTokenChanged(auth, (user) => user && onChange(toAccount(user)))
+      return () => {
+        accountListeners.delete(onChange)
+        stop()
+      }
+    },
+
+    async linkWithGoogle() {
+      const user = auth.currentUser
+      if (!user) throw new Error('Not signed in')
+      try {
+        await linkWithPopup(user, new GoogleAuthProvider())
+        await user.reload()
+        notifyAccount()
+        return { status: 'linked' }
+      } catch (error) {
+        const code = errorCode(error)
+        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return { status: 'cancelled' }
+        if (code === 'auth/credential-already-in-use') {
+          const credential = GoogleAuthProvider.credentialFromError(error as FirebaseError)
+          if (credential) {
+            return {
+              status: 'account-exists',
+              switchAccount: async () => {
+                await signInWithCredential(auth, credential)
+              },
+            }
+          }
+        }
+        throw error
+      }
+    },
+
+    async signOut() {
+      await signOut(auth)
+    },
+
+    subscribeProfile(userId, onChange) {
+      return onSnapshot(
+        doc(db, COLLECTIONS.users, userId),
+        (snap) => onChange(snap.exists() ? readDoc<UserProfile>(snap) : null),
+        logError('profile'),
+      )
+    },
+
+    async saveProfile(userId, changes) {
+      await setDoc(doc(db, COLLECTIONS.users, userId), { ...changes, updatedAt: serverTimestamp() }, { merge: true })
     },
 
     subscribeLogs(userId, from, to, onChange) {

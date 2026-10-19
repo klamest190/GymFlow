@@ -1,4 +1,3 @@
-import { getAnalytics, isSupported } from 'firebase/analytics'
 import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getAuth, type Auth } from 'firebase/auth'
 import {
@@ -33,10 +32,13 @@ export function getFirebase() {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
     auth = getAuth(app)
-    // Analytics is optional and unavailable in some browsers (e.g. with tracking protection).
+    // Analytics is optional and unavailable in some browsers (e.g. with tracking protection);
+    // loaded lazily so it never delays the first render.
     if (config.measurementId) {
       const firebaseApp = app
-      void isSupported().then((supported) => supported && getAnalytics(firebaseApp))
+      void import('firebase/analytics')
+        .then(async ({ getAnalytics, isSupported }) => (await isSupported()) && getAnalytics(firebaseApp))
+        .catch(() => {})
     }
   }
   return { app, db: db!, auth: auth! }

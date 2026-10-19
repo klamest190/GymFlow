@@ -68,3 +68,20 @@ export function formatDaysAgo(key: DateKey): string {
   if (days < 7) return `vor ${days} Tagen`
   return shortDateFormatter.format(fromDateKey(key))
 }
+
+/** ISO 8601 week number (KW), as used in Germany. */
+export function isoWeek(key: DateKey): number {
+  const date = fromDateKey(key)
+  // The ISO week belongs to the year of its Thursday.
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
+  const firstThursday = new Date(date.getFullYear(), 0, 4)
+  return 1 + Math.round(((date.getTime() - firstThursday.getTime()) / 86_400_000 - 3 + ((firstThursday.getDay() + 6) % 7)) / 7)
+}
+
+const dayMonthFormatter = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'numeric' })
+const weekdayDateFormatter = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })
+
+/** "13.10." */
+export const formatDayMonth = (key: DateKey) => dayMonthFormatter.format(fromDateKey(key))
+/** "Mo., 13. Okt." */
+export const formatWeekdayDate = (key: DateKey) => weekdayDateFormatter.format(fromDateKey(key))

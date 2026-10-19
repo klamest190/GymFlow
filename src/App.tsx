@@ -1,11 +1,14 @@
 import { Dumbbell, TriangleAlert } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { AppShell } from './components/layout/AppShell'
-import type { TabId } from './components/layout/tabs'
-import { ComingSoon } from './features/ComingSoon'
-import { ExerciseCatalog } from './features/exercises/ExerciseCatalog'
-import { DailyTracker } from './features/tracker/DailyTracker'
 import { SessionProvider } from './components/layout/SessionProvider'
+import type { TabId } from './components/layout/tabs'
+import { DailyTracker } from './features/tracker/DailyTracker'
+
+// The start tab ships in the main bundle; the others (incl. Recharts) load on first visit.
+const ExerciseCatalog = lazy(() => import('./features/exercises/ExerciseCatalog').then((m) => ({ default: m.ExerciseCatalog })))
+const StatsDashboard = lazy(() => import('./features/stats/StatsDashboard').then((m) => ({ default: m.StatsDashboard })))
+const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('today')
@@ -13,14 +16,24 @@ export default function App() {
   return (
     <SessionProvider fallback={(state) => <SplashScreen error={state.status === 'error' ? state.message : null} />}>
       <AppShell tab={tab} onTabChange={setTab}>
-        {tab === 'today' && <DailyTracker />}
-        {tab === 'exercises' && <ExerciseCatalog />}
-        {tab === 'stats' && (
-          <ComingSoon title="Statistik" description="Wochenvolumen, Aktivitäts-Heatmap und Muskelgruppen-Verteilung." />
-        )}
-        {tab === 'profile' && <ComingSoon title="Profil" description="Ziele, Einstellungen und Konto-Verknüpfung." />}
+        <Suspense fallback={<TabSkeleton />}>
+          {tab === 'today' && <DailyTracker />}
+          {tab === 'exercises' && <ExerciseCatalog />}
+          {tab === 'stats' && <StatsDashboard />}
+          {tab === 'profile' && <ProfilePage />}
+        </Suspense>
       </AppShell>
     </SessionProvider>
+  )
+}
+
+function TabSkeleton() {
+  return (
+    <div className="mx-auto max-w-6xl" aria-busy>
+      <div className="h-4 w-32 animate-pulse rounded-full bg-sunken" />
+      <div className="mt-3 h-10 w-56 animate-pulse rounded-2xl bg-sunken" />
+      <div className="glass mt-8 h-64 animate-pulse rounded-3xl" />
+    </div>
   )
 }
 

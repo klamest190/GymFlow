@@ -14,8 +14,9 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 ### Einmalig in der Firebase Console
 
 1. **Firestore Database** anlegen (Production Mode).
-2. **Authentication → Anmeldemethoden → Anonym** aktivieren (Nutzer können später per `linkWithPopup` auf Google/Apple upgraden, ohne Daten zu verlieren).
-3. Security Rules deployen: `npx firebase-tools deploy --only firestore`
+2. **Authentication → Anmeldemethoden → Anonym** aktivieren. Jeder startet als Gast, ohne Registrierung.
+3. **Authentication → Anmeldemethoden → Google** aktivieren. Damit lässt sich das Gastkonto im Profil-Tab per „Mit Google sichern“ verknüpfen, und die Daten bleiben bei einem Gerätewechsel erhalten. Für eine eigene Domain diese unter *Authentication → Einstellungen → Autorisierte Domains* eintragen.
+4. Security Rules deployen: `npx firebase-tools deploy --only firestore:rules`
 
 ## Übungskatalog
 
@@ -28,9 +29,11 @@ Felder: `id`, `name`, `description`, `instructions`, `formCues[]`, `primaryMuscl
 ## Firestore-Schema
 
 ```
-users/{uid}                               Profil & Einstellungen
+users/{uid}                               Profil: { weeklyGoalDays: 1–7, updatedAt }
 users/{uid}/workout_logs/{YYYY-MM-DD}     Genau ein Dokument pro Trainingstag
 ```
+
+Das Farbschema (Hell/Dunkel/System) wird pro Gerät in `localStorage` gespeichert, nicht in Firestore.
 
 **`users/{uid}/workout_logs/{date}`**:
 ```jsonc
@@ -56,6 +59,22 @@ users/{uid}/workout_logs/{YYYY-MM-DD}     Genau ein Dokument pro Trainingstag
 - *Denormalisierte Übungsdaten in Einträgen* (Name, Muskeln): Die Historie bleibt korrekt, auch wenn eine Übung im Katalog später umbenannt wird.
 - Offline-first über `persistentLocalCache`: Writes landen sofort lokal und synchronisieren, sobald wieder Empfang da ist.
 
+## Statistik
+
+Der Tab „Statistik“ lädt die Logs der letzten 12 Monate (höchstens 365 Reads) und berechnet alles clientseitig ([src/lib/stats.ts](src/lib/stats.ts)):
+
+- **Diese Woche:** Wochenziel-Ring, Wiederholungen, Volumen (jeweils im Vergleich mit denselben Wochentagen der Vorwoche) und die Serie aktiver Wochen
+- **Pro Woche:** Säulen über die letzten 12 Kalenderwochen, umschaltbar zwischen Wiederholungen, Sätzen und Volumen; die laufende Woche ist heller dargestellt
+- **Muskelgruppen:** Sätze pro Muskelgruppe für 7, 30 oder 90 Tage; Hilfsmuskeln zählen optional mit ½
+- **Aktivität:** Heatmap über 12 Monate auf dem Desktop bzw. 6 Monate auf dem Handy, Stufen nach Quartilen
+- **Fortschritt:** schwerster Satz bzw. Wiederholungen pro Training und Übung, dazu Bestleistungen
+
+Die Diagrammfarben stehen in [chartTheme.ts](src/features/stats/chartTheme.ts) und sind gegen die Kartenflächen auf Kontrast geprüft. Im Light Mode ist das Grün deshalb dunkler als die Akzentfarbe.
+
+## PWA
+
+GymFlow lässt sich als App installieren: über `public/manifest.webmanifest` mit Icons und einen Service Worker (`public/sw.js`, nur im Production-Build registriert), der die App-Hülle offline bereithält. Die Trainingsdaten selbst puffert Firestore offline. Die Installation setzt HTTPS voraus, also gehostet z. B. über Firebase Hosting oder Vercel.
+
 ## Struktur
 
 ```
@@ -64,9 +83,14 @@ src/
   data/exercises.ts          Fester Übungskatalog inkl. Ausführungserklärungen
   data/muscleGroups.ts       Labels & Farben
   services/                  Repository-Interface + Firestore- und localStorage-Implementierung
-  hooks/                     useLogsInRange, useDayDraft (optimistisch + debounced save)
-  components/                AppShell (Sidebar/TabBar), Sheet, NumberStepper, AnimatedNumber
+  lib/stats.ts               Auswertungen für das Dashboard
+  lib/pwa.ts                 Service-Worker-Registrierung, Install-Prompt
+  hooks/                     useLogsInRange, useProfile, useAccount, useDayDraft, useTheme
+  components/                AppShell (Sidebar/TabBar), Sheet, SegmentedControl, NumberStepper, AnimatedNumber
   features/tracker/          Daily Tracker (WeekStrip, DaySummary, ExerciseEntryCard, ExercisePicker)
   features/exercises/        Übungskatalog und Detail-Sheet
+  features/stats/            Statistik-Dashboard (Recharts, lazy geladen)
+  features/profile/          Profil: Konto/Google, Wochenziel, Darstellung, App installieren
+public/                      Manifest, Icons, Service Worker
 firestore.rules              Security Rules
 ```

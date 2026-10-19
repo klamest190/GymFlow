@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="description" content="GymFlow – Workouts tracken, Fortschritt sehen." />
+    <meta name="apple-mobile-web-app-title" content="GymFlow" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a0b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,8 +18,9 @@
     <script>
       // Apply the theme before first paint to avoid a light/dark flash.
       try {
+        // 'light' | 'dark'; anything else (incl. no value) means "follow the system".
         const stored = localStorage.getItem('gymflow:theme')
-        const dark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+        const dark = stored === 'light' || stored === 'dark' ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
         document.documentElement.classList.toggle('dark', dark)
       } catch {}
     </script>

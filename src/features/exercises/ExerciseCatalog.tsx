@@ -5,6 +5,8 @@ import { EXERCISES, getExercise } from '../../data/exercises'
 import { DIFFICULTY_LABELS, EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { useLogsInRange } from '../../hooks/useData'
 import { useUserId } from '../../auth/authContext'
+import { authErrorMessage } from '../../auth/authErrors'
+import { useToast } from '../../components/ui/toastContext'
 import { addDays, formatDaysAgo, todayKey } from '../../lib/dates'
 import { buildExerciseHistory, type ExerciseSession } from '../../lib/exerciseHistory'
 import { buildWorkoutLog, createEntry } from '../../lib/workoutMath'
@@ -27,6 +29,7 @@ export function ExerciseCatalog() {
   const [search, setSearch] = useState('')
   const [muscle, setMuscle] = useState<MuscleGroup | 'all'>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const toast = useToast()
 
   const history = useMemo(() => buildExerciseHistory(logs), [logs])
   const todayLog = logs.find((log) => log.date === today) ?? null
@@ -43,7 +46,12 @@ export function ExerciseCatalog() {
   const addToToday = (exercise: Exercise) => {
     if (!ready || todayIds.has(exercise.id)) return
     const entries = todayLog?.entries ?? []
-    void repository.saveLog(buildWorkoutLog(userId, today, [...entries, createEntry(exercise, entries.length)], todayLog))
+    // Close right away: the write is optimistic (offline cache), so the entry is already in "Heute".
+    setSelectedId(null)
+    toast({ tone: 'success', title: `${exercise.name} hinzugefügt`, description: 'Du findest die Übung im Tab „Heute“.' })
+    repository
+      .saveLog(buildWorkoutLog(userId, today, [...entries, createEntry(exercise, entries.length)], todayLog))
+      .catch((error) => toast({ tone: 'error', title: 'Nicht gespeichert', description: authErrorMessage(error) }))
   }
 
   return (

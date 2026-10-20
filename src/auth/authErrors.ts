@@ -10,6 +10,13 @@ const MESSAGES: Record<string, string> = {
   'auth/network-request-failed': 'Keine Verbindung. Bitte prüfe deine Internetverbindung.',
   'auth/operation-not-allowed': 'Die Anmeldung per E-Mail ist in Firebase noch nicht aktiviert.',
   'auth/missing-password': 'Bitte gib dein Passwort ein.',
+  // Deployment configuration (e.g. missing or mistyped environment variables on the host)
+  'auth/invalid-api-key': 'Die Firebase-Konfiguration dieser Installation ist ungültig (API-Key). Bitte die Umgebungsvariablen prüfen.',
+  'auth/api-key-not-valid.-please-pass-a-valid-api-key.':
+    'Die Firebase-Konfiguration dieser Installation ist ungültig (API-Key). Bitte die Umgebungsvariablen prüfen.',
+  'auth/configuration-not-found': 'Für dieses Firebase-Projekt ist die Anmeldung nicht eingerichtet. Bitte die Projekt-ID in den Umgebungsvariablen prüfen.',
+  'auth/unauthorized-domain':
+    'Diese Domain ist in Firebase nicht freigegeben (Authentication → Einstellungen → Autorisierte Domains).',
   // Account creation (admin)
   'auth/email-already-in-use':
     'Für diese E-Mail existiert bereits ein Login. Falls das Konto gelöscht wurde, entferne den Login zuerst in der Firebase Console (Authentication → Nutzer).',
@@ -21,5 +28,12 @@ const MESSAGES: Record<string, string> = {
 
 export function authErrorMessage(error: unknown, fallback = 'Etwas ist schiefgelaufen. Bitte versuche es erneut.'): string {
   const code = (error as { code?: string } | null)?.code ?? ''
-  return MESSAGES[code] ?? fallback
+  if (MESSAGES[code]) return MESSAGES[code]
+  // An API key restricted to other websites (Google Cloud → API keys → website restrictions).
+  if (code.startsWith('auth/requests-from-referer-')) {
+    return 'Der Firebase-API-Key ist für diese Domain gesperrt (Google Cloud Console → API-Schlüssel → Website-Einschränkungen).'
+  }
+  console.error('[GymFlow] unmapped error', error)
+  // Show the raw code so unexpected problems can be diagnosed without dev tools.
+  return code ? `${fallback} (Fehlercode: ${code})` : fallback
 }

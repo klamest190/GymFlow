@@ -14,6 +14,19 @@ interface ActivityHeatmapProps {
 const WEEKDAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So']
 const monthFormatter = new Intl.DateTimeFormat('de-DE', { month: 'short' })
 
+/** "Mi., 22. Okt.: 120 Wdh. · 12 Sätze · 1.250 kg" – used for the native tooltip and screen readers. */
+function describeDay(day: HeatmapDay): string {
+  return `${formatWeekdayDate(day.date)}: ${dayDetails(day)}`
+}
+
+function dayDetails(day: HeatmapDay): string {
+  if (!day.totals) return 'kein Training'
+  const { reps, sets, volumeKg } = day.totals
+  const parts = [`${formatMetric(reps, 'reps')} Wdh.`, `${formatMetric(sets, 'sets')} ${sets === 1 ? 'Satz' : 'Sätze'}`]
+  if (volumeKg > 0) parts.push(formatMetric(volumeKg, 'volumeKg'))
+  return parts.join(' · ')
+}
+
 /**
  * GitHub-style calendar: one column per week, one cell per day, intensity = quartile of the
  * selected metric. Hover/tap shows the day's value in the readout line below.
@@ -80,7 +93,8 @@ export function ActivityHeatmap({ logs, metric, weeks }: ActivityHeatmapProps) {
                       onPointerEnter={() => !isFuture && setFocused(day)}
                       onFocus={() => setFocused(day)}
                       onClick={() => setFocused(day)}
-                      aria-label={`${formatWeekdayDate(day.date)}: ${day.level > 0 ? formatMetric(day.value, metric) : 'kein Training'}`}
+                      title={describeDay(day)}
+                      aria-label={describeDay(day)}
                       className={`aspect-square w-full rounded-[3px] transition-transform hover:scale-125 focus-visible:scale-125 disabled:invisible ${
                         focused?.date === day.date ? 'ring-2 ring-fg/60' : ''
                       }`}
@@ -100,7 +114,7 @@ export function ActivityHeatmap({ logs, metric, weeks }: ActivityHeatmapProps) {
             <>
               <span className="text-fg">{formatWeekdayDate(focused.date)}</span>
               {' · '}
-              {focused.level > 0 ? formatMetric(focused.value, metric) : 'kein Training'}
+              {dayDetails(focused)}
             </>
           ) : (
             'Tag antippen oder überfahren für Details'

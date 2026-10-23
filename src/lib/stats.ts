@@ -59,14 +59,17 @@ export function percentChange(current: number, previous: number): number | null 
 export interface WeekPoint extends PeriodSummary {
   weekStart: DateKey
   isCurrent: boolean
+  /** The full week before, for "vs. Vorwoche" in tooltips. */
+  previous: PeriodSummary
 }
 
 /** One point per ISO week (Mon–Sun) for the last `weeks` weeks, oldest first. */
 export function weeklySeries(logs: WorkoutLog[], today: DateKey, weeks: number): WeekPoint[] {
   const currentWeek = startOfWeek(today)
+  const weekSummary = (weekStart: DateKey) => summarize(logs, weekStart, addDays(weekStart, 6))
   return Array.from({ length: weeks }, (_, index) => {
     const weekStart = addDays(currentWeek, (index - weeks + 1) * 7)
-    return { weekStart, isCurrent: weekStart === currentWeek, ...summarize(logs, weekStart, addDays(weekStart, 6)) }
+    return { weekStart, isCurrent: weekStart === currentWeek, ...weekSummary(weekStart), previous: weekSummary(addDays(weekStart, -7)) }
   })
 }
 
@@ -116,6 +119,8 @@ export function muscleDistribution(logs: WorkoutLog[], from: DateKey, includeSec
 export interface HeatmapDay {
   date: DateKey
   value: number
+  /** All totals of the day, or `null` without a log. */
+  totals: WorkoutTotals | null
   /** 0 = no training, 1–4 = quartile of the training days' values. */
   level: 0 | 1 | 2 | 3 | 4
 }
@@ -125,6 +130,7 @@ export interface HeatmapDay {
  * week. Levels are relative quartiles, so the map stays readable for beginners and pros alike.
  */
 export function heatmapGrid(logs: WorkoutLog[], today: DateKey, weeks: number, metric: Metric): HeatmapDay[][] {
+  const totalsByDate = new Map(logs.map((log) => [log.date, log.totals]))
   const values = new Map(logs.map((log) => [log.date, log.totals[metric]]))
   const sorted = [...values.values()].filter((value) => value > 0).sort((a, b) => a - b)
   const quantile = (q: number) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] ?? 0
@@ -144,7 +150,7 @@ export function heatmapGrid(logs: WorkoutLog[], today: DateKey, weeks: number, m
   return Array.from({ length: weeks }, (_, week) =>
     Array.from({ length: 7 }, (_, day) => {
       const date = addDays(firstMonday, week * 7 + day)
-      return { date, value: values.get(date) ?? 0, level: date > today ? 0 : levelOf(date) }
+      return { date, value: values.get(date) ?? 0, totals: totalsByDate.get(date) ?? null, level: date > today ? 0 : levelOf(date) }
     }),
   )
 }
@@ -173,11 +179,16 @@ export function exerciseProgress(logs: WorkoutLog[], exerciseId: string): Progre
   return points.sort((a, b) => a.date.localeCompare(b.date))
 }
 
-/** Exercise IDs ordered by how often they were trained (most frequent first). */
-export function trainedExerciseIds(logs: WorkoutLog[]): string[] {
+export interface TrainedExercise {
+  exerciseId: string
+  sessions: number
+}
+
+/** Trained exercises with their session count, most frequent first. */
+export function trainedExercises(logs: WorkoutLog[]): TrainedExercise[] {
   const counts = new Map<string, number>()
   for (const log of logs) for (const entry of log.entries) counts.set(entry.exerciseId, (counts.get(entry.exerciseId) ?? 0) + 1)
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id)
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([exerciseId, sessions]) => ({ exerciseId, sessions }))
 }
 
 /** Days since the most recent training, or `null` if there is none. */

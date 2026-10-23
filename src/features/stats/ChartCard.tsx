@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { ChartNoAxesColumn } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -36,12 +37,31 @@ export function ChartEmpty({ children }: { children: ReactNode }) {
   )
 }
 
-/** Glass tooltip used by all Recharts charts. */
-export function TooltipCard({ title, children }: { title: string; children: ReactNode }) {
+/** Frosted-glass tooltip used by all Recharts charts; pops in with a small spring. */
+export function TooltipCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface-solid/95 px-3.5 py-2.5 text-[13px] shadow-float backdrop-blur-xl">
-      <div className="font-semibold">{title}</div>
-      <div className="mt-0.5 space-y-0.5 text-muted">{children}</div>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.92, y: 4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 520, damping: 32 }}
+      className="min-w-44 rounded-2xl border border-line bg-surface px-3.5 py-3 text-[13px] shadow-float backdrop-blur-2xl backdrop-saturate-[1.8]"
+    >
+      <div className="font-semibold tracking-tight">{title}</div>
+      {subtitle && <div className="text-[12px] text-muted">{subtitle}</div>}
+      <div className="mt-2 space-y-1 text-muted">{children}</div>
+    </motion.div>
+  )
+}
+
+/** Label/value line inside a TooltipCard; `highlight` marks the series the chart plots. */
+export function TooltipRow({ label, value, highlight, swatch }: { label: string; value: ReactNode; highlight?: boolean; swatch?: string }) {
+  return (
+    <div className={`flex items-center justify-between gap-4 ${highlight ? 'font-semibold text-fg' : ''}`}>
+      <span className="flex items-center gap-1.5">
+        {swatch && <span className="size-2 rounded-full" style={{ backgroundColor: swatch }} />}
+        {label}
+      </span>
+      <span className="tabular-nums">{value}</span>
     </div>
   )
 }

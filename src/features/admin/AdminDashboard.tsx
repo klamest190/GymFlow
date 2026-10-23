@@ -6,6 +6,7 @@ import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { useAllUsers } from '../../hooks/useData'
 import type { UserProfile } from '../../types/models'
+import { LevelBadge } from '../gamification/RankBadge'
 import { CreateUserSheet } from './CreateUserSheet'
 import { RoleBadge, StatusBadge, UserAvatar } from './UserBadges'
 import { UserDetailSheet } from './UserDetailSheet'
@@ -126,10 +127,11 @@ export function AdminDashboard() {
           ) : (
             <section className="glass mt-4 overflow-hidden rounded-3xl" aria-label="Nutzerliste">
               {/* Desktop column headers */}
-              <div className="hidden grid-cols-[minmax(0,2.4fr)_1fr_1fr_1.2fr_1.2fr_24px] gap-4 border-b border-line px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted lg:grid">
+              <div className="hidden grid-cols-[minmax(0,2.4fr)_1fr_1fr_0.8fr_1.2fr_1.2fr_24px] gap-4 border-b border-line px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted lg:grid">
                 <span>Nutzer</span>
                 <span>Rolle</span>
                 <span>Status</span>
+                <span>Level</span>
                 <span>Zuletzt aktiv</span>
                 <span>Angelegt</span>
                 <span />
@@ -166,7 +168,7 @@ function UserRow({ user, isSelf, index, onOpen }: { user: UserProfile; isSelf: b
       <button
         type="button"
         onClick={onOpen}
-        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 text-left transition-colors hover:bg-sunken/60 lg:grid-cols-[minmax(0,2.4fr)_1fr_1fr_1.2fr_1.2fr_24px] lg:px-5"
+        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 text-left transition-colors hover:bg-sunken/60 lg:grid-cols-[minmax(0,2.4fr)_1fr_1fr_0.8fr_1.2fr_1.2fr_24px] lg:px-5"
       >
         <span className="flex min-w-0 items-center gap-3">
           <UserAvatar user={user} />
@@ -191,15 +193,18 @@ function UserRow({ user, isSelf, index, onOpen }: { user: UserProfile; isSelf: b
         <span className="hidden lg:block">
           <StatusBadge status={user.status} />
         </span>
+        <span className="hidden lg:block">
+          <LevelBadge gamification={user.gamification} />
+        </span>
         <span className="hidden text-[14px] text-muted lg:block">{formatLastSeen(user.lastLoginAt)}</span>
         <span className="hidden text-[14px] text-muted lg:block">{shortDate.format(user.createdAt)}</span>
         <ChevronRight className="hidden size-4 text-muted lg:block" />
 
-        {user.role === 'admin' && (
-          <span className="col-span-2 -mt-1 pl-[52px] lg:hidden">
-            <RoleBadge role={user.role} />
-          </span>
-        )}
+        {/* Mobile: level (and admin role) in a second line under the name */}
+        <span className="col-span-2 -mt-1 flex items-center gap-2 pl-13 lg:hidden">
+          <LevelBadge gamification={user.gamification} />
+          {user.role === 'admin' && <RoleBadge role={user.role} />}
+        </span>
       </button>
     </motion.li>
   )

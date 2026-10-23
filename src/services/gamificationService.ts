@@ -26,12 +26,15 @@ export const STREAK_BONUS_DAYS = 3
 /** Workouts logged from this hour until midnight count as late (achievement "Nachteule"). */
 export const LATE_WORKOUT_HOUR = 22
 
-const LEVEL_XP_BASE = 500
-const LEVEL_XP_EXPONENT = 1.5
+// Tuned for ~450 XP per workout at 3–4 workouts a week: Bronze after ~3 weeks, Gold after about
+// a year, Grandmaster only after many years. The original brief's 500 · n^1.5 needed ~4.400
+// workouts for Gold, which made everything above Silver unreachable.
+const LEVEL_XP_BASE = 100
+const LEVEL_XP_EXPONENT = 1.1
 
 // ─── XP curve ────────────────────────────────────────────────────────────────
 
-/** XP needed to get from `level` to `level + 1`: 500, 1.414, 2.598, 4.000, … */
+/** XP needed to get from `level` to `level + 1`: 100, 214, 334, 459, … */
 export function xpForNextLevel(level: number): number {
   return Math.floor(LEVEL_XP_BASE * Math.pow(level, LEVEL_XP_EXPONENT))
 }

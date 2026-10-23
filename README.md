@@ -136,7 +136,7 @@ Die Diagrammfarben stehen in [chartTheme.ts](src/features/stats/chartTheme.ts) u
 Im Profil zeigt GymFlow Level, Rang (Liga) und Erfolge. Logik: [gamificationService.ts](src/services/gamificationService.ts), Ränge: [ranks.ts](src/data/ranks.ts), Erfolge: [achievements.ts](src/data/achievements.ts).
 
 - **XP:** 15 pro Satz, 150 pro Workout (= Trainingstag mit mindestens einem Satz), 500 Bonus an jedem 3. Tag am Stück (Tag 3, 6, 9, … einer Serie).
-- **Level:** Für den Schritt von Level `n` auf `n + 1` braucht es `floor(500 · n^1,5)` XP (500, 1.414, 2.598, …).
+- **Level:** Für den Schritt von Level `n` auf `n + 1` braucht es `floor(100 · n^1,1)` XP (100, 214, 334, …). Bei rund 450 XP pro Workout und 3–4 Workouts pro Woche heißt das: Bronze nach ~12 Workouts, Silber nach ~54, Gold nach ~1,3 Jahren, Platin nach ~3, Diamant nach ~5,7 und Grandmaster nach ~9 Jahren. Die ursprünglich vorgesehene Kurve `500 · n^1,5` hätte für Gold ~4.400 Workouts gebraucht. Die Konstanten stehen oben in `gamificationService.ts`.
 - **Ränge:** Eisen (1–9), Bronze (10–19), Silber (20–39), Gold (40–59), Platin (60–79), Diamant (80–99), Grandmaster (ab 100).
 - **Abgeleitet statt vergeben:** XP werden bei jeder Änderung aus der gesamten Trainingshistorie neu berechnet, nicht pro Aktion aufaddiert. Weil Trainingstage bearbeitbar sind, ließen sich XP sonst durch Löschen und erneutes Anlegen von Sätzen farmen, und Korrekturen an alten Tagen würden sie verfälschen. Wer Sätze löscht, verliert die XP dafür wieder. Erfolge bleiben dagegen dauerhaft freigeschaltet.
 - **Sync:** Der `GamificationProvider` lädt alle Trainingstage (ein kleines Dokument pro Tag), berechnet den Stand und spiegelt ihn in `users/{uid}`. Bei einem Level-Up, neuen Rang oder Erfolg erscheint ein Toast. Der erste Sync eines Kontos mit bestehender Historie läuft still, damit nicht alles auf einmal gefeiert wird.
@@ -167,8 +167,8 @@ src/
   features/exercises/        Übungskatalog und Detail-Sheet
   features/stats/            Statistik-Dashboard (Recharts, lazy geladen)
   features/auth/             Login-Screen (inkl. Passwort vergessen), Kein-Zugang-Screen
-  features/admin/            Nutzerverwaltung: Liste, Anlegen, Bearbeiten, Sperren, Löschen
-  features/gamification/     GamificationProvider (Sync + Toasts), GamificationDashboard (Level, Rang, Erfolge)
+  features/admin/            Nutzerverwaltung: Liste (mit Level), Anlegen, Bearbeiten, Sperren, Löschen
+  features/gamification/     GamificationProvider (Sync + Toasts), GamificationDashboard (Level, Rang, Erfolge), RankBadge/LevelBadge
   features/profile/          Profil: Konto, Level & Erfolge, Passwort ändern, Wochenziel, Darstellung, App installieren
 public/                      Manifest, Icons, Service Worker
 firestore.rules              Security Rules (RBAC)

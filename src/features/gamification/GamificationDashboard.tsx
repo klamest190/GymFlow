@@ -13,6 +13,7 @@ import {
 } from '../../services/gamificationService'
 import type { DateKey } from '../../types/models'
 import { useGamification } from './gamificationContext'
+import { RankBadge } from './RankBadge'
 
 const numberFormatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
 const format = (value: number) => numberFormatter.format(value)
@@ -111,19 +112,6 @@ function RankEmblem({ rank, level }: { rank: RankDefinition; level: number }) {
         {level}
       </span>
     </motion.div>
-  )
-}
-
-export function RankBadge({ rank }: { rank: RankDefinition }) {
-  const Icon = rank.icon
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider"
-      style={{ background: rank.gradient, color: rank.ink }}
-    >
-      <Icon className="size-3.5" strokeWidth={2.5} />
-      {rank.label}
-    </span>
   )
 }
 

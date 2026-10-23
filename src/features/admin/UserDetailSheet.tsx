@@ -7,9 +7,13 @@ import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { Sheet } from '../../components/ui/Sheet'
 import { useToast } from '../../components/ui/toastContext'
 import { repository } from '../../services/repository'
+import { ACHIEVEMENTS } from '../../data/achievements'
+import { RANK_BY_ID } from '../../data/ranks'
 import type { UserProfile, UserRole, UserStatus, UserUpdate } from '../../types/models'
+import { LevelBadge } from '../gamification/RankBadge'
 import { RoleBadge, StatusBadge, UserAvatar } from './UserBadges'
 
+const xpFormatter = new Intl.NumberFormat('de-DE')
 const dateTime = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; onClose: () => void }) {
@@ -89,8 +93,9 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
           <div className="min-w-0">
             <p className="truncate text-[20px] font-bold tracking-tight">{shown.displayName}</p>
             <p className="truncate text-[14px] text-muted">{shown.email}</p>
-            <div className="mt-1.5 flex items-center gap-3">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <RoleBadge role={shown.role} />
+              <LevelBadge gamification={shown.gamification} />
               <StatusBadge status={shown.status} />
             </div>
           </div>
@@ -164,6 +169,20 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
             <Row label="Angelegt">{dateTime.format(shown.createdAt)}</Row>
             <Row label="Zuletzt aktiv">{shown.lastLoginAt ? dateTime.format(shown.lastLoginAt) : 'Noch nie angemeldet'}</Row>
             <Row label="Wochenziel">{shown.weeklyGoalDays} Tage</Row>
+            {shown.gamification ? (
+              <>
+                <Row label="Level">
+                  {shown.gamification.level} · {RANK_BY_ID[shown.gamification.rank].label}
+                </Row>
+                <Row label="XP gesamt">{xpFormatter.format(shown.gamification.totalXP)}</Row>
+                <Row label="Erfolge">
+                  {ACHIEVEMENTS.filter((achievement) => shown.gamification?.unlockedAchievements[achievement.id]).length} /{' '}
+                  {ACHIEVEMENTS.length}
+                </Row>
+              </>
+            ) : (
+              <Row label="Level">Noch nicht synchronisiert</Row>
+            )}
             <Row label="Nutzer-ID">
               <code className="font-mono text-[12px] text-muted">{shown.id}</code>
             </Row>

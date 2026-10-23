@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 23.10.2026 · Level- & Achievement-System umgesetzt, **Rules dafür noch nicht deployt** · Einrichtung in der Firebase Console steht noch aus
+Stand: 23.10.2026 · Level- & Achievement-System umgesetzt, Rules deployt · **Einrichtung in der Firebase Console steht noch aus**
 
 ## Weitermachen
 
@@ -34,7 +34,7 @@ npm run dev
 | **Briefing v2:** Admin-Panel | ✅ Tab „Admin“: Nutzer anlegen (mit Startpasswort und Reset-Mail), Name/Rolle ändern, sperren, löschen |
 | **Briefing v2:** Custom Exercises | ❌ weiterhin bewusst nicht: fester Katalog (bestätigt am 19.10.) |
 | **Premium-Feinschliff** (23.10.) | ✅ Übungen: Skeletons, Hover-Lift mit Schatten, neongrüne Filter-Pills, leerer Zustand mit „Filter zurücksetzen“. Statistik: Trend-Badges für Wdh./Sätze/Volumen, Glas-Tooltip mit Vorwochenvergleich, Heatmap-Tooltips, Linie zeichnet sich ein, Übungs-Dropdown. Daten-Hooks `useExercises` und `useWorkoutStats` |
-| **Level & Erfolge** (23.10.) | ✅ XP-Kurve `floor(100 · n^1,1)` (statt der vorgegebenen `500 · n^1,5`, siehe README), Level-Spalte und Level-Details in der Nutzerverwaltung, 7 Ränge Eisen bis Grandmaster, 8 Erfolge, Reward-Toasts bei Level-Up/neuem Rang/Erfolg, Dashboard im Profil. XP werden aus der Historie abgeleitet und in `users/{uid}` gespiegelt. Rules erweitert, 63 Tests grün |
+| **Level & Erfolge** (23.10.) | ✅ XP-Kurve `floor(100 · n^1,1)` (statt der vorgegebenen `500 · n^1,5`, siehe README), Level-Spalte und Level-Details in der Nutzerverwaltung, 7 Ränge Eisen bis Grandmaster, 8 Erfolge, Reward-Toasts bei Level-Up/neuem Rang/Erfolg, Dashboard im Profil. XP werden aus der Historie abgeleitet und in `users/{uid}` gespiegelt. Rules erweitert, 63 Tests grün, deployt am 23.10. |
 
 ### Behobener Fehler (19.10.)
 
@@ -49,10 +49,6 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
   2. Firestore → `users/{UID}` mit `role: admin`, `status: active`
 - [ ] Danach: **Live-Test** mit dem Admin. Einen Testnutzer anlegen, mit ihm anmelden, sperren und prüfen, dass er sofort ausgesperrt ist.
 - [ ] Optional: alte anonyme Test-Gastkonten unter Authentication → Nutzer löschen. Sie haben keinen Zugriff mehr.
-
-## Offen: Level & Erfolge
-
-- [ ] **Rules deployen:** `firebase deploy --only firestore:rules --project gymflow-917db`. Bis dahin lehnt Firestore das Speichern der XP-Felder ab. Die Anzeige funktioniert trotzdem, weil sie live aus den Trainingstagen berechnet wird.
 
 ## Offen: lokal
 

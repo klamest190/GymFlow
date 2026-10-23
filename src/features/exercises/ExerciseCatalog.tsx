@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useUserId } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
 import { FilterPills, type FilterOption } from '../../components/ui/FilterPills'
+import { Loadable } from '../../components/ui/Loadable'
 import { useToast } from '../../components/ui/toastContext'
 import { getExercise } from '../../data/exercises'
 import { DIFFICULTY_LABELS, EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
@@ -81,37 +82,36 @@ export function ExerciseCatalog() {
         />
       </div>
 
-      <AnimatePresence mode="wait" initial={false}>
-        {!catalog.ready ? (
-          <motion.ul
-            key="skeleton"
-            aria-busy
-            aria-label="Übungen werden geladen"
-            exit={{ opacity: 0, transition: { duration: 0.15 } }}
-            className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-          >
+      <Loadable
+        ready={catalog.ready}
+        skeleton={
+          <ul aria-label="Übungen werden geladen" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: SKELETON_CARDS }, (_, index) => (
               <ExerciseCardSkeleton key={index} />
             ))}
-          </motion.ul>
-        ) : catalog.exercises.length > 0 ? (
-          <motion.ul key="list" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <AnimatePresence>
-              {catalog.exercises.map((exercise, index) => (
-                <ExerciseCard
-                  key={exercise.id}
-                  index={index}
-                  exercise={exercise}
-                  sessions={catalog.sessionsOf(exercise.id)}
-                  onClick={() => setSelectedId(exercise.id)}
-                />
-              ))}
-            </AnimatePresence>
-          </motion.ul>
-        ) : (
-          <EmptyState key="empty" hasSearch={catalog.search.trim() !== ''} onReset={catalog.resetFilters} />
-        )}
-      </AnimatePresence>
+          </ul>
+        }
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {catalog.exercises.length > 0 ? (
+            <motion.ul key="list" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <AnimatePresence>
+                {catalog.exercises.map((exercise, index) => (
+                  <ExerciseCard
+                    key={exercise.id}
+                    index={index}
+                    exercise={exercise}
+                    sessions={catalog.sessionsOf(exercise.id)}
+                    onClick={() => setSelectedId(exercise.id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.ul>
+          ) : (
+            <EmptyState key="empty" hasSearch={catalog.search.trim() !== ''} onReset={catalog.resetFilters} />
+          )}
+        </AnimatePresence>
+      </Loadable>
 
       <ExerciseDetailSheet
         exercise={selected}

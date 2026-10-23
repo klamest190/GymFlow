@@ -19,7 +19,8 @@ export function AppShell({ tab, onTabChange, children }: AppShellProps) {
       <div className="relative mx-auto flex max-w-[1440px]">
         <Sidebar tab={tab} onTabChange={onTabChange} />
         <main className="min-w-0 flex-1 px-4 pb-36 pt-[calc(env(safe-area-inset-top)+20px)] sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
-          <AnimatePresence mode="wait" initial={false}>
+          {/* Each tab starts at the top, reset while the old one is already faded out (no visible jump). */}
+          <AnimatePresence mode="wait" initial={false} onExitComplete={() => window.scrollTo({ top: 0 })}>
             <motion.div
               key={tab}
               initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}

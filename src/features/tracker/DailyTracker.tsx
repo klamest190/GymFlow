@@ -3,6 +3,7 @@ import { CalendarDays, CloudCheck, CloudOff, Dumbbell, LoaderCircle, Moon, Plus,
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { EXERCISES, getExercise } from '../../data/exercises'
+import { Loadable } from '../../components/ui/Loadable'
 import { useLogsInRange } from '../../hooks/useData'
 import { useDayDraft, type SyncState } from '../../hooks/useDayDraft'
 import { useUserId } from '../../auth/authContext'
@@ -67,33 +68,33 @@ export function DailyTracker() {
             </button>
           </div>
 
-          {!ready ? (
-            <EntriesSkeleton />
-          ) : entries.length === 0 ? (
-            <EmptyState isToday={date === todayKey()} onAdd={() => setPickerOpen(true)} />
-          ) : (
-            <motion.ul layout className="space-y-3">
-              <AnimatePresence initial={false} mode="popLayout">
-                {entries.map((entry) => (
-                  <motion.li
-                    key={entry.id}
-                    layout
-                    initial={{ opacity: 0, y: 24, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: -60, scale: 0.95, transition: { duration: 0.2 } }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                  >
-                    <ExerciseEntryCard
-                      entry={entry}
-                      exercise={getExercise(entry.exerciseId)}
-                      onChange={changeEntry}
-                      onRemove={() => removeEntry(entry.id)}
-                    />
-                  </motion.li>
-                ))}
-              </AnimatePresence>
-            </motion.ul>
-          )}
+          <Loadable ready={ready} skeleton={<EntriesSkeleton />}>
+            {entries.length === 0 ? (
+              <EmptyState isToday={date === todayKey()} onAdd={() => setPickerOpen(true)} />
+            ) : (
+              <motion.ul layout className="space-y-3">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {entries.map((entry) => (
+                    <motion.li
+                      key={entry.id}
+                      layout
+                      initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: -60, scale: 0.95, transition: { duration: 0.2 } }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                    >
+                      <ExerciseEntryCard
+                        entry={entry}
+                        exercise={getExercise(entry.exerciseId)}
+                        onChange={changeEntry}
+                        onRemove={() => removeEntry(entry.id)}
+                      />
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+              </motion.ul>
+            )}
+          </Loadable>
         </div>
 
         {/* Mobile: summary sits above the entries. Desktop: sticky right column. */}
@@ -279,9 +280,13 @@ function EmptyState({ isToday, onAdd }: { isToday: boolean; onAdd: () => void })
 
 function EntriesSkeleton() {
   return (
-    <div className="space-y-3" aria-busy>
+    <div className="space-y-3" aria-label="Training wird geladen">
       {[0, 1].map((index) => (
-        <div key={index} className="glass h-44 animate-pulse rounded-3xl" />
+        <div key={index} className="glass rounded-3xl p-5">
+          <span className="skeleton block h-4 w-2/5 rounded-md" />
+          <span className="skeleton mt-2.5 block h-3 w-1/4 rounded-md" />
+          <span className="skeleton mt-5 block h-16 rounded-2xl" />
+        </div>
       ))}
     </div>
   )

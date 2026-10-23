@@ -1,6 +1,7 @@
 import { motion, type Variants } from 'framer-motion'
 import { Check, Flame, Layers, Lock, Trophy } from 'lucide-react'
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
+import { Loadable } from '../../components/ui/Loadable'
 import { ACHIEVEMENTS, type AchievementDefinition, type ProgressMetrics } from '../../data/achievements'
 import { RANK_BY_ID, RANKS, type RankDefinition } from '../../data/ranks'
 import { formatFullDate } from '../../lib/dates'
@@ -31,12 +32,15 @@ const tileMotion: Variants = {
 /** Level, rank and achievements of the signed-in user (profile tab). */
 export function GamificationDashboard() {
   const evaluation = useGamification()
-  if (!evaluation) return <DashboardSkeleton />
   return (
-    <div className="space-y-4">
-      <LevelCard evaluation={evaluation} />
-      <AchievementGrid unlocked={evaluation.state.unlockedAchievements} metrics={evaluation.summary.metrics} />
-    </div>
+    <Loadable ready={evaluation !== null} skeleton={<DashboardSkeleton />}>
+      {evaluation && (
+        <div className="space-y-4">
+          <LevelCard evaluation={evaluation} />
+          <AchievementGrid unlocked={evaluation.state.unlockedAchievements} metrics={evaluation.summary.metrics} />
+        </div>
+      )}
+    </Loadable>
   )
 }
 

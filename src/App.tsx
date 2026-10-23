@@ -1,5 +1,6 @@
+import { motion } from 'framer-motion'
 import { Dumbbell } from 'lucide-react'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useAuth } from './auth/authContext'
 import { AppShell } from './components/layout/AppShell'
 import type { TabId } from './components/layout/tabs'
@@ -7,12 +8,38 @@ import { LoginScreen } from './features/auth/LoginScreen'
 import { NoAccessScreen } from './features/auth/NoAccessScreen'
 import { GamificationProvider } from './features/gamification/GamificationProvider'
 import { DailyTracker } from './features/tracker/DailyTracker'
+import { useDelayedFlag } from './hooks/useDelayedFlag'
 
-// The start tab ships in the main bundle; the others (incl. Recharts) load on first visit.
-const ExerciseCatalog = lazy(() => import('./features/exercises/ExerciseCatalog').then((m) => ({ default: m.ExerciseCatalog })))
-const StatsDashboard = lazy(() => import('./features/stats/StatsDashboard').then((m) => ({ default: m.StatsDashboard })))
-const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
-const AdminDashboard = lazy(() => import('./features/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })))
+// The start tab ships in the main bundle; the others (incl. Recharts) are separate chunks that
+// are preloaded in the background right after start (see SignedInApp).
+const TAB_MODULES = {
+  exercises: () => import('./features/exercises/ExerciseCatalog'),
+  stats: () => import('./features/stats/StatsDashboard'),
+  profile: () => import('./features/profile/ProfilePage'),
+  admin: () => import('./features/admin/AdminDashboard'),
+}
+const ExerciseCatalog = lazy(() => TAB_MODULES.exercises().then((m) => ({ default: m.ExerciseCatalog })))
+const StatsDashboard = lazy(() => TAB_MODULES.stats().then((m) => ({ default: m.StatsDashboard })))
+const ProfilePage = lazy(() => TAB_MODULES.profile().then((m) => ({ default: m.ProfilePage })))
+const AdminDashboard = lazy(() => TAB_MODULES.admin().then((m) => ({ default: m.AdminDashboard })))
+
+/** Downloads the other tabs once the browser is idle, so switching tabs never waits for code. */
+function usePreloadTabs(isAdmin: boolean) {
+  useEffect(() => {
+    const preload = () => {
+      for (const [id, load] of Object.entries(TAB_MODULES)) {
+        // Offline or a failed download: no harm, the tab simply loads on its first visit.
+        if (id !== 'admin' || isAdmin) load().catch(() => {})
+      }
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(preload, { timeout: 2000 })
+      return () => window.cancelIdleCallback(handle)
+    }
+    const timer = window.setTimeout(preload, 1200)
+    return () => window.clearTimeout(timer)
+  }, [isAdmin])
+}
 
 /** Auth gate: every screen behind it can rely on an active, signed-in account (useSession). */
 export default function App() {
@@ -35,6 +62,7 @@ function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
   const [tab, setTab] = useState<TabId>('today')
   // A demoted admin must not stay on the admin tab.
   const activeTab = tab === 'admin' && !isAdmin ? 'today' : tab
+  usePreloadTabs(isAdmin)
 
   return (
     // Above the tabs, so a level-up is celebrated right where the set was logged.
@@ -52,13 +80,21 @@ function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
   )
 }
 
+/** Only if a tab's code is really still downloading (normally preloaded): appears late and softly. */
 function TabSkeleton() {
+  const visible = useDelayedFlag(true)
   return (
-    <div className="mx-auto max-w-6xl" aria-busy>
-      <div className="h-4 w-32 animate-pulse rounded-full bg-sunken" />
-      <div className="mt-3 h-10 w-56 animate-pulse rounded-2xl bg-sunken" />
-      <div className="glass mt-8 h-64 animate-pulse rounded-3xl" />
-    </div>
+    <motion.div
+      className="mx-auto max-w-6xl"
+      aria-busy
+      initial={{ opacity: 0 }}
+      animate={{ opacity: visible ? 1 : 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="skeleton h-4 w-32 rounded-full" />
+      <div className="skeleton mt-3 h-10 w-56 rounded-2xl" />
+      <div className="glass mt-8 h-64 rounded-3xl" />
+    </motion.div>
   )
 }
 

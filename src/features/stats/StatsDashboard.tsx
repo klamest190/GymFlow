@@ -1,6 +1,6 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 import { useSession } from '../../auth/authContext'
+import { Loadable } from '../../components/ui/Loadable'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { useIsDesktop } from '../../hooks/useUi'
 import { useWorkoutStats } from '../../hooks/useWorkoutStats'
@@ -36,33 +36,21 @@ export function StatsDashboard() {
         </div>
       </header>
 
-      <AnimatePresence mode="wait" initial={false}>
-        {!ready ? (
-          <motion.div key="skeleton" exit={{ opacity: 0, transition: { duration: 0.15 } }}>
-            <DashboardSkeleton />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            className="mt-6 space-y-4 lg:mt-8 lg:space-y-5"
-          >
-            <KpiTiles week={week} weeklyGoalDays={profile.weeklyGoalDays} weekStreak={weekStreak} />
-            <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
-              <WeeklyChart weeks={weeks} metric={metric} className="lg:col-span-2" />
-              <MuscleDistribution logs={logs} />
-            </div>
-            {/* A full year on desktop; half a year keeps the cells tappable on phones. */}
-            <ActivityHeatmap logs={logs} metric={metric} weeks={isDesktop ? 53 : 26} />
-            <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
-              <ExerciseProgress logs={logs} className="lg:col-span-2" />
-              <PersonalRecords logs={logs} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Loadable ready={ready} skeleton={<DashboardSkeleton />}>
+        <div className="mt-6 space-y-4 lg:mt-8 lg:space-y-5">
+          <KpiTiles week={week} weeklyGoalDays={profile.weeklyGoalDays} weekStreak={weekStreak} />
+          <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
+            <WeeklyChart weeks={weeks} metric={metric} className="lg:col-span-2" />
+            <MuscleDistribution logs={logs} />
+          </div>
+          {/* A full year on desktop; half a year keeps the cells tappable on phones. */}
+          <ActivityHeatmap logs={logs} metric={metric} weeks={isDesktop ? 53 : 26} />
+          <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
+            <ExerciseProgress logs={logs} className="lg:col-span-2" />
+            <PersonalRecords logs={logs} />
+          </div>
+        </div>
+      </Loadable>
     </div>
   )
 }

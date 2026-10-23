@@ -3,6 +3,7 @@ import { ChevronRight, Crown, Search, ShieldAlert, UserCheck, UserPlus, Users, U
 import { useState } from 'react'
 import { useSession } from '../../auth/authContext'
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
+import { Loadable } from '../../components/ui/Loadable'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { useAllUsers } from '../../hooks/useData'
 import type { UserProfile } from '../../types/models'
@@ -120,40 +121,56 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          {users === null ? (
-            <div className="glass mt-4 h-64 animate-pulse rounded-3xl" aria-busy />
-          ) : visible.length === 0 ? (
-            <div className="glass mt-4 rounded-3xl px-6 py-14 text-center text-[15px] text-muted">Keine Nutzer gefunden.</div>
-          ) : (
-            <section className="glass mt-4 overflow-hidden rounded-3xl" aria-label="Nutzerliste">
-              {/* Desktop column headers */}
-              <div className="hidden grid-cols-[minmax(0,2.4fr)_1fr_1fr_0.8fr_1.2fr_1.2fr_24px] gap-4 border-b border-line px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted lg:grid">
-                <span>Nutzer</span>
-                <span>Rolle</span>
-                <span>Status</span>
-                <span>Level</span>
-                <span>Zuletzt aktiv</span>
-                <span>Angelegt</span>
-                <span />
-              </div>
-              <ul className="divide-y divide-line">
-                {visible.map((user, index) => (
-                  <UserRow
-                    key={user.id}
-                    user={user}
-                    isSelf={user.id === me.uid}
-                    index={index}
-                    onOpen={() => setSelectedId(user.id)}
-                  />
-                ))}
-              </ul>
-            </section>
-          )}
+          <Loadable ready={users !== null} skeleton={<UserListSkeleton />}>
+            {visible.length === 0 ? (
+              <div className="glass mt-4 rounded-3xl px-6 py-14 text-center text-[15px] text-muted">Keine Nutzer gefunden.</div>
+            ) : (
+              <section className="glass mt-4 overflow-hidden rounded-3xl" aria-label="Nutzerliste">
+                {/* Desktop column headers */}
+                <div className="hidden grid-cols-[minmax(0,2.4fr)_1fr_1fr_0.8fr_1.2fr_1.2fr_24px] gap-4 border-b border-line px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted lg:grid">
+                  <span>Nutzer</span>
+                  <span>Rolle</span>
+                  <span>Status</span>
+                  <span>Level</span>
+                  <span>Zuletzt aktiv</span>
+                  <span>Angelegt</span>
+                  <span />
+                </div>
+                <ul className="divide-y divide-line">
+                  {visible.map((user, index) => (
+                    <UserRow
+                      key={user.id}
+                      user={user}
+                      isSelf={user.id === me.uid}
+                      index={index}
+                      onOpen={() => setSelectedId(user.id)}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
+          </Loadable>
         </>
       )}
 
       <CreateUserSheet open={createOpen} onClose={() => setCreateOpen(false)} />
       <UserDetailSheet user={selected} onClose={() => setSelectedId(null)} />
+    </div>
+  )
+}
+
+function UserListSkeleton() {
+  return (
+    <div className="glass mt-4 divide-y divide-line overflow-hidden rounded-3xl" aria-label="Nutzer werden geladen">
+      {[0, 1, 2].map((index) => (
+        <div key={index} className="flex items-center gap-3 px-4 py-3.5 lg:px-5">
+          <span className="skeleton size-10 shrink-0 rounded-full" />
+          <span className="flex-1 space-y-2">
+            <span className="skeleton block h-3.5 w-40 max-w-full rounded-md" />
+            <span className="skeleton block h-3 w-56 max-w-full rounded-md" />
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

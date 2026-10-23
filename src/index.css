@@ -104,6 +104,9 @@
 
 @layer base {
   html {
+    /* Always reserve the scrollbar's space: tab switches briefly shorten the page, and a
+       scrollbar popping in and out would shift the whole centered layout sideways. */
+    scrollbar-gutter: stable;
     background-color: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;

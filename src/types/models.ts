@@ -121,6 +121,29 @@ export interface WorkoutLog {
 export type UserRole = 'admin' | 'user'
 export type UserStatus = 'active' | 'disabled'
 
+/** Ranks ("leagues") in ascending order; the level decides the rank (thresholds in `data/ranks.ts`). */
+export const RANK_IDS = ['iron', 'bronze', 'silver', 'gold', 'platinum', 'diamond', 'grandmaster'] as const
+export type RankId = (typeof RANK_IDS)[number]
+
+/** Stable slug of an achievement (`data/achievements.ts`). Stored in Firestore, so never rename one. */
+export type AchievementId = string
+
+/**
+ * Gamification fields on `users/{uid}`. They are a persisted mirror of what
+ * `services/gamificationService.ts` derives from the workout logs, written by the client after
+ * each change, so other screens (e.g. the admin list) can read them without loading any logs.
+ */
+export interface GamificationState {
+  /** XP earned inside the current level (resets on every level-up). */
+  currentXP: number
+  /** All XP ever earned; the single input for level and rank. */
+  totalXP: number
+  level: number
+  rank: RankId
+  /** Achievement ID → day it was earned. Once unlocked, an achievement stays unlocked. */
+  unlockedAchievements: Record<AchievementId, DateKey>
+}
+
 export interface UserProfile {
   /** Firebase Auth uid (= document ID). */
   id: string
@@ -138,6 +161,11 @@ export interface UserProfile {
   createdBy: string | null
   updatedAt: number
   lastLoginAt: number | null
+  /**
+   * Stored flat in the document (`currentXP`, `totalXP`, `level`, `rank`, `unlockedAchievements`).
+   * `null` until the app synced it the first time, e.g. for accounts created before the feature.
+   */
+  gamification: GamificationState | null
 }
 
 export const DEFAULT_WEEKLY_GOAL_DAYS = 3

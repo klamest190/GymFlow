@@ -44,8 +44,8 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 
 | Daten | Nutzer (aktiv) | Nutzer (gesperrt) | Admin | Login ohne Konto |
 |---|---|---|---|---|
-| eigenes `users/{uid}` | lesen; nur `weeklyGoalDays`/`lastLoginAt` ändern | lesen | lesen; Name ändern | (fehlt) lesen |
-| fremde `users/{uid}` | – | – | lesen, anlegen, Name/Rolle/Status ändern, löschen | – |
+| eigenes `users/{uid}` | lesen; nur `weeklyGoalDays`/`lastLoginAt` und die XP-Felder ändern | lesen | lesen; Name ändern | (fehlt) lesen |
+| fremde `users/{uid}` | – | – | lesen, anlegen, Name/Rolle/Status ändern, löschen (XP **nie**) | – |
 | eigene `workout_logs` | lesen, schreiben, löschen | – | lesen, schreiben, löschen | – |
 | fremde `workout_logs` | – | – | lesen und löschen (für Kontolöschung), **nie** schreiben | – |
 | `exercises` | gibt es nicht: fester Katalog im Code | | | |
@@ -56,7 +56,7 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 npm run test:rules
 ```
 
-Startet den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf echte Daten, und prüft 48 Fälle über alle Rollen hinweg. Voraussetzungen: Firebase CLI und Java 21+ im PATH.
+Startet den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf echte Daten, und prüft 63 Fälle über alle Rollen hinweg. Voraussetzungen: Firebase CLI und Java 21+ im PATH.
 
 ## Übungskatalog
 
@@ -82,7 +82,14 @@ users/{uid}/workout_logs/{YYYY-MM-DD}     Genau ein Dokument pro Trainingstag
   "status": "active",             // "active" | "disabled", nur ein anderer Admin darf es ändern
   "weeklyGoalDays": 3,            // 1–7, vom Nutzer selbst änderbar
   "createdAt": Timestamp, "createdBy": "admin-uid", "updatedAt": Timestamp,
-  "lastLoginAt": Timestamp        // für „Zuletzt aktiv“ in der Nutzerverwaltung
+  "lastLoginAt": Timestamp,       // für „Zuletzt aktiv“ in der Nutzerverwaltung
+
+  // Gamification: fehlt bis zum ersten Sync der App, danach immer vollständig (siehe „Level & Erfolge“)
+  "currentXP": 1200,              // XP innerhalb des aktuellen Levels
+  "totalXP": 1700,                // alle je verdienten XP, bestimmen Level und Rang
+  "level": 2,
+  "rank": "iron",                 // iron | bronze | silver | gold | platinum | diamond | grandmaster
+  "unlockedAchievements": { "iron-will": "2026-10-19" }  // Achievement-ID → Tag der Freischaltung
 }
 ```
 
@@ -124,6 +131,17 @@ Der Tab „Statistik“ lädt die Logs der letzten 12 Monate (höchstens 365 Rea
 
 Die Diagrammfarben stehen in [chartTheme.ts](src/features/stats/chartTheme.ts) und sind gegen die Kartenflächen auf Kontrast geprüft. Im Light Mode ist das Grün deshalb dunkler als die Akzentfarbe.
 
+## Level & Erfolge
+
+Im Profil zeigt GymFlow Level, Rang (Liga) und Erfolge. Logik: [gamificationService.ts](src/services/gamificationService.ts), Ränge: [ranks.ts](src/data/ranks.ts), Erfolge: [achievements.ts](src/data/achievements.ts).
+
+- **XP:** 15 pro Satz, 150 pro Workout (= Trainingstag mit mindestens einem Satz), 500 Bonus an jedem 3. Tag am Stück (Tag 3, 6, 9, … einer Serie).
+- **Level:** Für den Schritt von Level `n` auf `n + 1` braucht es `floor(500 · n^1,5)` XP (500, 1.414, 2.598, …).
+- **Ränge:** Eisen (1–9), Bronze (10–19), Silber (20–39), Gold (40–59), Platin (60–79), Diamant (80–99), Grandmaster (ab 100).
+- **Abgeleitet statt vergeben:** XP werden bei jeder Änderung aus der gesamten Trainingshistorie neu berechnet, nicht pro Aktion aufaddiert. Weil Trainingstage bearbeitbar sind, ließen sich XP sonst durch Löschen und erneutes Anlegen von Sätzen farmen, und Korrekturen an alten Tagen würden sie verfälschen. Wer Sätze löscht, verliert die XP dafür wieder. Erfolge bleiben dagegen dauerhaft freigeschaltet.
+- **Sync:** Der `GamificationProvider` lädt alle Trainingstage (ein kleines Dokument pro Tag), berechnet den Stand und spiegelt ihn in `users/{uid}`. Bei einem Level-Up, neuen Rang oder Erfolg erscheint ein Toast. Der erste Sync eines Kontos mit bestehender Historie läuft still, damit nicht alles auf einmal gefeiert wird.
+- **Grenze ohne Server:** Die Rules prüfen nur Form und Plausibilität der XP-Felder. Da der Client sie berechnet, könnte ein manipulierter Client sich eigene XP schreiben, aber nie die eines anderen. Für eine Rangliste müsste die Berechnung in eine Cloud Function (Blaze-Tarif).
+
 ## PWA
 
 GymFlow lässt sich als App installieren: über `public/manifest.webmanifest` mit Icons und einen Service Worker (`public/sw.js`, nur im Production-Build registriert), der die App-Hülle offline bereithält. Die Trainingsdaten selbst puffert Firestore offline. Die Installation setzt HTTPS voraus, also gehostet z. B. über Firebase Hosting oder Vercel.
@@ -135,19 +153,23 @@ src/
   types/models.ts            Domain-Typen (Exercise, WorkoutLog, …)
   data/exercises.ts          Fester Übungskatalog inkl. Ausführungserklärungen
   data/muscleGroups.ts       Labels & Farben
+  data/ranks.ts              Ränge (Ligen) mit Level-Schwellen, Farben, Icons
+  data/achievements.ts       Erfolge (Schwellenwerte auf Trainingskennzahlen)
   services/                  Repository-Interface + Firestore- und localStorage-Implementierung
+  services/gamificationService.ts  XP-Kurve, Level, Rang, Erfolge, Level-Up-Erkennung
   lib/stats.ts               Auswertungen für das Dashboard
   lib/pwa.ts                 Service-Worker-Registrierung, Install-Prompt
   lib/passwords.ts           Sichere Startpasswörter für neue Konten
   auth/                      AuthProvider, useAuth/useSession, deutsche Fehlermeldungen
-  hooks/                     useLogsInRange, useAllUsers, useDayDraft, useTheme
+  hooks/                     useLogsInRange, useAllLogs, useAllUsers, useDayDraft, useTheme
   components/                AppShell (Sidebar/TabBar), Sheet, Toasts, SegmentedControl, NumberStepper, AnimatedNumber
   features/tracker/          Daily Tracker (WeekStrip, DaySummary, ExerciseEntryCard, ExercisePicker)
   features/exercises/        Übungskatalog und Detail-Sheet
   features/stats/            Statistik-Dashboard (Recharts, lazy geladen)
   features/auth/             Login-Screen (inkl. Passwort vergessen), Kein-Zugang-Screen
   features/admin/            Nutzerverwaltung: Liste, Anlegen, Bearbeiten, Sperren, Löschen
-  features/profile/          Profil: Konto, Passwort ändern, Wochenziel, Darstellung, App installieren
+  features/gamification/     GamificationProvider (Sync + Toasts), GamificationDashboard (Level, Rang, Erfolge)
+  features/profile/          Profil: Konto, Level & Erfolge, Passwort ändern, Wochenziel, Darstellung, App installieren
 public/                      Manifest, Icons, Service Worker
 firestore.rules              Security Rules (RBAC)
 tests/                       Rules-Tests gegen den Firestore-Emulator

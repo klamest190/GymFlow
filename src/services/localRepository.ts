@@ -77,6 +77,7 @@ export function createLocalRepository(): GymflowRepository {
           createdBy: null,
           updatedAt: now,
           lastLoginAt: null,
+          gamification: null,
         }
         saveUser(user)
       }
@@ -106,6 +107,11 @@ export function createLocalRepository(): GymflowRepository {
       if (user) saveUser({ ...user, lastLoginAt: Date.now() })
     },
 
+    async saveGamification(userId, state) {
+      const user = readUsers()[userId]
+      if (user) saveUser({ ...user, gamification: state })
+    },
+
     subscribeUsers(onChange) {
       return listen(() => onChange(Object.values(readUsers()).sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))))
     },
@@ -125,6 +131,7 @@ export function createLocalRepository(): GymflowRepository {
         createdBy: adminId,
         updatedAt: now,
         lastLoginAt: null,
+        gamification: null,
       }
       saveUser(user)
       return user

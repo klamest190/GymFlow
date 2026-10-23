@@ -13,6 +13,9 @@ export function useLogsInRange(userId: string, from: DateKey, to: DateKey) {
   return { logs: ready ? state.logs : [], ready }
 }
 
+/** The whole training history (one small document per training day), e.g. for lifetime XP. */
+export const useAllLogs = (userId: string) => useLogsInRange(userId, '0000-01-01', '9999-12-31')
+
 /** All accounts (admin only); `error` is set if the rules reject the listing. */
 export function useAllUsers() {
   const [state, setState] = useState<{ users: UserProfile[] | null; error: Error | null }>({ users: null, error: null })

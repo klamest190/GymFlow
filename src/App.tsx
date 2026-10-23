@@ -5,6 +5,7 @@ import { AppShell } from './components/layout/AppShell'
 import type { TabId } from './components/layout/tabs'
 import { LoginScreen } from './features/auth/LoginScreen'
 import { NoAccessScreen } from './features/auth/NoAccessScreen'
+import { GamificationProvider } from './features/gamification/GamificationProvider'
 import { DailyTracker } from './features/tracker/DailyTracker'
 
 // The start tab ships in the main bundle; the others (incl. Recharts) load on first visit.
@@ -36,15 +37,18 @@ function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
   const activeTab = tab === 'admin' && !isAdmin ? 'today' : tab
 
   return (
-    <AppShell tab={activeTab} onTabChange={setTab}>
-      <Suspense fallback={<TabSkeleton />}>
-        {activeTab === 'today' && <DailyTracker />}
-        {activeTab === 'exercises' && <ExerciseCatalog />}
-        {activeTab === 'stats' && <StatsDashboard />}
-        {activeTab === 'admin' && <AdminDashboard />}
-        {activeTab === 'profile' && <ProfilePage />}
-      </Suspense>
-    </AppShell>
+    // Above the tabs, so a level-up is celebrated right where the set was logged.
+    <GamificationProvider>
+      <AppShell tab={activeTab} onTabChange={setTab}>
+        <Suspense fallback={<TabSkeleton />}>
+          {activeTab === 'today' && <DailyTracker />}
+          {activeTab === 'exercises' && <ExerciseCatalog />}
+          {activeTab === 'stats' && <StatsDashboard />}
+          {activeTab === 'admin' && <AdminDashboard />}
+          {activeTab === 'profile' && <ProfilePage />}
+        </Suspense>
+      </AppShell>
+    </GamificationProvider>
   )
 }
 

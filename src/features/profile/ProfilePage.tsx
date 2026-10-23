@@ -10,6 +10,7 @@ import { haptic, useTheme, type ThemePreference } from '../../hooks/useUi'
 import { useInstallState } from '../../lib/pwa'
 import { repository } from '../../services/repository'
 import { RoleBadge, UserAvatar } from '../admin/UserBadges'
+import { GamificationDashboard } from '../gamification/GamificationDashboard'
 
 const GOAL_OPTIONS = [1, 2, 3, 4, 5, 6, 7]
 
@@ -34,6 +35,8 @@ export function ProfilePage() {
 
       <div className="mt-6 space-y-4 lg:mt-8">
         <AccountCard />
+
+        <GamificationDashboard />
 
         <Card title="Wochenziel" description="An wie vielen Tagen pro Woche willst du trainieren? Der Fortschritt erscheint als Ring in der Statistik.">
           <div className="grid grid-cols-7 gap-1.5 rounded-2xl bg-sunken p-1.5" role="radiogroup" aria-label="Trainingstage pro Woche">

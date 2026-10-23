@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 19.10.2026 · Briefing v2 (geschlossenes System mit Admin) umgesetzt, **Einrichtung in der Firebase Console steht noch aus**
+Stand: 23.10.2026 · Level- & Achievement-System umgesetzt, **Rules dafür noch nicht deployt** · Einrichtung in der Firebase Console steht noch aus
 
 ## Weitermachen
 
@@ -34,6 +34,7 @@ npm run dev
 | **Briefing v2:** Admin-Panel | ✅ Tab „Admin“: Nutzer anlegen (mit Startpasswort und Reset-Mail), Name/Rolle ändern, sperren, löschen |
 | **Briefing v2:** Custom Exercises | ❌ weiterhin bewusst nicht: fester Katalog (bestätigt am 19.10.) |
 | **Premium-Feinschliff** (23.10.) | ✅ Übungen: Skeletons, Hover-Lift mit Schatten, neongrüne Filter-Pills, leerer Zustand mit „Filter zurücksetzen“. Statistik: Trend-Badges für Wdh./Sätze/Volumen, Glas-Tooltip mit Vorwochenvergleich, Heatmap-Tooltips, Linie zeichnet sich ein, Übungs-Dropdown. Daten-Hooks `useExercises` und `useWorkoutStats` |
+| **Level & Erfolge** (23.10.) | ✅ XP-Kurve `floor(500 · n^1,5)`, 7 Ränge Eisen bis Grandmaster, 8 Erfolge, Reward-Toasts bei Level-Up/neuem Rang/Erfolg, Dashboard im Profil. XP werden aus der Historie abgeleitet und in `users/{uid}` gespiegelt. Rules erweitert, 63 Tests grün |
 
 ### Behobener Fehler (19.10.)
 
@@ -48,6 +49,12 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
   2. Firestore → `users/{UID}` mit `role: admin`, `status: active`
 - [ ] Danach: **Live-Test** mit dem Admin. Einen Testnutzer anlegen, mit ihm anmelden, sperren und prüfen, dass er sofort ausgesperrt ist.
 - [ ] Optional: alte anonyme Test-Gastkonten unter Authentication → Nutzer löschen. Sie haben keinen Zugriff mehr.
+
+## Offen: Level & Erfolge
+
+- [ ] **Rules deployen:** `firebase deploy --only firestore:rules --project gymflow-917db`. Bis dahin lehnt Firestore das Speichern der XP-Felder ab. Die Anzeige funktioniert trotzdem, weil sie live aus den Trainingstagen berechnet wird.
+- [ ] **XP-Kurve entscheiden:** Mit `500 · n^1,5` und ca. 450 XP pro Workout braucht Bronze (Level 10) ~120 Workouts, Silber (Level 20) ~750, Gold (Level 40) ~4.400. Ab Gold ist das praktisch unerreichbar. Wenn die oberen Ränge erreichbar sein sollen, Basis oder Exponent in `gamificationService.ts` senken (z. B. Exponent 1,2) oder die Rang-Schwellen in `data/ranks.ts` anpassen.
+- [ ] Optional: Level/Rang in der Admin-Nutzerliste anzeigen (`RankBadge` ist exportiert).
 
 ## Offen: lokal
 
@@ -75,4 +82,5 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 - **Muskelverteilung in Sätzen** (nicht in Wiederholungen); Hilfsmuskeln zählen umschaltbar mit ½.
 - **Heatmap-Stufen nach Quartilen** der eigenen Trainingstage, damit sie für Einsteiger wie Fortgeschrittene aussagekräftig ist.
 - **Farbschema pro Gerät** (localStorage), nicht synchronisiert.
+- **XP abgeleitet statt pro Aktion vergeben:** Trainingstage sind bearbeitbar, also wird alles aus der Historie neu berechnet (nicht farmbar, geräteübergreifend gleich). Ein „abgeschlossenes Workout“ ist ein Trainingstag mit mindestens einem Satz. Den 3-Tage-Streak-Bonus gibt es an jedem 3. Tag einer Serie. Erfolge bleiben auch nach dem Löschen von Tagen freigeschaltet, XP nicht.
 - Akzentfarbe Neongrün (im Light Mode in Diagrammen dunkler, wegen des Kontrasts), Schrift Inter, Design im Apple-Stil mit Glassmorphism.

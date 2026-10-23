@@ -1,5 +1,5 @@
 import { isFirebaseConfigured } from '../lib/firebase'
-import type { AuthUser, DateKey, NewUserInput, UserProfile, UserUpdate, WorkoutLog } from '../types/models'
+import type { AuthUser, DateKey, GamificationState, NewUserInput, UserProfile, UserUpdate, WorkoutLog } from '../types/models'
 import { createFirestoreRepository } from './firestoreRepository'
 import { createLocalRepository } from './localRepository'
 
@@ -25,6 +25,8 @@ export interface GymflowRepository {
   subscribeProfile(userId: string, onChange: (profile: UserProfile | null) => void, onError: (error: Error) => void): Unsubscribe
   saveProfile(userId: string, changes: Pick<UserProfile, 'weeklyGoalDays'>): Promise<void>
   recordLogin(userId: string): Promise<void>
+  /** Mirrors the derived XP/level/rank/achievements into the account document. */
+  saveGamification(userId: string, state: GamificationState): Promise<void>
 
   // ─── users: admin only (enforced by the security rules) ───
   subscribeUsers(onChange: (users: UserProfile[]) => void, onError: (error: Error) => void): Unsubscribe

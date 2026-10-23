@@ -25,7 +25,7 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore'
 import { getFirebase } from '../lib/firebase'
-import { DEFAULT_WEEKLY_GOAL_DAYS, type UserProfile, type WorkoutLog } from '../types/models'
+import { DEFAULT_WEEKLY_GOAL_DAYS, RANK_IDS, type GamificationState, type RankId, type UserProfile, type WorkoutLog } from '../types/models'
 import type { GymflowRepository } from './repository'
 
 export const COLLECTIONS = {
@@ -44,6 +44,18 @@ function readDoc<T>(snapshot: DocumentSnapshot<DocumentData>): T {
   return { ...data, id: snapshot.id, createdAt: toMillis(data.createdAt), updatedAt: toMillis(data.updatedAt) } as T
 }
 
+/** `null` until the client synced the gamification fields once (see `GamificationState`). */
+function readGamification(data: DocumentData): GamificationState | null {
+  if (typeof data.totalXP !== 'number') return null
+  return {
+    currentXP: data.currentXP ?? 0,
+    totalXP: data.totalXP,
+    level: data.level ?? 1,
+    rank: RANK_IDS.includes(data.rank) ? (data.rank as RankId) : 'iron',
+    unlockedAchievements: data.unlockedAchievements ?? {},
+  }
+}
+
 function readProfile(snapshot: DocumentSnapshot<DocumentData>): UserProfile {
   const data = snapshot.data({ serverTimestamps: 'estimate' }) ?? {}
   return {
@@ -57,6 +69,7 @@ function readProfile(snapshot: DocumentSnapshot<DocumentData>): UserProfile {
     createdBy: data.createdBy ?? null,
     updatedAt: toMillis(data.updatedAt),
     lastLoginAt: toMillisOrNull(data.lastLoginAt),
+    gamification: readGamification(data),
   }
 }
 
@@ -94,6 +107,11 @@ export function createFirestoreRepository(): GymflowRepository {
 
     async recordLogin(userId) {
       await updateDoc(userDoc(userId), { lastLoginAt: serverTimestamp() })
+    },
+
+    async saveGamification(userId, state) {
+      // Flat fields; `updatedAt` stays untouched, it tracks changes to the account itself.
+      await updateDoc(userDoc(userId), { ...state })
     },
 
     subscribeUsers(onChange, onError) {
@@ -145,6 +163,7 @@ export function createFirestoreRepository(): GymflowRepository {
           createdBy: adminId,
           updatedAt: now,
           lastLoginAt: null,
+          gamification: null,
         }
       } finally {
         await deleteApp(provisioning)

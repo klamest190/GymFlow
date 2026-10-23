@@ -27,6 +27,15 @@ const account = (overrides) => ({
 
 const log = (userId, date) => ({ userId, date, entries: [], totals: { exercises: 0, sets: 0, reps: 0, volumeKg: 0 }, muscleGroupReps: {} })
 
+const progress = (overrides) => ({
+  currentXP: 1200,
+  totalXP: 1700,
+  level: 2,
+  rank: 'iron',
+  unlockedAchievements: { 'iron-will': '2026-10-19' },
+  ...overrides,
+})
+
 let env
 
 before(async () => {
@@ -128,4 +137,30 @@ describe('admin', () => {
 describe('disabled admin', () => {
   test('loses all admin rights', () => assertFails(getDocs(collection(as(DISABLED_ADMIN), 'users'))))
   test('cannot create accounts', () => assertFails(setDoc(doc(as(DISABLED_ADMIN), 'users', 'new-uid'), account({ createdBy: DISABLED_ADMIN }))))
+})
+
+describe('gamification (XP, level, rank, achievements)', () => {
+  const own = () => doc(as(USER), 'users', USER)
+  test('user syncs own progress', () => assertSucceeds(updateDoc(own(), progress({}))))
+  test('user syncs progress again (level-up)', async () => {
+    await assertSucceeds(updateDoc(own(), progress({})))
+    await assertSucceeds(updateDoc(own(), progress({ currentXP: 86, totalXP: 2000, level: 3 })))
+  })
+  test('admin syncs own progress', () => assertSucceeds(updateDoc(doc(as(ADMIN), 'users', ADMIN), progress({}))))
+  test('rejects an incomplete first sync', () => assertFails(updateDoc(own(), { totalXP: 100 })))
+  test('rejects negative XP', () => assertFails(updateDoc(own(), progress({ totalXP: -1, currentXP: 0 }))))
+  test('rejects more level XP than total XP', () => assertFails(updateDoc(own(), progress({ currentXP: 5000 }))))
+  test('rejects fractional XP', () => assertFails(updateDoc(own(), progress({ totalXP: 1700.5 }))))
+  test('rejects level 0', () => assertFails(updateDoc(own(), progress({ level: 0 }))))
+  test('rejects an unknown rank', () => assertFails(updateDoc(own(), progress({ rank: 'legend' }))))
+  test('rejects achievements that are not a map', () => assertFails(updateDoc(own(), progress({ unlockedAchievements: ['iron-will'] }))))
+  test('cannot write another user’s progress', () => assertFails(updateDoc(doc(as(USER), 'users', OTHER), progress({}))))
+  test('admin cannot write a user’s progress', () => assertFails(updateDoc(doc(as(ADMIN), 'users', USER), progress({}))))
+  test('disabled user cannot sync progress', () => assertFails(updateDoc(doc(as(DISABLED), 'users', DISABLED), progress({}))))
+  test('admin still manages an account that has progress', async () => {
+    await assertSucceeds(updateDoc(own(), progress({})))
+    await assertSucceeds(updateDoc(doc(as(ADMIN), 'users', USER), { displayName: 'Mit Level', updatedAt: serverTimestamp() }))
+  })
+  test('admin may create an account with initial progress', () =>
+    assertSucceeds(setDoc(doc(as(ADMIN), 'users', 'new-uid'), account({ ...progress({ currentXP: 0, totalXP: 0, level: 1, unlockedAchievements: {} }) }))))
 })

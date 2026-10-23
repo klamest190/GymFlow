@@ -3,9 +3,10 @@ import type { AuthState, AuthUser, UserProfile } from '../types/models'
 
 export interface AuthContextValue {
   state: AuthState
-  signIn(email: string, password: string): Promise<void>
+  /** `login`: username or e-mail. */
+  signIn(login: string, password: string): Promise<void>
   signOut(): Promise<void>
-  sendPasswordReset(email: string): Promise<void>
+  sendPasswordReset(login: string): Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

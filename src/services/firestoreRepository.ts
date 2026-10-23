@@ -13,6 +13,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -25,15 +26,20 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore'
 import { getFirebase } from '../lib/firebase'
+import { isEmailLogin, isValidUsername, normalizeUsername } from '../lib/usernames'
 import { DEFAULT_WEEKLY_GOAL_DAYS, RANK_IDS, type GamificationState, type RankId, type UserProfile, type WorkoutLog } from '../types/models'
 import type { GymflowRepository } from './repository'
 
 export const COLLECTIONS = {
   users: 'users',
   workoutLogs: 'workout_logs',
+  usernames: 'usernames',
 } as const
 
 const logError = (context: string) => (error: Error) => console.error(`[GymFlow] ${context}`, error)
+
+/** Error with a Firebase-style code, so `authErrorMessage` maps it like any other. */
+const codeError = (code: string) => Object.assign(new Error(code), { code })
 
 const toMillis = (value: unknown) => (value instanceof Timestamp ? value.toMillis() : Date.now())
 const toMillisOrNull = (value: unknown) => (value instanceof Timestamp ? value.toMillis() : null)
@@ -61,6 +67,7 @@ function readProfile(snapshot: DocumentSnapshot<DocumentData>): UserProfile {
   return {
     id: snapshot.id,
     email: data.email ?? '',
+    username: typeof data.username === 'string' ? data.username : null,
     displayName: data.displayName ?? '',
     role: data.role === 'admin' ? 'admin' : 'user',
     status: data.status === 'active' ? 'active' : 'disabled',
@@ -77,6 +84,22 @@ export function createFirestoreRepository(): GymflowRepository {
   const { app, db, auth } = getFirebase()
   const userDoc = (userId: string) => doc(db, COLLECTIONS.users, userId)
   const logsCollection = (userId: string) => collection(db, COLLECTIONS.users, userId, COLLECTIONS.workoutLogs)
+  const usernameDoc = (username: string) => doc(db, COLLECTIONS.usernames, username)
+
+  const usernameTaken = async (username: string) => (await getDoc(usernameDoc(username))).exists()
+
+  /**
+   * The login e-mail for an e-mail or username, `null` for unknown usernames. Runs before sign-in,
+   * which is why the rules allow single, unauthenticated reads of `usernames/{username}`.
+   */
+  async function resolveLoginEmail(login: string): Promise<string | null> {
+    const value = login.trim()
+    if (isEmailLogin(value)) return value
+    const username = normalizeUsername(value)
+    if (!isValidUsername(username)) return null
+    const mapping = await getDoc(usernameDoc(username))
+    return mapping.exists() ? (mapping.data().email as string) : null
+  }
 
   return {
     mode: 'firebase',
@@ -85,16 +108,20 @@ export function createFirestoreRepository(): GymflowRepository {
       return onAuthStateChanged(auth, (user) => onChange(user ? { uid: user.uid, email: user.email } : null))
     },
 
-    async signInWithEmail(email, password) {
-      await signInWithEmailAndPassword(auth, email.trim(), password)
+    async signIn(login, password) {
+      const email = await resolveLoginEmail(login)
+      if (!email) throw codeError('auth/invalid-credential')
+      await signInWithEmailAndPassword(auth, email, password)
     },
 
     async signOut() {
       await signOut(auth)
     },
 
-    async sendPasswordReset(email) {
-      await sendPasswordResetEmail(auth, email.trim())
+    async sendPasswordReset(login) {
+      const email = await resolveLoginEmail(login)
+      if (!email) throw codeError('auth/user-not-found')
+      await sendPasswordResetEmail(auth, email)
     },
 
     subscribeProfile(userId, onChange, onError) {
@@ -127,14 +154,20 @@ export function createFirestoreRepository(): GymflowRepository {
       // admin's own session (createUserWithEmailAndPassword always signs the new user in).
       const provisioning = initializeApp(app.options, `user-provisioning-${Date.now()}`)
       const email = input.email.trim().toLowerCase()
+      const username = normalizeUsername(input.username)
       const displayName = input.displayName.trim()
       try {
+        // Checked before the login exists, so a taken name never leaves a login behind. A race with
+        // another admin is still caught by the rules (the mapping can't be overwritten) + rollback.
+        if (await usernameTaken(username)) throw codeError('username-taken')
         const provisioningAuth = initializeAuth(provisioning, { persistence: inMemoryPersistence })
         const credential = await createUserWithEmailAndPassword(provisioningAuth, email, input.password)
         const uid = credential.user.uid
         try {
-          await setDoc(userDoc(uid), {
+          const batch = writeBatch(db)
+          batch.set(userDoc(uid), {
             email,
+            username,
             displayName,
             role: input.role,
             status: 'active',
@@ -144,6 +177,8 @@ export function createFirestoreRepository(): GymflowRepository {
             updatedAt: serverTimestamp(),
             lastLoginAt: null,
           })
+          batch.set(usernameDoc(username), { uid, email })
+          await batch.commit()
         } catch (error) {
           // Roll back: the new user is still signed in on the throwaway instance and may delete
           // their own login, so no orphaned login without account document is left behind.
@@ -155,6 +190,7 @@ export function createFirestoreRepository(): GymflowRepository {
         return {
           id: uid,
           email,
+          username,
           displayName,
           role: input.role,
           status: 'active',
@@ -174,6 +210,18 @@ export function createFirestoreRepository(): GymflowRepository {
       await updateDoc(userDoc(userId), { ...changes, updatedAt: serverTimestamp() })
     },
 
+    async setUsername(user, username) {
+      const next = normalizeUsername(username)
+      if (next === user.username) return
+      if (await usernameTaken(next)) throw codeError('username-taken')
+      // One batch, so account and mapping never disagree (the rules check both sides).
+      const batch = writeBatch(db)
+      if (user.username) batch.delete(usernameDoc(user.username))
+      batch.set(usernameDoc(next), { uid: user.id, email: user.email })
+      batch.update(userDoc(user.id), { username: next, updatedAt: serverTimestamp() })
+      await batch.commit()
+    },
+
     async deleteUser(userId) {
       // Batches are limited to 500 writes; one doc per training day stays far below that per chunk.
       const logs = await getDocs(logsCollection(userId))
@@ -182,7 +230,11 @@ export function createFirestoreRepository(): GymflowRepository {
         logs.docs.slice(index, index + 450).forEach((log) => batch.delete(log.ref))
         await batch.commit()
       }
-      await deleteDoc(userDoc(userId))
+      const username = (await getDoc(userDoc(userId))).data()?.username
+      const batch = writeBatch(db)
+      if (typeof username === 'string') batch.delete(usernameDoc(username))
+      batch.delete(userDoc(userId))
+      await batch.commit()
     },
 
     subscribeLogs(userId, from, to, onChange) {

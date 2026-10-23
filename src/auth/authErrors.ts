@@ -1,9 +1,9 @@
 /** German messages for the Firebase error codes users can actually run into. */
 const MESSAGES: Record<string, string> = {
   // Sign-in
-  'auth/invalid-credential': 'E-Mail oder Passwort ist falsch.',
-  'auth/wrong-password': 'E-Mail oder Passwort ist falsch.',
-  'auth/user-not-found': 'E-Mail oder Passwort ist falsch.',
+  'auth/invalid-credential': 'Benutzername/E-Mail oder Passwort ist falsch.',
+  'auth/wrong-password': 'Benutzername/E-Mail oder Passwort ist falsch.',
+  'auth/user-not-found': 'Benutzername/E-Mail oder Passwort ist falsch.',
   'auth/invalid-email': 'Bitte gib eine gültige E-Mail-Adresse ein.',
   'auth/user-disabled': 'Dieser Zugang wurde gesperrt.',
   'auth/too-many-requests': 'Zu viele Versuche. Bitte warte kurz und versuche es dann erneut.',
@@ -21,6 +21,7 @@ const MESSAGES: Record<string, string> = {
   'auth/email-already-in-use':
     'Für diese E-Mail existiert bereits ein Login. Falls das Konto gelöscht wurde, entferne den Login zuerst in der Firebase Console (Authentication → Nutzer).',
   'auth/weak-password': 'Das Passwort muss mindestens 6 Zeichen lang sein.',
+  'username-taken': 'Dieser Benutzername ist schon vergeben.',
   // Firestore
   'permission-denied': 'Dafür fehlen dir die Berechtigungen.',
   unavailable: 'Der Server ist gerade nicht erreichbar. Bitte versuche es später erneut.',

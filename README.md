@@ -33,19 +33,22 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 
 ## Authentifizierung & Rollen
 
-- **Geschlossenes System:** Login nur mit E-Mail und Passwort, und es gibt keine Registrierungsseite. Konten legt ausschließlich ein Admin im Admin-Bereich an. Dafür nutzt die App eine zweite, unsichtbare Firebase-Instanz, damit der Admin angemeldet bleibt.
+- **Geschlossenes System:** Login mit Benutzername oder E-Mail plus Passwort, und es gibt keine Registrierungsseite. Konten legt ausschließlich ein Admin im Admin-Bereich an. Dafür nutzt die App eine zweite, unsichtbare Firebase-Instanz, damit der Admin angemeldet bleibt.
 - **Zugriff:** Firebase Auth weist nur die Identität nach. Zugriff auf Daten gibt es erst, wenn das Dokument `users/{uid}` existiert und `status: 'active'` hat. Das prüfen die Security Rules bei jeder Anfrage. Wer sich über die öffentliche Firebase-API selbst registriert, hat daher keinen Zugriff.
 - **Rollen** (`role: 'admin' | 'user'`) stehen im selben Dokument. Niemand kann die eigene Rolle oder den eigenen Status ändern, damit sich auch kein Admin aussperrt. Im Client steuert die Rolle nur, was angezeigt wird. Durchgesetzt wird sie von den Rules.
 - **Sperren** setzt `status: 'disabled'`. Die Sperre wirkt sofort, auch in bereits offenen Sitzungen, weil das Konto-Dokument live abonniert wird.
 - **Löschen** entfernt das Konto-Dokument und alle Trainingsdaten. Den Login selbst kann man im kostenlosen Spark-Tarif nur in der Firebase Console löschen (Authentication → Nutzer). Er hat ohne Konto-Dokument aber keinerlei Zugriff mehr.
-- **Passwort vergessen / ändern:** über Firebases Reset-Mail mit deutscher Vorlage, erreichbar über den Login-Screen, das Profil oder den Admin.
+- **Passwort vergessen / ändern:** über Firebases Reset-Mail mit deutscher Vorlage, erreichbar über den Login-Screen (mit Benutzername oder E-Mail), das Profil oder den Admin.
+- **Benutzername-Login:** Firebase Auth kennt nur E-Mail und Passwort. Jeder Benutzername steht deshalb zusätzlich in `usernames/{name}` mit der Login-E-Mail. Enthält die Eingabe im Login ein `@`, ist sie eine E-Mail, sonst schlägt die App den Benutzernamen dort nach und meldet sich mit der E-Mail an. Der Admin vergibt den Benutzernamen beim Anlegen (Vorschlag aus dem Namen) und kann ihn in der Nutzerverwaltung setzen oder ändern; Konto und Eintrag werden immer gemeinsam in einem Batch geschrieben. Erlaubt sind 3–20 Zeichen aus Kleinbuchstaben, Ziffern, `.`, `-` und `_`.
+- **Bewusster Kompromiss:** Weil das Nachschlagen vor der Anmeldung passiert, darf jeder einzelne Benutzernamen abfragen. Wer einen Benutzernamen kennt, erfährt also die zugehörige E-Mail. Eine Liste aller Benutzernamen gibt es nicht. Ohne Cloud Functions lässt sich das nicht vermeiden.
 
 **Rechteverteilung** (umgesetzt in [firestore.rules](firestore.rules), geprüft mit `npm run test:rules`):
 
 | Daten | Nutzer (aktiv) | Nutzer (gesperrt) | Admin | Login ohne Konto |
 |---|---|---|---|---|
-| eigenes `users/{uid}` | lesen; nur `weeklyGoalDays`/`lastLoginAt` und die XP-Felder ändern | lesen | lesen; Name ändern | (fehlt) lesen |
-| fremde `users/{uid}` | – | – | lesen, anlegen, Name/Rolle/Status ändern, löschen (XP **nie**) | – |
+| eigenes `users/{uid}` | lesen; nur `weeklyGoalDays`/`lastLoginAt` und die XP-Felder ändern | lesen | lesen; Name und Benutzername ändern | (fehlt) lesen |
+| fremde `users/{uid}` | – | – | lesen, anlegen, Name/Benutzername/Rolle/Status ändern, löschen (XP **nie**) | – |
+| `usernames/{name}` | einzeln lesen | einzeln lesen | einzeln lesen; anlegen/löschen nur zusammen mit dem Konto | einzeln lesen (auch abgemeldet) |
 | eigene `workout_logs` | lesen, schreiben, löschen | – | lesen, schreiben, löschen | – |
 | fremde `workout_logs` | – | – | lesen und löschen (für Kontolöschung), **nie** schreiben | – |
 | `exercises` | gibt es nicht: fester Katalog im Code | | | |
@@ -56,7 +59,7 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 npm run test:rules
 ```
 
-Startet den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf echte Daten, und prüft 63 Fälle über alle Rollen hinweg. Voraussetzungen: Firebase CLI und Java 21+ im PATH.
+Startet den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf echte Daten, und prüft 84 Fälle über alle Rollen hinweg. Voraussetzungen: Firebase CLI und Java 21+ im PATH.
 
 ## Übungskatalog
 
@@ -71,12 +74,14 @@ Felder: `id`, `name`, `description`, `instructions`, `formCues[]`, `primaryMuscl
 ```
 users/{uid}                               Konto: Rolle, Status, Profil
 users/{uid}/workout_logs/{YYYY-MM-DD}     Genau ein Dokument pro Trainingstag
+usernames/{name}                          Benutzername → { uid, email } für den Login
 ```
 
 **`users/{uid}`** (Dokument-ID = Firebase-Auth-UID):
 ```jsonc
 {
   "email": "anna@example.de",     // vom Admin beim Anlegen gesetzt, unveränderlich
+  "username": "anna.schneider",   // alternativer Login, eindeutig, nur vom Admin änderbar; fehlt bei alten Konten
   "displayName": "Anna Schneider",
   "role": "user",                 // "admin" | "user", nur ein anderer Admin darf es ändern
   "status": "active",             // "active" | "disabled", nur ein anderer Admin darf es ändern
@@ -160,6 +165,7 @@ src/
   lib/stats.ts               Auswertungen für das Dashboard
   lib/pwa.ts                 Service-Worker-Registrierung, Install-Prompt
   lib/passwords.ts           Sichere Startpasswörter für neue Konten
+  lib/usernames.ts           Benutzernamen: Format, Normalisierung, Vorschlag aus dem Namen
   auth/                      AuthProvider, useAuth/useSession, deutsche Fehlermeldungen
   hooks/                     useLogsInRange, useAllLogs, useAllUsers, useDayDraft, useTheme
   components/                AppShell (Sidebar/TabBar), Sheet, Toasts, SegmentedControl, NumberStepper, AnimatedNumber

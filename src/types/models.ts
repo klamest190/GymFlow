@@ -4,6 +4,7 @@
  * Firestore layout (see README.md for the full schema):
  *   users/{uid}                           → UserProfile
  *   users/{uid}/workout_logs/{YYYY-MM-DD} → WorkoutLog (exactly one document per day)
+ *   usernames/{username}                  → { uid, email } (resolves a username login to the e-mail)
  *
  * Exercises are a fixed, curated catalog hardcoded in `data/exercises.ts` (never stored in
  * Firestore, not user-editable), so every logged set maps to precisely defined muscle groups.
@@ -149,6 +150,11 @@ export interface UserProfile {
   id: string
   /** Login e-mail, copied from Auth when the admin creates the account (informational, immutable). */
   email: string
+  /**
+   * Alternative login to the e-mail (lowercase, unique, admin-managed). Mirrored by
+   * `usernames/{username}` → `{ uid, email }`. `null` for accounts created before usernames existed.
+   */
+  username: string | null
   displayName: string
   /** Only admins can change roles; nobody can change their own. */
   role: UserRole
@@ -173,12 +179,13 @@ export const DEFAULT_WEEKLY_GOAL_DAYS = 3
 /** What an admin enters to create an account. */
 export interface NewUserInput {
   email: string
+  username: string
   displayName: string
   password: string
   role: UserRole
 }
 
-/** Fields an admin may change on an existing account. */
+/** Fields an admin may change on an existing account (the username has its own method). */
 export type UserUpdate = Partial<Pick<UserProfile, 'displayName' | 'role' | 'status'>>
 
 // ─── Auth state (client only) ───────────────────────────────────────────────

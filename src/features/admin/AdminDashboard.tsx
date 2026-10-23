@@ -42,7 +42,7 @@ export function AdminDashboard() {
   const visible = all.filter(
     (user) =>
       (filter === 'all' || user.status === filter) &&
-      (!term || user.displayName.toLowerCase().includes(term) || user.email.includes(term)),
+      (!term || user.displayName.toLowerCase().includes(term) || user.email.includes(term) || !!user.username?.includes(term)),
   )
   // Looked up from the live list so the sheet reflects changes immediately.
   const selected = all.find((user) => user.id === selectedId) ?? null
@@ -101,7 +101,7 @@ export function AdminDashboard() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Name oder E-Mail suchen"
+                placeholder="Name, Benutzername oder E-Mail suchen"
                 type="search"
                 className="w-full bg-transparent text-[16px] outline-none placeholder:text-muted"
               />
@@ -177,7 +177,10 @@ function UserRow({ user, isSelf, index, onOpen }: { user: UserProfile; isSelf: b
               <span className="truncate text-[15px] font-semibold tracking-tight">{user.displayName}</span>
               {isSelf && <span className="shrink-0 rounded-full bg-sunken px-2 py-0.5 text-[11px] font-semibold text-muted">Du</span>}
             </span>
-            <span className="block truncate text-[13px] text-muted">{user.email}</span>
+            <span className="block truncate text-[13px] text-muted">
+              {user.username && <span className="font-medium text-fg/80">@{user.username} · </span>}
+              {user.email}
+            </span>
           </span>
         </span>
 

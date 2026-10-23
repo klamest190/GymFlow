@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ChartNoAxesColumn, Dumbbell, Eye, EyeOff, LoaderCircle, Lock, Mail, MailCheck, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowLeft, ChartNoAxesColumn, CircleUser, Dumbbell, Eye, EyeOff, LoaderCircle, Lock, Mail, MailCheck, ShieldCheck, Sparkles } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useAuth } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
@@ -15,7 +15,8 @@ const FEATURES = [
 
 export function LoginScreen() {
   const [mode, setMode] = useState<Mode>('login')
-  const [email, setEmail] = useState('')
+  // Username or e-mail, shared by the login and reset forms.
+  const [login, setLogin] = useState('')
 
   return (
     <div className="relative min-h-dvh overflow-hidden">
@@ -42,17 +43,17 @@ export function LoginScreen() {
               <AnimatePresence mode="wait" initial={false}>
                 {mode === 'login' && (
                   <Panel key="login">
-                    <LoginForm email={email} onEmailChange={setEmail} onForgot={() => setMode('reset')} />
+                    <LoginForm login={login} onLoginChange={setLogin} onForgot={() => setMode('reset')} />
                   </Panel>
                 )}
                 {mode === 'reset' && (
                   <Panel key="reset">
-                    <ResetForm email={email} onEmailChange={setEmail} onBack={() => setMode('login')} onSent={() => setMode('reset-sent')} />
+                    <ResetForm login={login} onLoginChange={setLogin} onBack={() => setMode('login')} onSent={() => setMode('reset-sent')} />
                   </Panel>
                 )}
                 {mode === 'reset-sent' && (
                   <Panel key="sent">
-                    <ResetSent email={email} onBack={() => setMode('login')} />
+                    <ResetSent login={login} onBack={() => setMode('login')} />
                   </Panel>
                 )}
               </AnimatePresence>
@@ -63,7 +64,7 @@ export function LoginScreen() {
             </p>
             {repository.mode === 'local' && (
               <p className="mt-3 rounded-2xl bg-sunken px-4 py-3 text-center text-[12px] text-muted">
-                Demo-Modus: Die erste Anmeldung mit beliebiger E-Mail wird Admin. Passwörter werden nicht geprüft.
+                Demo-Modus: Die erste Anmeldung mit beliebigem Benutzernamen oder E-Mail wird Admin. Passwörter werden nicht geprüft.
               </p>
             )}
           </div>
@@ -81,7 +82,7 @@ function Panel({ children }: { children: ReactNode }) {
   )
 }
 
-function LoginForm({ email, onEmailChange, onForgot }: { email: string; onEmailChange: (email: string) => void; onForgot: () => void }) {
+function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginChange: (login: string) => void; onForgot: () => void }) {
   const { signIn } = useAuth()
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -94,7 +95,7 @@ function LoginForm({ email, onEmailChange, onForgot }: { email: string; onEmailC
     setBusy(true)
     setError(null)
     try {
-      await signIn(email, password)
+      await signIn(login, password)
       // On success the AuthProvider switches to the app; nothing else to do here.
     } catch (signInError) {
       setError(authErrorMessage(signInError))
@@ -108,19 +109,7 @@ function LoginForm({ email, onEmailChange, onForgot }: { email: string; onEmailC
       <p className="mt-1 text-[15px] text-muted">Melde dich mit deinem GymFlow-Zugang an.</p>
 
       <div className="mt-7 space-y-3">
-        <Field icon={Mail} label="E-Mail">
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => onEmailChange(event.target.value)}
-            autoComplete="username"
-            inputMode="email"
-            placeholder="name@beispiel.de"
-            required
-            autoFocus
-            className="w-full bg-transparent py-3.5 text-[16px] outline-none placeholder:text-muted/70"
-          />
-        </Field>
+        <LoginField value={login} onChange={onLoginChange} />
         <Field icon={Lock} label="Passwort">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -152,7 +141,7 @@ function LoginForm({ email, onEmailChange, onForgot }: { email: string; onEmailC
 
       <button
         type="submit"
-        disabled={busy || !email.trim() || !password}
+        disabled={busy || !login.trim() || !password}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-[16px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
       >
         {busy && <LoaderCircle className="size-5 animate-spin" />}
@@ -163,13 +152,13 @@ function LoginForm({ email, onEmailChange, onForgot }: { email: string; onEmailC
 }
 
 function ResetForm({
-  email,
-  onEmailChange,
+  login,
+  onLoginChange,
   onBack,
   onSent,
 }: {
-  email: string
-  onEmailChange: (email: string) => void
+  login: string
+  onLoginChange: (login: string) => void
   onBack: () => void
   onSent: () => void
 }) {
@@ -182,10 +171,10 @@ function ResetForm({
     setBusy(true)
     setError(null)
     try {
-      await sendPasswordReset(email)
+      await sendPasswordReset(login)
       onSent()
     } catch (resetError) {
-      // Unknown e-mails are reported as success on purpose: no hints about which accounts exist.
+      // Unknown accounts are reported as success on purpose: no hints about which accounts exist.
       if ((resetError as { code?: string }).code === 'auth/user-not-found') onSent()
       else setError(authErrorMessage(resetError))
     } finally {
@@ -197,25 +186,16 @@ function ResetForm({
     <form onSubmit={submit} noValidate>
       <BackButton onClick={onBack} />
       <h1 className="mt-4 text-[28px] font-bold leading-tight tracking-tight">Passwort zurücksetzen</h1>
-      <p className="mt-1 text-[15px] text-muted">Wir schicken dir einen Link, mit dem du ein neues Passwort festlegst.</p>
+      <p className="mt-1 text-[15px] text-muted">
+        Wir schicken einen Link an die hinterlegte E-Mail-Adresse, mit dem du ein neues Passwort festlegst.
+      </p>
       <div className="mt-7">
-        <Field icon={Mail} label="E-Mail">
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => onEmailChange(event.target.value)}
-            autoComplete="username"
-            inputMode="email"
-            placeholder="name@beispiel.de"
-            autoFocus
-            className="w-full bg-transparent py-3.5 text-[16px] outline-none placeholder:text-muted/70"
-          />
-        </Field>
+        <LoginField value={login} onChange={onLoginChange} />
       </div>
       <FormError message={error} />
       <button
         type="submit"
-        disabled={busy || !email.trim()}
+        disabled={busy || !login.trim()}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-[16px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
       >
         {busy && <LoaderCircle className="size-5 animate-spin" />}
@@ -225,7 +205,7 @@ function ResetForm({
   )
 }
 
-function ResetSent({ email, onBack }: { email: string; onBack: () => void }) {
+function ResetSent({ login, onBack }: { login: string; onBack: () => void }) {
   return (
     <div className="text-center">
       <span className="mx-auto grid size-16 place-items-center rounded-full bg-accent text-accent-ink shadow-accent">
@@ -233,8 +213,8 @@ function ResetSent({ email, onBack }: { email: string; onBack: () => void }) {
       </span>
       <h1 className="mt-5 text-[24px] font-bold tracking-tight">Prüfe dein Postfach</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
-        Falls für <span className="font-semibold text-fg">{email.trim()}</span> ein Zugang existiert, ist der Link unterwegs. Schau
-        auch im Spam-Ordner nach.
+        Falls für <span className="font-semibold text-fg">{login.trim()}</span> ein Zugang existiert, ist der Link an die
+        hinterlegte E-Mail-Adresse unterwegs. Schau auch im Spam-Ordner nach.
       </p>
       <button
         type="button"
@@ -244,6 +224,27 @@ function ResetSent({ email, onBack }: { email: string; onBack: () => void }) {
         Zurück zur Anmeldung
       </button>
     </div>
+  )
+}
+
+/** Username or e-mail. Plain text input, so mobile keyboards don't force e-mail mode or capitalize. */
+function LoginField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <Field icon={value.includes('@') ? Mail : CircleUser} label="Benutzername oder E-Mail">
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        autoComplete="username"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        placeholder="Benutzername oder E-Mail"
+        required
+        autoFocus
+        className="w-full bg-transparent py-3.5 text-[16px] outline-none placeholder:text-muted/70"
+      />
+    </Field>
   )
 }
 

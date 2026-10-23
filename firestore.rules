@@ -5,6 +5,8 @@ rules_version = '2';
 //   status 'active', which only an admin can create. Accounts registered via the public Auth
 //   API therefore can't read or write anything.
 // - Roles live in users/{uid}.role ('admin' | 'user'); nobody can change their own role/status.
+// - Login by username: usernames/{name} → { uid, email } is read before sign-in to find the
+//   login e-mail. Only admins write it, always in one batch with the account it belongs to.
 // - The exercise catalog ships with the app, so there is no exercises collection.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -53,8 +55,34 @@ service cloud.firestore {
       );
     }
 
+    // Keep in sync with src/lib/usernames.ts.
+    function validUsername(name) {
+      return name is string && name.matches('^[a-z0-9][a-z0-9._-]{2,19}$');
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function usernamePath(name) {
+      return /databases/$(database)/documents/usernames/$(name);
+    }
+
+    // An account's username must be reserved for exactly this account (mapping written in the
+    // same batch). Accounts from before usernames existed have none, which is fine.
+    function usernameClaimed(data, uid) {
+      return !('username' in data) || (
+        validUsername(data.username)
+        && getAfter(usernamePath(data.username)).data.uid == uid
+      );
+    }
+
+    function usernameUnchanged() {
+      return request.resource.data.get('username', null) == resource.data.get('username', null);
+    }
+
     function validAccount(data) {
-      return data.keys().hasOnly(['email', 'displayName', 'role', 'status', 'weeklyGoalDays',
+      return data.keys().hasOnly(['email', 'username', 'displayName', 'role', 'status', 'weeklyGoalDays',
                                   'createdAt', 'createdBy', 'updatedAt', 'lastLoginAt',
                                   'currentXP', 'totalXP', 'level', 'rank', 'unlockedAchievements'])
         && data.email is string
@@ -76,17 +104,19 @@ service cloud.firestore {
 
       allow create: if isAdmin()
         && validAccount(request.resource.data)
+        && usernameClaimed(request.resource.data, uid)
         && request.resource.data.status == 'active'
         && request.resource.data.createdBy == request.auth.uid;
 
-      // Admin: name, role and status of any account, but never their own role/status (no lockout).
-      // User: only their weekly goal, login timestamp and own XP mirror, and only while active.
-      // Nobody else's XP is writable, not even by an admin.
+      // Admin: name, username, role and status of any account, but never their own role/status
+      // (no lockout). User: only their weekly goal, login timestamp and own XP mirror, and only
+      // while active. Nobody else's XP is writable, not even by an admin.
       allow update: if (
           isAdmin()
           && validAccount(request.resource.data)
-          && changedOnly(['displayName', 'role', 'status', 'updatedAt'])
-          && (!isSelf(uid) || changedOnly(['displayName', 'updatedAt']))
+          && changedOnly(['displayName', 'username', 'role', 'status', 'updatedAt'])
+          && (!isSelf(uid) || changedOnly(['displayName', 'username', 'updatedAt']))
+          && (usernameUnchanged() || usernameClaimed(request.resource.data, uid))
         ) || (
           isSelf(uid) && isActive()
           && changedOnly(['weeklyGoalDays', 'updatedAt', 'lastLoginAt',
@@ -109,6 +139,30 @@ service cloud.firestore {
           && request.resource.data.entries is list
           && request.resource.data.entries.size() <= 100;
       }
+    }
+
+    // ─── usernames/{name}: username → { uid, email } for the username login ───
+    match /usernames/{name} {
+      // Resolved before sign-in, so single lookups are public. Listing stays closed: it would hand
+      // out every login e-mail at once.
+      allow get: if true;
+      allow list: if false;
+
+      // Only together with the account that points to it (same batch). Writing an existing name
+      // counts as an update and is denied, which is what keeps usernames unique.
+      allow create: if isAdmin()
+        && validUsername(name)
+        && request.resource.data.keys().hasOnly(['uid', 'email'])
+        && request.resource.data.uid is string
+        && getAfter(userPath(request.resource.data.uid)).data.get('username', null) == name
+        && getAfter(userPath(request.resource.data.uid)).data.email == request.resource.data.email;
+
+      // Released only when its account is deleted or renamed in the same batch.
+      allow delete: if isAdmin()
+        && (!existsAfter(userPath(resource.data.uid))
+            || getAfter(userPath(resource.data.uid)).data.get('username', null) != name);
+
+      allow update: if false;
     }
 
     // Everything else is closed.

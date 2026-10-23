@@ -12,13 +12,17 @@ export type Unsubscribe = () => void
 export interface GymflowRepository {
   mode: 'firebase' | 'local'
 
-  // ─── Auth (e-mail/password, no self sign-up) ───
+  // ─── Auth (username or e-mail + password, no self sign-up) ───
   /** Emits the signed-in identity, or `null` when signed out. */
   onAuthChange(onChange: (user: AuthUser | null) => void): Unsubscribe
-  signInWithEmail(email: string, password: string): Promise<void>
+  /**
+   * `login` is an e-mail (contains @) or a username. Unknown usernames fail with
+   * `auth/invalid-credential`, like a wrong password, so the UI can't tell them apart.
+   */
+  signIn(login: string, password: string): Promise<void>
   signOut(): Promise<void>
-  /** Sends Firebase's password reset mail (German template). */
-  sendPasswordReset(email: string): Promise<void>
+  /** Sends Firebase's password reset mail (German template); `login` as in `signIn`. */
+  sendPasswordReset(login: string): Promise<void>
 
   // ─── users/{uid}: own account ───
   /** Emits `null` if the account document doesn't exist (not provisioned or deleted). */
@@ -30,12 +34,17 @@ export interface GymflowRepository {
 
   // ─── users: admin only (enforced by the security rules) ───
   subscribeUsers(onChange: (users: UserProfile[]) => void, onError: (error: Error) => void): Unsubscribe
-  /** Creates the login and the account document; the admin stays signed in. */
+  /**
+   * Creates the login, the account document and the username mapping; the admin stays signed in.
+   * Fails with `username-taken` before creating anything if the username is in use.
+   */
   createUser(input: NewUserInput, adminId: string): Promise<UserProfile>
   updateUser(userId: string, changes: UserUpdate): Promise<void>
+  /** Sets or renames the username (moves the mapping); fails with `username-taken`. */
+  setUsername(user: UserProfile, username: string): Promise<void>
   /**
-   * Deletes the account document and all workout logs, which removes every access. The Auth
-   * login itself can only be deleted server-side (Firebase Console) on the free plan.
+   * Deletes the account document, its username and all workout logs, which removes every access.
+   * The Auth login itself can only be deleted server-side (Firebase Console) on the free plan.
    */
   deleteUser(userId: string): Promise<void>
 

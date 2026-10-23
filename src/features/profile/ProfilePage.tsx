@@ -131,6 +131,7 @@ function AccountCard() {
         <UserAvatar user={profile} size="lg" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-[19px] font-semibold tracking-tight">{profile.displayName}</h2>
+          {profile.username && <p className="truncate text-[14px] font-medium text-fg/80">@{profile.username}</p>}
           <p className="truncate text-[14px] text-muted">{profile.email}</p>
         </div>
         {profile.role === 'admin' && <RoleBadge role="admin" />}

@@ -1,10 +1,11 @@
+import { isEmailLogin, normalizeUsername } from '../lib/usernames'
 import { DEFAULT_WEEKLY_GOAL_DAYS, type AuthUser, type UserProfile, type WorkoutLog } from '../types/models'
 import type { GymflowRepository } from './repository'
 
 /**
  * Demo mode used when no Firebase config is present. Mirrors the Firestore documents in
  * localStorage so the UI behaves identically. Passwords are not checked; the first login
- * becomes the demo admin, later logins must use an e-mail the admin created.
+ * becomes the demo admin, later logins must use an e-mail or username the admin created.
  */
 const KEYS = {
   logs: 'gymflow:workout_logs',
@@ -35,6 +36,12 @@ const demoError = (code: string) => Object.assign(new Error(code), { code })
 
 const readUsers = () => read<Record<string, UserProfile>>(KEYS.users, {})
 
+/** Finds an account by e-mail or username (demo data from before usernames has none). */
+const findUser = (login: string) => {
+  const value = login.trim().toLowerCase()
+  return Object.values(readUsers()).find((user) => (isEmailLogin(value) ? user.email === value : user.username === value))
+}
+
 export function createLocalRepository(): GymflowRepository {
   const listeners = new Set<() => void>()
   const notify = () => listeners.forEach((listener) => listener())
@@ -60,16 +67,17 @@ export function createLocalRepository(): GymflowRepository {
       return listen(() => onChange(read<AuthUser | null>(KEYS.session, null)))
     },
 
-    async signInWithEmail(email) {
-      const normalized = email.trim().toLowerCase()
-      const users = Object.values(readUsers())
-      let user = users.find((candidate) => candidate.email === normalized)
-      if (!user && users.length === 0) {
+    async signIn(login) {
+      const normalized = login.trim().toLowerCase()
+      let user = findUser(normalized)
+      if (!user && Object.keys(readUsers()).length === 0) {
         const now = Date.now()
+        const email = isEmailLogin(normalized) ? normalized : `${normalized}@demo.local`
         user = {
           id: `demo-${crypto.randomUUID()}`,
-          email: normalized,
-          displayName: normalized.split('@')[0],
+          email,
+          username: isEmailLogin(normalized) ? null : normalized,
+          displayName: email.split('@')[0],
           role: 'admin',
           status: 'active',
           weeklyGoalDays: DEFAULT_WEEKLY_GOAL_DAYS,
@@ -118,11 +126,14 @@ export function createLocalRepository(): GymflowRepository {
 
     async createUser(input, adminId) {
       const email = input.email.trim().toLowerCase()
-      if (Object.values(readUsers()).some((user) => user.email === email)) throw demoError('auth/email-already-in-use')
+      const username = normalizeUsername(input.username)
+      if (findUser(email)) throw demoError('auth/email-already-in-use')
+      if (findUser(username)) throw demoError('username-taken')
       const now = Date.now()
       const user: UserProfile = {
         id: `demo-${crypto.randomUUID()}`,
         email,
+        username,
         displayName: input.displayName.trim(),
         role: input.role,
         status: 'active',
@@ -140,6 +151,14 @@ export function createLocalRepository(): GymflowRepository {
     async updateUser(userId, changes) {
       const user = readUsers()[userId]
       if (user) saveUser({ ...user, ...changes, updatedAt: Date.now() })
+    },
+
+    async setUsername(user, username) {
+      const next = normalizeUsername(username)
+      if (next === user.username) return
+      if (findUser(next)) throw demoError('username-taken')
+      const stored = readUsers()[user.id]
+      if (stored) saveUser({ ...stored, username: next, updatedAt: Date.now() })
     },
 
     async deleteUser(userId) {

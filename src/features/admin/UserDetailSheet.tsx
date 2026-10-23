@@ -9,6 +9,7 @@ import { useToast } from '../../components/ui/toastContext'
 import { repository } from '../../services/repository'
 import { ACHIEVEMENTS } from '../../data/achievements'
 import { RANK_BY_ID } from '../../data/ranks'
+import { isValidUsername, normalizeUsername, USERNAME_RULES } from '../../lib/usernames'
 import type { UserProfile, UserRole, UserStatus, UserUpdate } from '../../types/models'
 import { LevelBadge } from '../gamification/RankBadge'
 import { RoleBadge, StatusBadge, UserAvatar } from './UserBadges'
@@ -19,9 +20,10 @@ const dateTime = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'shor
 export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; onClose: () => void }) {
   const { user: me } = useSession()
   const toast = useToast()
-  const [busy, setBusy] = useState<'name' | 'reset' | 'delete' | null>(null)
+  const [busy, setBusy] = useState<'name' | 'username' | 'reset' | 'delete' | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
 
   // Keep the last user visible while the sheet animates out. Live list updates refresh the data,
   // but local edits are only reset when the sheet (re)opens or switches to another user.
@@ -33,6 +35,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
       setShown(user)
       if (!previous || previous.id !== user.id) {
         setName(user.displayName)
+        setUsername(user.username ?? '')
         setConfirmDelete(false)
       }
     }
@@ -41,6 +44,9 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
 
   const isSelf = shown.id === me.uid
   const nameChanged = name.trim() !== shown.displayName && name.trim().length > 0
+  const nextUsername = normalizeUsername(username)
+  const usernameValid = isValidUsername(nextUsername)
+  const usernameChanged = nextUsername !== (shown.username ?? '') && usernameValid
 
   const update = async (changes: UserUpdate, successTitle: string) => {
     try {
@@ -55,6 +61,18 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
     if (!nameChanged) return
     setBusy('name')
     await update({ displayName: name.trim() }, 'Name gespeichert')
+    setBusy(null)
+  }
+
+  const saveUsername = async () => {
+    if (!usernameChanged) return
+    setBusy('username')
+    try {
+      await repository.setUsername(shown, nextUsername)
+      toast({ tone: 'success', title: 'Benutzername gespeichert', description: `Anmeldung ab jetzt mit „${nextUsername}“.` })
+    } catch (error) {
+      toast({ tone: 'error', title: 'Benutzername nicht gespeichert', description: authErrorMessage(error) })
+    }
     setBusy(null)
   }
 
@@ -92,7 +110,10 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
           <UserAvatar user={shown} size="lg" />
           <div className="min-w-0">
             <p className="truncate text-[20px] font-bold tracking-tight">{shown.displayName}</p>
-            <p className="truncate text-[14px] text-muted">{shown.email}</p>
+            <p className="truncate text-[14px] text-muted">
+              {shown.username && <span className="font-medium text-fg/80">@{shown.username} · </span>}
+              {shown.email}
+            </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <RoleBadge role={shown.role} />
               <LevelBadge gamification={shown.gamification} />
@@ -122,6 +143,48 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                   className="flex items-center gap-2 rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-ink"
                 >
                   {busy === 'name' && <LoaderCircle className="size-4 animate-spin" />}
+                  Speichern
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
+        </Section>
+
+        <Section
+          title="Benutzername"
+          hint={
+            username && !usernameValid
+              ? USERNAME_RULES
+              : shown.username
+                ? 'Login mit Benutzername oder E-Mail. Nach einer Änderung gilt der alte Benutzername nicht mehr.'
+                : 'Noch kein Benutzername: Anmeldung bisher nur per E-Mail.'
+          }
+        >
+          <div className="flex gap-2">
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value.toLowerCase())}
+              onKeyDown={(event) => event.key === 'Enter' && void saveUsername()}
+              placeholder="z. B. anna.schneider"
+              maxLength={20}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="min-w-0 flex-1 rounded-2xl bg-sunken px-4 py-3 text-[16px] outline-none ring-accent/70 focus:ring-2"
+            />
+            <AnimatePresence>
+              {usernameChanged && (
+                <motion.button
+                  type="button"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  onClick={saveUsername}
+                  disabled={busy === 'username'}
+                  className="flex items-center gap-2 rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-ink"
+                >
+                  {busy === 'username' && <LoaderCircle className="size-4 animate-spin" />}
                   Speichern
                 </motion.button>
               )}

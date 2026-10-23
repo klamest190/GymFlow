@@ -6,18 +6,30 @@ import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { Sheet } from '../../components/ui/Sheet'
 import { useToast } from '../../components/ui/toastContext'
 import { generatePassword, isValidEmail, MIN_PASSWORD_LENGTH } from '../../lib/passwords'
+import { isValidUsername, normalizeUsername, suggestUsername, USERNAME_RULES } from '../../lib/usernames'
 import { repository } from '../../services/repository'
 import type { UserProfile, UserRole } from '../../types/models'
 
 interface Draft {
   displayName: string
+  username: string
+  /** Until the admin edits the username, it follows the name ("Anna Schneider" → "anna.schneider"). */
+  usernameEdited: boolean
   email: string
   role: UserRole
   password: string
   sendResetMail: boolean
 }
 
-const emptyDraft = (): Draft => ({ displayName: '', email: '', role: 'user', password: generatePassword(), sendResetMail: true })
+const emptyDraft = (): Draft => ({
+  displayName: '',
+  username: '',
+  usernameEdited: false,
+  email: '',
+  role: 'user',
+  password: generatePassword(),
+  sendResetMail: true,
+})
 
 export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user: admin } = useSession()
@@ -43,7 +55,9 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
 
   const patch = (changes: Partial<Draft>) => setDraft((current) => ({ ...current, ...changes }))
   const emailValid = isValidEmail(draft.email)
-  const canSubmit = draft.displayName.trim().length > 0 && emailValid && draft.password.length >= MIN_PASSWORD_LENGTH && !busy
+  const usernameValid = isValidUsername(normalizeUsername(draft.username))
+  const canSubmit =
+    draft.displayName.trim().length > 0 && usernameValid && emailValid && draft.password.length >= MIN_PASSWORD_LENGTH && !busy
 
   const submit = async () => {
     if (!canSubmit) return
@@ -71,7 +85,9 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
 
   const copyCredentials = async () => {
     if (!created) return
-    await navigator.clipboard.writeText(`GymFlow-Zugang\nE-Mail: ${created.email}\nPasswort: ${draft.password}\n${window.location.origin}`)
+    await navigator.clipboard.writeText(
+      `GymFlow-Zugang\nBenutzername: ${created.username}\nE-Mail: ${created.email}\nPasswort: ${draft.password}\n${window.location.origin}`,
+    )
     setCopied(true)
     toast({ tone: 'info', title: 'Zugangsdaten kopiert' })
   }
@@ -114,6 +130,7 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
           </p>
           <dl className="divide-y divide-line overflow-hidden rounded-2xl bg-sunken text-[15px]">
             <Row label="Name">{created.displayName}</Row>
+            <Row label="Benutzername">{created.username}</Row>
             <Row label="E-Mail">{created.email}</Row>
             <Row label="Passwort">
               <code className="font-mono text-[14px]">{draft.password}</code>
@@ -132,10 +149,30 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
           <Field label="Name">
             <input
               value={draft.displayName}
-              onChange={(event) => patch({ displayName: event.target.value })}
+              onChange={(event) => {
+                const displayName = event.target.value
+                patch(draft.usernameEdited ? { displayName } : { displayName, username: suggestUsername(displayName) })
+              }}
               placeholder="Vor- und Nachname"
               maxLength={60}
               autoFocus
+              className={inputClass}
+            />
+          </Field>
+          <Field
+            label="Benutzername"
+            hint={draft.username && !usernameValid ? USERNAME_RULES : undefined}
+            note={!draft.username || usernameValid ? 'Damit meldet sich der Nutzer an, alternativ zur E-Mail.' : undefined}
+          >
+            <input
+              value={draft.username}
+              onChange={(event) => patch({ username: event.target.value.toLowerCase(), usernameEdited: true })}
+              placeholder="z. B. anna.schneider"
+              maxLength={20}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className={inputClass}
             />
           </Field>
@@ -203,12 +240,14 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
 const inputClass =
   'w-full rounded-2xl bg-sunken px-4 py-3.5 text-[16px] outline-none ring-accent/70 placeholder:text-muted/70 focus:ring-2'
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+/** `hint` is a validation error (red), `note` neutral help text. */
+function Field({ label, hint, note, children }: { label: string; hint?: string; note?: string; children: ReactNode }) {
   return (
     <div>
       <div className="mb-2 px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">{label}</div>
       {children}
       {hint && <p className="mt-1.5 px-1 text-[13px] font-medium text-danger">{hint}</p>}
+      {note && <p className="mt-1.5 px-1 text-[13px] text-muted">{note}</p>}
     </div>
   )
 }

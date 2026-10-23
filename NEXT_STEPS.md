@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 23.10.2026 · Level- & Achievement-System umgesetzt, Rules deployt · **Einrichtung in der Firebase Console steht noch aus**
+Stand: 23.10.2026 · Benutzername-Login umgesetzt, **Rules dafür noch nicht deployt** · Einrichtung in der Firebase Console steht noch aus
 
 ## Weitermachen
 
@@ -35,10 +35,16 @@ npm run dev
 | **Briefing v2:** Custom Exercises | ❌ weiterhin bewusst nicht: fester Katalog (bestätigt am 19.10.) |
 | **Premium-Feinschliff** (23.10.) | ✅ Übungen: Skeletons, Hover-Lift mit Schatten, neongrüne Filter-Pills, leerer Zustand mit „Filter zurücksetzen“. Statistik: Trend-Badges für Wdh./Sätze/Volumen, Glas-Tooltip mit Vorwochenvergleich, Heatmap-Tooltips, Linie zeichnet sich ein, Übungs-Dropdown. Daten-Hooks `useExercises` und `useWorkoutStats` |
 | **Level & Erfolge** (23.10.) | ✅ XP-Kurve `floor(100 · n^1,1)` (statt der vorgegebenen `500 · n^1,5`, siehe README), Level-Spalte und Level-Details in der Nutzerverwaltung, 7 Ränge Eisen bis Grandmaster, 8 Erfolge, Reward-Toasts bei Level-Up/neuem Rang/Erfolg, Dashboard im Profil. XP werden aus der Historie abgeleitet und in `users/{uid}` gespiegelt. Rules erweitert, 63 Tests grün, deployt am 23.10. |
+| **Benutzername-Login** (23.10.) | ✅ Login mit Benutzername oder E-Mail (auch „Passwort vergessen“). Admin vergibt den Benutzernamen beim Anlegen (Vorschlag aus dem Namen) und kann ihn in der Nutzerverwaltung setzen/ändern. Lookup über `usernames/{name}`, Rules erweitert, 84 Tests grün |
 
 ### Behobener Fehler (19.10.)
 
 Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten, weil `signIn()` doppelt lief (React StrictMode). Danach merkte sie sich das falsche, und Firestore lehnte alle Lese- und Schreibzugriffe ab, bis die Seite neu geladen wurde. `signIn()` war danach idempotent. Das Gast-Login wurde inzwischen durch E-Mail/Passwort ersetzt; der `AuthProvider` legt keine Konten mehr selbst an, damit kann der Fehler nicht wieder auftreten.
+
+## Offen: Benutzername-Login
+
+- [ ] **Rules deployen:** `firebase deploy --only firestore:rules --project gymflow-917db`. Bis dahin klappt der Login nur per E-Mail, und das Anlegen neuer Nutzer schlägt fehl (die Rules kennen das Feld `username` noch nicht).
+- [ ] **Eigenen Benutzernamen setzen:** Admin → eigenes Konto öffnen → „Benutzername“. Bestehende Konten haben noch keinen.
 
 ## Offen: nur in der Firebase Console möglich (sonst kann sich niemand anmelden)
 
@@ -76,5 +82,6 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 - **Muskelverteilung in Sätzen** (nicht in Wiederholungen); Hilfsmuskeln zählen umschaltbar mit ½.
 - **Heatmap-Stufen nach Quartilen** der eigenen Trainingstage, damit sie für Einsteiger wie Fortgeschrittene aussagekräftig ist.
 - **Farbschema pro Gerät** (localStorage), nicht synchronisiert.
+- **Benutzername zusätzlich zur E-Mail** (entschieden am 23.10.): E-Mail bleibt Pflicht, damit „Passwort vergessen“ immer funktioniert. In Kauf genommen: Wer einen Benutzernamen kennt, kann die zugehörige E-Mail abfragen (öffentlicher Lookup vor dem Login, ohne Cloud Functions nicht vermeidbar).
 - **XP abgeleitet statt pro Aktion vergeben:** Trainingstage sind bearbeitbar, also wird alles aus der Historie neu berechnet (nicht farmbar, geräteübergreifend gleich). Ein „abgeschlossenes Workout“ ist ein Trainingstag mit mindestens einem Satz. Den 3-Tage-Streak-Bonus gibt es an jedem 3. Tag einer Serie. Erfolge bleiben auch nach dem Löschen von Tagen freigeschaltet, XP nicht.
 - Akzentfarbe Neongrün (im Light Mode in Diagrammen dunkler, wegen des Kontrasts), Schrift Inter, Design im Apple-Stil mit Glassmorphism.

@@ -48,9 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     repository.recordLogin(state.user.uid).catch((error) => console.error('[GymFlow] recording login failed', error))
   }, [state])
 
-  const signIn = useCallback((email: string, password: string) => repository.signInWithEmail(email, password), [])
+  const signIn = useCallback((login: string, password: string) => repository.signIn(login, password), [])
   const signOut = useCallback(() => repository.signOut(), [])
-  const sendPasswordReset = useCallback((email: string) => repository.sendPasswordReset(email), [])
+  const sendPasswordReset = useCallback((login: string) => repository.sendPasswordReset(login), [])
 
   const value = useMemo<AuthContextValue>(
     () => ({ state, signIn, signOut, sendPasswordReset }),

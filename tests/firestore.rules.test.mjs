@@ -1,7 +1,7 @@
 // Security rules tests against the local Firestore emulator.
 // Run with: npm run test:rules   (needs the Firebase CLI and Java 21+ on PATH)
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { deleteDoc, doc, getDoc, getDocs, collection, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { deleteDoc, doc, getDoc, getDocs, collection, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
 import { readFileSync } from 'node:fs'
 import { after, before, beforeEach, describe, test } from 'node:test'
 
@@ -54,7 +54,8 @@ beforeEach(async () => {
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore()
     await setDoc(doc(db, 'users', ADMIN), account({ role: 'admin', createdBy: null }))
-    await setDoc(doc(db, 'users', USER), account({}))
+    await setDoc(doc(db, 'users', USER), account({ email: 'user@example.com', username: 'user1' }))
+    await setDoc(doc(db, 'usernames', 'user1'), { uid: USER, email: 'user@example.com' })
     await setDoc(doc(db, 'users', OTHER), account({}))
     await setDoc(doc(db, 'users', DISABLED), account({ status: 'disabled' }))
     await setDoc(doc(db, 'users', DISABLED_ADMIN), account({ role: 'admin', status: 'disabled' }))
@@ -163,4 +164,61 @@ describe('gamification (XP, level, rank, achievements)', () => {
   })
   test('admin may create an account with initial progress', () =>
     assertSucceeds(setDoc(doc(as(ADMIN), 'users', 'new-uid'), account({ ...progress({ currentXP: 0, totalXP: 0, level: 1, unlockedAchievements: {} }) }))))
+})
+
+describe('usernames (login by username)', () => {
+  const NEW = 'new-uid'
+  /** What the app writes when an admin creates an account with a username. */
+  const createWithUsername = (db, username, mapping = {}) => {
+    const batch = writeBatch(db)
+    batch.set(doc(db, 'users', NEW), account({ email: 'new@example.com', username }))
+    batch.set(doc(db, 'usernames', username), { uid: NEW, email: 'new@example.com', ...mapping })
+    return batch.commit()
+  }
+  /** What the app writes when an admin renames a username. */
+  const rename = (db, uid, from, to, email) => {
+    const batch = writeBatch(db)
+    if (from) batch.delete(doc(db, 'usernames', from))
+    batch.set(doc(db, 'usernames', to), { uid, email })
+    batch.update(doc(db, 'users', uid), { username: to, updatedAt: serverTimestamp() })
+    return batch.commit()
+  }
+
+  test('signed out can resolve a single username (needed before sign-in)', () => assertSucceeds(getDoc(doc(anon(), 'usernames', 'user1'))))
+  test('signed out cannot list usernames', () => assertFails(getDocs(collection(anon(), 'usernames'))))
+  test('active user cannot list usernames', () => assertFails(getDocs(collection(as(USER), 'usernames'))))
+
+  test('admin creates an account with username', () => assertSucceeds(createWithUsername(as(ADMIN), 'anna.schneider')))
+  test('rejects a username that is already taken', () => assertFails(createWithUsername(as(ADMIN), 'user1')))
+  test('rejects an invalid username', () => assertFails(createWithUsername(as(ADMIN), 'Anna Schneider')))
+  test('rejects a too short username', () => assertFails(createWithUsername(as(ADMIN), 'ab')))
+  test('rejects a mapping with the wrong e-mail', () => assertFails(createWithUsername(as(ADMIN), 'anna', { email: 'evil@example.com' })))
+  test('rejects an account whose username is not reserved', () =>
+    assertFails(setDoc(doc(as(ADMIN), 'users', NEW), account({ email: 'new@example.com', username: 'ghost' }))))
+  test('rejects a mapping without matching account', () =>
+    assertFails(setDoc(doc(as(ADMIN), 'usernames', 'ghost'), { uid: OTHER, email: 'x@example.com' })))
+  test('user cannot reserve a username', () => assertFails(setDoc(doc(as(USER), 'usernames', 'mine'), { uid: USER, email: 'user@example.com' })))
+  test('cannot overwrite an existing mapping', () =>
+    assertFails(setDoc(doc(as(ADMIN), 'usernames', 'user1'), { uid: OTHER, email: 'x@example.com' })))
+
+  test('admin renames a user', () => assertSucceeds(rename(as(ADMIN), USER, 'user1', 'user.neu', 'user@example.com')))
+  test('admin gives an old account its first username', () => assertSucceeds(rename(as(ADMIN), OTHER, null, 'other', 'x@example.com')))
+  test('admin sets own username', () => assertSucceeds(rename(as(ADMIN), ADMIN, null, 'chef', 'x@example.com')))
+  test('user cannot rename itself', () => assertFails(rename(as(USER), USER, 'user1', 'user.neu', 'user@example.com')))
+  test('cannot rename to a taken username', () => assertFails(rename(as(ADMIN), OTHER, null, 'user1', 'x@example.com')))
+  test('cannot release a username that is still in use', () => assertFails(deleteDoc(doc(as(ADMIN), 'usernames', 'user1'))))
+  test('admin deletes an account together with its username', async () => {
+    const db = as(ADMIN)
+    await assertSucceeds(deleteDoc(doc(db, 'users', USER, 'workout_logs', '2026-10-19')))
+    const batch = writeBatch(db)
+    batch.delete(doc(db, 'usernames', 'user1'))
+    batch.delete(doc(db, 'users', USER))
+    await assertSucceeds(batch.commit())
+  })
+  test('user with username still updates own goal and progress', async () => {
+    await assertSucceeds(updateDoc(doc(as(USER), 'users', USER), { weeklyGoalDays: 4, updatedAt: serverTimestamp() }))
+    await assertSucceeds(updateDoc(doc(as(USER), 'users', USER), progress({})))
+  })
+  test('admin still renames the display name of a user with username', () =>
+    assertSucceeds(updateDoc(doc(as(ADMIN), 'users', USER), { displayName: 'Neu', updatedAt: serverTimestamp() })))
 })

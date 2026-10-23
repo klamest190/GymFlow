@@ -36,6 +36,8 @@ npm run dev
 | **Premium-Feinschliff** (23.10.) | ✅ Übungen: Skeletons, Hover-Lift mit Schatten, neongrüne Filter-Pills, leerer Zustand mit „Filter zurücksetzen“. Statistik: Trend-Badges für Wdh./Sätze/Volumen, Glas-Tooltip mit Vorwochenvergleich, Heatmap-Tooltips, Linie zeichnet sich ein, Übungs-Dropdown. Daten-Hooks `useExercises` und `useWorkoutStats` |
 | **Level & Erfolge** (23.10.) | ✅ XP-Kurve `floor(100 · n^1,1)` (statt der vorgegebenen `500 · n^1,5`, siehe README), Level-Spalte und Level-Details in der Nutzerverwaltung, 7 Ränge Eisen bis Grandmaster, 8 Erfolge, Reward-Toasts bei Level-Up/neuem Rang/Erfolg, Dashboard im Profil. XP werden aus der Historie abgeleitet und in `users/{uid}` gespiegelt. Rules erweitert, 63 Tests grün, deployt am 23.10. |
 | **Benutzername-Login** (23.10.) | ✅ Login mit Benutzername oder E-Mail (auch „Passwort vergessen“). Admin vergibt den Benutzernamen beim Anlegen (Vorschlag aus dem Namen) und kann ihn in der Nutzerverwaltung setzen/ändern. Lookup über `usernames/{name}`, Rules erweitert, 84 Tests grün |
+| **Ruhigere Oberfläche** (23.10.) | ✅ Sidebar springt beim Tab-Wechsel nicht mehr (`scrollbar-gutter`), Tabs werden im Hintergrund vorgeladen, Skeletons nur bei spürbarer Ladezeit (`Loadable`) |
+| **Übungs-Animationen** (23.10.) | ✅ Animierte Vektor-Figur für alle 11 Übungen: Zielmuskel neongrün, Tempo mit langsamer exzentrischer Phase, Hell/Dunkel. Katalog: Standbild, Bewegung beim Hovern. Detailansicht: Schleife mit Legende und Pause |
 
 ### Behobener Fehler (19.10.)
 
@@ -69,7 +71,7 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 ## Ideen für danach (optional)
 
 - **Hosting:** Für die Nutzung auf dem Handy und die PWA-Installation braucht GymFlow eine HTTPS-Adresse. Naheliegend ist Firebase Hosting im selben Projekt: `firebase.json` um `hosting` mit `dist` und SPA-Rewrite ergänzen, dann `npm run build && npx firebase-tools deploy --only hosting`. Die Domain anschließend bei den autorisierten Domains eintragen.
-- **Katalog erweitern:** Bisher gibt es keine reine Rückenübung (z. B. Rudern, Klimmzüge, Latzug). Neue Einträge kommen in `DEFINITIONS` in `src/data/exercises.ts`, bestehende IDs nie ändern.
+- **Katalog erweitern:** Bisher gibt es keine reine Rückenübung (z. B. Rudern, Klimmzüge, Latzug). Neue Einträge kommen in `DEFINITIONS` in `src/data/exercises.ts`, bestehende IDs nie ändern. Für die Animation zusätzlich eine Pose in `src/features/exercises/animation/poses.ts` anlegen.
 - Satz-Timer (Pausenzeit zwischen Sätzen) im Tracker
 - Export der Trainingsdaten (CSV)
 

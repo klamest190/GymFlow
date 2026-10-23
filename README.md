@@ -65,7 +65,9 @@ Startet den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf 
 
 GymFlow hat einen **festen Übungskatalog** in [src/data/exercises.ts](src/data/exercises.ts). Nutzer können keine eigenen Übungen anlegen, bearbeiten oder löschen. Dadurch ist jede Übung exakt den richtigen Muskelgruppen zugeordnet, und die Statistiken bleiben verlässlich. Der Katalog liegt nicht in Firestore: Er kostet keine Reads, funktioniert offline und wird mit der App versioniert.
 
-**Neue Übung hinzufügen**: Eintrag im Array `DEFINITIONS` mit neuer, eindeutiger Slug-ID ergänzen (z. B. `cable-rows`). IDs bestehender Übungen **nie ändern oder wiederverwenden**, denn gespeicherte Trainings referenzieren sie.
+**Neue Übung hinzufügen**: Eintrag im Array `DEFINITIONS` mit neuer, eindeutiger Slug-ID ergänzen (z. B. `cable-rows`). IDs bestehender Übungen **nie ändern oder wiederverwenden**, denn gespeicherte Trainings referenzieren sie. Für die Animation zusätzlich einen Eintrag in `EXERCISE_ANIMATIONS` anlegen (siehe unten); ohne ihn zeigt die Übung einfach keine.
+
+**Animationen:** Jede Übung hat eine animierte Vektor-Figur, die eine Wiederholung im passenden Tempo vormacht (langsam in der exzentrischen Phase). Der Zielmuskel leuchtet neongrün, unterstützende Muskeln heller. Im Katalog steht die Figur still und bewegt sich beim Hovern; in der Detailansicht läuft sie in Schleife und lässt sich anhalten. Mit „Bewegung reduzieren“ im Betriebssystem bleibt sie stehen. Die Figur ist ein kleines 2D-Skelett ([rig.ts](src/features/exercises/animation/rig.ts)): Posen sind Gelenkwinkel, interpoliert wird über Winkel, damit die Gliedmaßen ihre Länge behalten. Für Hände gibt es Zielpunkte per Inverse Kinematics (`withHands`). Die Posen pro Übung stehen in [poses.ts](src/features/exercises/animation/poses.ts): Ansicht (`side`, `front`, `end` für die Bank), Start- und Umkehrpose, Tempo, hervorgehobene Muskeln und Equipment. Keine Bilddateien, keine Lizenzfragen, und es funktioniert offline.
 
 Felder: `id`, `name`, `description`, `instructions`, `formCues[]`, `primaryMuscle`, `secondaryMuscles[]`, `category`, `equipment`, `difficulty`, `usesWeight`, `defaultSets`, `defaultReps`, `aliases[]` (Suchbegriffe).
 
@@ -170,7 +172,7 @@ src/
   hooks/                     useLogsInRange, useAllLogs, useAllUsers, useDayDraft, useTheme
   components/                AppShell (Sidebar/TabBar), Sheet, Toasts, SegmentedControl, NumberStepper, AnimatedNumber
   features/tracker/          Daily Tracker (WeekStrip, DaySummary, ExerciseEntryCard, ExercisePicker)
-  features/exercises/        Übungskatalog und Detail-Sheet
+  features/exercises/        Übungskatalog und Detail-Sheet; animation/ mit Skelett, Posen und SVG-Figur
   features/stats/            Statistik-Dashboard (Recharts, lazy geladen)
   features/auth/             Login-Screen (inkl. Passwort vergessen), Kein-Zugang-Screen
   features/admin/            Nutzerverwaltung: Liste (mit Level), Anlegen, Bearbeiten, Sperren, Löschen

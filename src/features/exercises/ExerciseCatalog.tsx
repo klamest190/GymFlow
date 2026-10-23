@@ -12,6 +12,8 @@ import { EXERCISE_HISTORY_DAYS, FILTERABLE_MUSCLES, useExercises, type MuscleFil
 import { formatDaysAgo } from '../../lib/dates'
 import type { ExerciseSession } from '../../lib/exerciseHistory'
 import type { Exercise } from '../../types/models'
+import { ExerciseAnimation } from './animation/ExerciseAnimation'
+import { EXERCISE_ANIMATIONS } from './animation/poses'
 import { ExerciseDetailSheet } from './ExerciseDetailSheet'
 
 const MUSCLE_OPTIONS: FilterOption<MuscleFilter>[] = [
@@ -146,6 +148,8 @@ function ExerciseCard({
   onClick: () => void
 }) {
   const last = sessions[0]
+  // The figure stands still in the list (calm) and only demonstrates the movement on hover/focus.
+  const [active, setActive] = useState(false)
   return (
     <motion.li
       layout
@@ -157,6 +161,10 @@ function ExerciseCard({
       <motion.button
         type="button"
         onClick={onClick}
+        onHoverStart={() => setActive(true)}
+        onHoverEnd={() => setActive(false)}
+        onFocus={() => setActive(true)}
+        onBlur={() => setActive(false)}
         variants={cardMotion}
         initial="rest"
         animate="rest"
@@ -171,17 +179,26 @@ function ExerciseCard({
           transition={{ duration: 0.25 }}
           className="pointer-events-none absolute inset-0 rounded-3xl shadow-float"
         />
-        <div className="flex w-full items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">
-            <span className={`size-2 rounded-full ${MUSCLE_GROUP_TINTS[exercise.primaryMuscle]}`} />
-            {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]}
-          </span>
-          <span className="rounded-full bg-sunken px-2.5 py-1 text-[11px] font-semibold text-muted">
-            {DIFFICULTY_LABELS[exercise.difficulty]}
-          </span>
+        <div className="flex w-full gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex w-full items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">
+                <span className={`size-2 rounded-full ${MUSCLE_GROUP_TINTS[exercise.primaryMuscle]}`} />
+                {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]}
+              </span>
+              <span className="rounded-full bg-sunken px-2.5 py-1 text-[11px] font-semibold text-muted">
+                {DIFFICULTY_LABELS[exercise.difficulty]}
+              </span>
+            </div>
+            <h3 className="mt-2 text-[18px] font-semibold leading-snug tracking-tight">{exercise.name}</h3>
+            <p className="mt-1 line-clamp-2 min-h-[2lh] text-[14px] leading-snug text-muted">{exercise.description}</p>
+          </div>
+          {exercise.id in EXERCISE_ANIMATIONS && (
+            <span className="relative size-22 shrink-0 self-center overflow-hidden rounded-2xl bg-sunken">
+              <ExerciseAnimation exerciseId={exercise.id} playing={active} compact label={`Ausführung: ${exercise.name}`} />
+            </span>
+          )}
         </div>
-        <h3 className="mt-2 text-[18px] font-semibold leading-snug tracking-tight">{exercise.name}</h3>
-        <p className="mt-1 line-clamp-2 min-h-[2lh] text-[14px] leading-snug text-muted">{exercise.description}</p>
         <div className="mt-4 flex w-full items-center justify-between gap-2 border-t border-line pt-3 text-[13px]">
           <span className="font-semibold tabular-nums">
             {exercise.defaultSets} × {exercise.defaultReps}
@@ -205,13 +222,18 @@ function ExerciseCard({
 function ExerciseCardSkeleton() {
   return (
     <li className="glass flex flex-col rounded-3xl p-5" aria-hidden>
-      <div className="flex items-center justify-between">
-        <span className="skeleton h-3 w-20 rounded-full" />
-        <span className="skeleton h-5.5 w-16 rounded-full" />
+      <div className="flex gap-4">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center justify-between">
+            <span className="skeleton h-3 w-20 rounded-full" />
+            <span className="skeleton h-5.5 w-16 rounded-full" />
+          </div>
+          <span className="skeleton mt-3.5 h-4.5 w-3/5 rounded-lg" />
+          <span className="skeleton mt-3 h-3.5 w-full rounded-md" />
+          <span className="skeleton mt-2 h-3.5 w-4/5 rounded-md" />
+        </div>
+        <span className="skeleton size-22 shrink-0 rounded-2xl" />
       </div>
-      <span className="skeleton mt-3.5 h-4.5 w-3/5 rounded-lg" />
-      <span className="skeleton mt-3 h-3.5 w-full rounded-md" />
-      <span className="skeleton mt-2 h-3.5 w-4/5 rounded-md" />
       <div className="mt-5 flex items-center justify-between border-t border-line pt-3.5">
         <span className="skeleton h-3.5 w-28 rounded-md" />
         <span className="skeleton h-3.5 w-16 rounded-md" />

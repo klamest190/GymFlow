@@ -1,4 +1,4 @@
-import { Check, Plus } from 'lucide-react'
+import { Check, Pause, Play, Plus } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
 import {
@@ -11,6 +11,8 @@ import {
 import { formatDaysAgo } from '../../lib/dates'
 import { bestWeight, formatKg, summarizeSets, type ExerciseSession } from '../../lib/exerciseHistory'
 import type { Exercise } from '../../types/models'
+import { ExerciseAnimation } from './animation/ExerciseAnimation'
+import { EXERCISE_ANIMATIONS, hasSecondaryHighlight } from './animation/poses'
 
 interface ExerciseDetailSheetProps {
   exercise: Exercise | null
@@ -54,6 +56,8 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
       }
     >
       <div className="space-y-6 pb-2">
+        <AnimationStage key={shown.id} exercise={shown} />
+
         <Section title="Muskelgruppen">
           <div className="flex flex-wrap gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-sunken px-3 py-1.5 text-[13px] font-semibold">
@@ -110,6 +114,43 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
         </Section>
       </div>
     </Sheet>
+  )
+}
+
+/** Looping demo of one repetition, with a legend for the highlighted muscles and pause. */
+function AnimationStage({ exercise }: { exercise: Exercise }) {
+  const [paused, setPaused] = useState(false)
+  if (!(exercise.id in EXERCISE_ANIMATIONS)) return null
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-sunken">
+      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,var(--glow-a),transparent_60%)]" />
+      <div className="relative mx-auto aspect-square w-full max-w-60 py-2">
+        <ExerciseAnimation exerciseId={exercise.id} playing={!paused} label={`Animation: ${exercise.name}`} />
+      </div>
+      <div className="relative flex items-center justify-between gap-3 px-4 pb-3.5">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-medium text-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-(--figure-highlight)" />
+            Zielmuskel
+          </span>
+          {hasSecondaryHighlight(exercise.id) && (
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-(--figure-highlight-soft)" />
+              Unterstützend
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setPaused((value) => !value)}
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-solid text-fg shadow-soft transition hover:scale-105 active:scale-95"
+          aria-label={paused ? 'Animation abspielen' : 'Animation anhalten'}
+          title={paused ? 'Abspielen' : 'Anhalten'}
+        >
+          {paused ? <Play className="size-4 translate-x-px" fill="currentColor" /> : <Pause className="size-4" fill="currentColor" />}
+        </button>
+      </div>
+    </div>
   )
 }
 

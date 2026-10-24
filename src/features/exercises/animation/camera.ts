@@ -1,4 +1,4 @@
-import { dot, sub, type Vec3 } from './rig'
+import { add, dot, scale, sub, type Vec3 } from './rig'
 
 /**
  * Virtual camera orbiting the figure, in degrees. `yaw` 0 looks at the figure's front, -90 at
@@ -30,6 +30,8 @@ export interface Projector {
   (point: Vec3): Projected
   /** Unit vector from the scene toward the camera. */
   toCamera: Vec3
+  /** Where the camera is (world space). */
+  eye: Vec3
 }
 
 export const STAGE = 200
@@ -59,7 +61,7 @@ export function projector(camera: Camera, framing: Framing): Projector {
       scale: perspective * zoom,
     }
   }
-  return Object.assign(project, { toCamera })
+  return Object.assign(project, { toCamera, eye: add(center, scale(toCamera, FOCAL)) })
 }
 
 /** A point of the scene with the radius it is drawn with (half the stroke width). */

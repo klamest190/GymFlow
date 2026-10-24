@@ -19,8 +19,9 @@ export interface ExerciseAnimationSpec {
   /** Seconds for from → to and back; slow on the lowering (eccentric) part. */
   tempo: readonly [number, number]
   highlight: { primary: BodyPart[]; secondary?: BodyPart[] }
-  equipment: 'none' | 'dumbbells' | 'barbell'
-  /** Dumbbell handle direction (world); default sideways. */
+  /** Every catalog exercise is done with two light dumbbells, one per hand. */
+  equipment: 'none' | 'dumbbells'
+  /** Dumbbell handle direction in the torso frame [outward, up the spine, out of the chest]; default sideways. */
   handle?: Vec3
   ground: 'floor' | 'bench'
   /** Progress (0 = from, 1 = to) for the still image in lists. */
@@ -47,7 +48,9 @@ const both = <T>(value: T) => [value, value] as const
 const STANDING: RigSetup = { root: 'ankle' }
 const GROUNDED: RigSetup = { root: 'pelvis' }
 const UP = seg(180)
+/** Handle directions (torso frame): across the body, along the spine, away from the chest. */
 const SIDEWAYS: Vec3 = [1, 0, 0]
+const ALONG_SPINE: Vec3 = [0, 1, 0]
 const FORWARD: Vec3 = [0, 0, 1]
 /** 3/4 view from the front-left: the figure faces right on screen and shows its depth. */
 const THREE_QUARTER: Camera = { yaw: -58, pitch: 14 }
@@ -82,7 +85,7 @@ const seated: Pose = {
   legs: both(limb([128, 12], [42, 6])),
 }
 
-/** Bar on the bench press: straight up and down over the lower chest, `halfGrip` from the middle. */
+/** Dumbbells on the bench press: straight up and down over the lower chest, `halfGrip` from the middle. */
 const benchGrip = (halfGrip: number) => (s: Skeleton, t: number) =>
   inTorso(s, s.shoulderCenter, lerp3([halfGrip, -3, 48], [halfGrip, -13, 12.5], t))
 
@@ -95,10 +98,10 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     setup: GROUNDED,
     from: lying,
     to: lying,
-    grip: { at: benchGrip(33), elbows: both([0.8, -1, 0.35]) },
+    grip: { at: benchGrip(31), elbows: both([0.8, -1, 0.35]) },
     tempo: [1.6, 1],
     highlight: { primary: ['chest'], secondary: ['shoulders', 'upperArms'] },
-    equipment: 'barbell',
+    equipment: 'dumbbells',
     ground: 'bench',
     still: 0,
     camera: BENCH_VIEW,
@@ -107,11 +110,12 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     setup: GROUNDED,
     from: lying,
     to: lying,
-    // Elbows tucked: they travel toward the feet instead of out to the sides.
-    grip: { at: benchGrip(12), elbows: both([0.25, -1, 1]) },
+    // Neutral grip, dumbbells close together; the elbows travel toward the feet instead of out to the sides.
+    grip: { at: benchGrip(11), elbows: both([0.25, -1, 1]) },
     tempo: [1.6, 1],
     highlight: { primary: ['upperArms'], secondary: ['chest', 'shoulders'] },
-    equipment: 'barbell',
+    equipment: 'dumbbells',
+    handle: ALONG_SPINE,
     ground: 'bench',
     still: 0,
     camera: BENCH_VIEW,
@@ -133,7 +137,7 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     tempo: [1.6, 1.2],
     highlight: { primary: ['chest'], secondary: ['shoulders'] },
     equipment: 'dumbbells',
-    handle: FORWARD,
+    handle: ALONG_SPINE,
     ground: 'bench',
     still: 0.35,
     camera: BENCH_VIEW,
@@ -184,11 +188,11 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
       legs: both(limb([80, 18], [-25, 8])),
       feet: both(seg(90, 18)),
     },
-    // Bar on the upper back, hands just outside the shoulders.
-    grip: { at: (s) => inTorso(s, s.shoulderCenter, [27, -3, -9]), elbows: both([0.3, -1, -0.6]) },
+    // Dumbbells racked in front of the shoulders, elbows pointing down and forward.
+    grip: { at: (s) => inTorso(s, s.shoulderCenter, [16, 6, 13]), elbows: both([0.3, -1, 0.6]) },
     tempo: [1.6, 1],
     highlight: { primary: ['thighs'], secondary: ['abs'] },
-    equipment: 'barbell',
+    equipment: 'dumbbells',
     ground: 'floor',
     still: 1,
     camera: { yaw: -38, pitch: 14 },
@@ -209,10 +213,12 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
       legs: [limb([80, 3], [-10, 2]), limb([-5, 3], [-85, 2])],
       feet: [seg(90, 8), seg(60)],
     },
-    grip: { at: (s) => inTorso(s, s.pelvis, [15, 8, 1]), elbows: both([1, 0, -0.7]) },
+    // Dumbbells hang beside the body, palms facing in.
+    grip: { at: (s) => [add(s.shoulders[0], [9, -49, 0]), add(s.shoulders[1], [-9, -49, 0])], elbows: both([0.3, 0, -1]) },
     tempo: [1.4, 1],
     highlight: { primary: ['thighs'] },
-    equipment: 'none',
+    equipment: 'dumbbells',
+    handle: FORWARD,
     ground: 'floor',
     still: 1,
     camera: THREE_QUARTER,
@@ -233,11 +239,12 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
       arms: both(limb(180, 180)),
       legs: both(limb([145, 10], [30, 8])),
     },
-    // Fingertips behind the head, elbows wide.
-    grip: { at: (s) => inTorso(s, s.head, [6, 2, -6]), elbows: both([1, 0, 0.4]) },
+    // Dumbbells held upright on the chest, elbows out to the sides.
+    grip: { at: (s) => inTorso(s, s.shoulderCenter, [9, -8, 16]), elbows: both([1, -0.3, 0.4]) },
     tempo: [1, 1.4],
     highlight: { primary: ['abs'] },
-    equipment: 'none',
+    equipment: 'dumbbells',
+    handle: ALONG_SPINE,
     ground: 'floor',
     still: 1,
     camera: { yaw: -62, pitch: 18 },
@@ -246,11 +253,12 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     setup: GROUNDED,
     from: { ...seated, twist: 45 },
     to: { ...seated, twist: -45 },
-    // Hands together in front of the belly; they swing with the shoulders.
-    grip: { at: (s) => inTorso(s, s.shoulderCenter, [3, -24, 27]), elbows: both([1, -0.6, 0]) },
+    // Both dumbbells close together in front of the belly; they swing with the shoulders.
+    grip: { at: (s) => inTorso(s, s.shoulderCenter, [8, -22, 27]), elbows: both([1, -0.6, 0]) },
     tempo: [0.9, 0.9],
     highlight: { primary: ['abs'] },
-    equipment: 'none',
+    equipment: 'dumbbells',
+    handle: ALONG_SPINE,
     ground: 'floor',
     still: 0,
     camera: { yaw: -22, pitch: 24 },
@@ -259,11 +267,11 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     setup: STANDING,
     from: standing,
     to: standing,
-    // From the collarbone straight overhead; elbows slightly in front of the bar at the bottom.
-    grip: { at: (s, t) => inTorso(s, s.shoulderCenter, lerp3([25, 3, 11], [23, 50, 2], t)), elbows: both([0.6, -1, 0.5]) },
+    // From shoulder height straight overhead, the dumbbells moving slightly together at the top.
+    grip: { at: (s, t) => inTorso(s, s.shoulderCenter, lerp3([26, 4, 6], [20, 50, 2], t)), elbows: both([0.8, -1, 0.3]) },
     tempo: [1, 1.6],
     highlight: { primary: ['shoulders'], secondary: ['upperArms'] },
-    equipment: 'barbell',
+    equipment: 'dumbbells',
     ground: 'floor',
     still: 1,
     camera: { yaw: -35, pitch: 10 },

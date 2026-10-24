@@ -2,7 +2,8 @@ import { useId, type ReactNode } from 'react'
 import { STAGE, projector, type Camera, type Projected, type Projector } from './camera'
 import type { ExerciseAnimationSpec } from './poses'
 import { add, cross, dot, normalize, scale, sub, type Skeleton, type Vec3 } from './rig'
-import { buildScene, scenePoints, type Paint, type Shape, type StageLayout } from './scene'
+import { bodyRank, paintOrder, type Rank } from './paintOrder'
+import { buildScene, scenePoints, type CapsuleEnd, type Paint, type Shape, type StageLayout } from './scene'
 
 // Colors come from CSS tokens (index.css → --figure-*), so the figure follows light/dark mode.
 const TOKEN: Record<Paint, string> = {
@@ -29,7 +30,7 @@ const fogFor = (depth: number) => Math.round(Math.min(1, Math.max(0, 0.5 - depth
 const tone = (paint: Paint, fog = 0) =>
   fog <= 0 ? `var(${TOKEN[paint]})` : `color-mix(in srgb, var(${TOKEN[paint]}) ${100 - fog}%, var(--figure-gap))`
 
-const pointsAttr = (points: readonly Point2[]) => points.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ')
+const pointsAttr =(points: readonly Point2[]) => points.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ')
 const flat = ({ x, y }: Projected): Point2 => [x, y]
 
 /** Convex hull (monotone chain) of screen points. */
@@ -60,20 +61,44 @@ function circle(center: Vec3, axis: Vec3, radius: number, steps = 16): Vec3[] {
   })
 }
 
-/** Depth used for painting order, and the drawing of one shape. */
-function renderShape(shape: Shape, project: Projector, key: number, fogged: boolean): { depth: number; node: ReactNode } {
+/** The drawing of one shape; the fog follows the true distance to the camera. */
+function renderShape(shape: Shape, project: Projector, key: string, fogged: boolean, rank: Rank): ReactNode {
   switch (shape.kind) {
+    case 'group':
+    case 'seam': {
+      const parts =
+        shape.kind === 'seam' || shape.sorted
+          ? paintOrder(shape.shapes, rank, project.eye)
+          : shape.shapes.map((part, index) => ({ shape: part, key: String(index) }))
+      return <g key={key}>{parts.map((part) => renderShape(part.shape, project, part.key, fogged, rank))}</g>
+    }
     case 'capsule': {
       const a = project(shape.a)
       const b = project(shape.b)
       const depth = (a.depth + b.depth) / 2
-      const width = shape.radius * (a.scale + b.scale)
-      return { depth, node: <Capsule key={key} a={flat(a)} b={flat(b)} width={width} fill={tone(shape.paint, fogged ? fogFor(depth) : 0)} /> }
+      const half = (shape.radius * (a.scale + b.scale)) / 2
+      // A joint end needs the neighbor segment on screen: where it goes and how thick it is.
+      const end = (at: Projected, from: Projected, spec?: CapsuleEnd): EndSpec => {
+        if (!spec || spec === 'attached') return spec ?? 'round'
+        const next = project(spec.joint)
+        return { next: flat(next), nextHalf: (spec.radius * (at.scale + next.scale)) / 2, owner: Boolean(spec.owner), from: flat(from) }
+      }
+      return (
+        <Capsule
+          key={key}
+          a={flat(a)}
+          b={flat(b)}
+          half={half}
+          start={end(a, b, shape.start)}
+          end={end(b, a, shape.end)}
+          fill={tone(shape.paint, fogged ? fogFor(depth) : 0)}
+        />
+      )
     }
     case 'sphere': {
       const center = project(shape.center)
       const fill = tone(shape.paint, fogged ? fogFor(center.depth) : 0)
-      return { depth: center.depth, node: <Ball key={key} at={flat(center)} radius={shape.radius * center.scale} fill={fill} /> }
+      return <Ball key={key} at={flat(center)} radius={shape.radius * center.scale} fill={fill} />
     }
     case 'hull': {
       const projected = shape.points.map(project)
@@ -81,16 +106,13 @@ function renderShape(shape: Shape, project: Projector, key: number, fogged: bool
       const outline = hull(projected.map(flat))
       const sheen = hull(shape.sheen.map((point) => flat(project(point))))
       const fill = tone(shape.paint, fogged ? fogFor(depth) : 0)
-      return {
-        depth: depth + (shape.bias ?? 0),
-        node: (
-          <g key={key}>
-            <polygon points={pointsAttr(outline)} fill={GAP} stroke={GAP} strokeWidth={GAP_WIDTH * 2} strokeLinejoin="round" />
-            <polygon points={pointsAttr(outline)} fill={fill} />
-            <polygon points={pointsAttr(sheen)} fill={SHEEN} />
-          </g>
-        ),
-      }
+      return (
+        <g key={key}>
+          <polygon points={pointsAttr(outline)} fill={GAP} stroke={GAP} strokeWidth={GAP_WIDTH * 2} strokeLinejoin="round" />
+          <polygon points={pointsAttr(outline)} fill={fill} />
+          <polygon points={pointsAttr(sheen)} fill={SHEEN} />
+        </g>
+      )
     }
     case 'disc': {
       const center = project(shape.center)
@@ -102,16 +124,13 @@ function renderShape(shape: Shape, project: Projector, key: number, fogged: bool
       const back = circle(backCenter, shape.axis, shape.radius).map((point) => flat(project(point)))
       const hub = circle(faceCenter, shape.axis, shape.radius * 0.22, 10).map((point) => flat(project(point)))
       const fog = fogged ? fogFor(center.depth) : 0
-      return {
-        depth: center.depth,
-        node: (
-          <g key={key}>
-            <polygon points={pointsAttr(hull([...face, ...back]))} fill={tone(shape.paint, fog + 22)} stroke={GAP} strokeWidth={GAP_WIDTH} strokeLinejoin="round" />
-            <polygon points={pointsAttr(face)} fill={tone(shape.paint, fog)} />
-            <polygon points={pointsAttr(hub)} fill={GAP} />
-          </g>
-        ),
-      }
+      return (
+        <g key={key}>
+          <polygon points={pointsAttr(hull([...face, ...back]))} fill={tone(shape.paint, fog + 22)} stroke={GAP} strokeWidth={GAP_WIDTH} strokeLinejoin="round" />
+          <polygon points={pointsAttr(face)} fill={tone(shape.paint, fog)} />
+          <polygon points={pointsAttr(hub)} fill={GAP} />
+        </g>
+      )
     }
     case 'box': {
       const [x0, y0, z0] = shape.min
@@ -123,18 +142,15 @@ function renderShape(shape: Shape, project: Projector, key: number, fogged: bool
         [x1, y1, z1],
         [x0, y1, z1],
       ]
-      return {
-        depth: project(scale(add(shape.min, shape.max), 0.5)).depth,
-        node: (
-          <g key={key}>
-            <polygon
-              points={pointsAttr(hull(corners.map((point) => flat(project(point)))))}
-              fill={`color-mix(in srgb, var(${TOKEN[shape.paint]}) 72%, var(--figure-gear))`}
-            />
-            <polygon points={pointsAttr(top.map((point) => flat(project(point))))} fill={tone(shape.paint)} />
-          </g>
-        ),
-      }
+      return (
+        <g key={key}>
+          <polygon
+            points={pointsAttr(hull(corners.map((point) => flat(project(point)))))}
+            fill={`color-mix(in srgb, var(${TOKEN[shape.paint]}) 72%, var(--figure-gear))`}
+          />
+          <polygon points={pointsAttr(top.map((point) => flat(project(point))))} fill={tone(shape.paint)} />
+        </g>
+      )
     }
   }
 }
@@ -155,11 +171,10 @@ export function ExerciseFigure({
   const project = projector(camera, layout.framing)
   const scene = buildScene(spec, skeleton)
 
-  const props = scene.props.map((shape, index) => renderShape(shape, project, index, false).node)
-  const body = scene.body
-    .map((shape, index) => renderShape(shape, project, index, true))
-    .sort((a, b) => a.depth - b.depth)
-    .map(({ node }) => node)
+  const rank = bodyRank(scene, project)
+  // Furniture keeps its order: the body always rests on top of it.
+  const props = scene.props.map((shape, index) => renderShape(shape, project, String(index), false, rank))
+  const body = paintOrder(scene.body, rank, project.eye).map(({ shape, key }) => renderShape(shape, project, key, true, rank))
 
   return (
     <svg viewBox={`0 0 ${STAGE} ${STAGE}`} className="size-full" aria-hidden>
@@ -171,30 +186,120 @@ export function ExerciseFigure({
   )
 }
 
-function Capsule({ a, b, width, fill }: { a: Point2; b: Point2; width: number; fill: string }) {
-  const dx = b[0] - a[0]
-  const dy = b[1] - a[1]
-  const span = Math.hypot(dx, dy)
+/** One capsule end on screen: rounded, rounded without outline (`attached`), or a joint. */
+type EndSpec = 'round' | 'attached' | { from: Point2; next: Point2; nextHalf: number; owner: boolean }
+
+const plus = (a: Point2, b: Point2): Point2 => [a[0] + b[0], a[1] + b[1]]
+const minus = (a: Point2, b: Point2): Point2 => [a[0] - b[0], a[1] - b[1]]
+const times = (a: Point2, factor: number): Point2 => [a[0] * factor, a[1] * factor]
+const cross2 = (a: Point2, b: Point2) => a[0] * b[1] - a[1] * b[0]
+const unit2 = (a: Point2): Point2 | null => {
+  const size = Math.hypot(a[0], a[1])
+  return size < 0.5 ? null : [a[0] / size, a[1] / size]
+}
+const at = ([x, y]: Point2) => `${x.toFixed(2)},${y.toFixed(2)}`
+
+interface JointCut {
+  inner: Point2
+  outer: Point2
+  /** Rounded outside of the bend (joint first), drawn by the owning segment. */
+  pie: Point2[] | null
+}
+
+/**
+ * Splits a joint between two segments without overlap. Each side ends at the inner corner (where
+ * both inner edges meet) and straight across on the outside; the owner fills the rounded outside
+ * of the bend. Both segments compute the same corner, so the joint looks the same whichever is
+ * painted last. `null` when it can't be split cleanly (seen end-on, or folded back on itself).
+ */
+function cutJoint(joint: Point2, from: Point2, half: number, next: Point2, nextHalf: number, owner: boolean): JointCut | null {
+  const u = unit2(minus(joint, from))
+  const v = unit2(minus(next, joint))
+  if (!u || !v || u[0] * v[0] + u[1] * v[1] < -0.85) return null
+  const turn = cross2(u, v)
+  const side = turn >= 0 ? 1 : -1
+  const inner = times([-u[1], u[0]], side)
+  const nextInner = times([-v[1], v[0]], side)
+  let corner = plus(joint, times(inner, half))
+  if (Math.abs(turn) > 0.08) {
+    // Where the two inner edges cross, unless that lies beyond either segment (strong foreshortening).
+    const ownEdge = plus(joint, times(inner, half))
+    const nextEdge = plus(joint, times(nextInner, nextHalf))
+    const meet = plus(ownEdge, times(u, cross2(minus(nextEdge, ownEdge), v) / turn))
+    const limit = Math.min(Math.hypot(...minus(joint, from)), Math.hypot(...minus(next, joint)), 2.5 * Math.max(half, nextHalf))
+    if (Math.hypot(...minus(meet, joint)) < limit) corner = meet
+  }
+  let pie: Point2[] | null = null
+  if (owner) {
+    const start = Math.atan2(-inner[1], -inner[0])
+    const sweep = ((Math.atan2(-nextInner[1], -nextInner[0]) - start + 3 * Math.PI) % (2 * Math.PI)) - Math.PI
+    pie = [
+      joint,
+      ...Array.from({ length: 7 }, (_, index): Point2 => {
+        const t = index / 6
+        const radius = half + (nextHalf - half) * t
+        return [joint[0] + Math.cos(start + sweep * t) * radius, joint[1] + Math.sin(start + sweep * t) * radius]
+      }),
+    ]
+  }
+  return { inner: corner, outer: plus(joint, times(inner, -half)), pie }
+}
+
+function Capsule({ a, b, half, start, end, fill }: { a: Point2; b: Point2; half: number; start: EndSpec; end: EndSpec; fill: string }) {
+  const axis = unit2(minus(b, a))
   // Normal toward the light; a segment pointing straight at the camera has none, use the light.
-  let normal: Point2 = span < 0.01 ? LIGHT : [-dy / span, dx / span]
-  if (normal[0] * LIGHT[0] + normal[1] * LIGHT[1] < 0) normal = [-normal[0], -normal[1]]
-  const offset = width * 0.2
-  const line = (stroke: string, strokeWidth: number, shift = 0) => (
-    <line
-      x1={a[0] + normal[0] * shift}
-      y1={a[1] + normal[1] * shift}
-      x2={b[0] + normal[0] * shift}
-      y2={b[1] + normal[1] * shift}
-      stroke={stroke}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-    />
-  )
+  let light: Point2 = axis ? [-axis[1], axis[0]] : [LIGHT[0], LIGHT[1]]
+  if (light[0] * LIGHT[0] + light[1] * LIGHT[1] < 0) light = times(light, -1)
+  const cuts = { start: null as JointCut | null, end: null as JointCut | null }
+  if (axis && typeof start === 'object') cuts.start = cutJoint(a, start.from, half, start.next, start.nextHalf, start.owner)
+  if (axis && typeof end === 'object') cuts.end = cutJoint(b, end.from, half, end.next, end.nextHalf, end.owner)
+
+  // The sheen stops short of a cut joint, so it never reaches into the neighbor.
+  const shorten = (point: Point2, toward: Point2, cut: JointCut | null) => (cut && axis ? plus(point, times(minus(toward, point), Math.min(0.45, half / Math.hypot(...minus(toward, point))))) : point)
+  const sheenFrom = plus(shorten(a, b, cuts.start), times(light, half * 0.4))
+  const sheenTo = plus(shorten(b, a, cuts.end), times(light, half * 0.4))
+  const sheen = <line x1={sheenFrom[0]} y1={sheenFrom[1]} x2={sheenTo[0]} y2={sheenTo[1]} stroke={SHEEN} strokeWidth={half * 0.64} strokeLinecap="round" />
+
+  if (!axis) {
+    return (
+      <g>
+        <circle cx={a[0]} cy={a[1]} r={half + GAP_WIDTH} fill={GAP} />
+        <circle cx={a[0]} cy={a[1]} r={half} fill={fill} />
+        {sheen}
+      </g>
+    )
+  }
+
+  // Outline: left side, end, right side, start (left = +normal).
+  const normal: Point2 = [-axis[1], axis[0]]
+  const corners = (point: Point2, cut: JointCut | null): [Point2, Point2] => {
+    if (!cut) return [plus(point, times(normal, half)), plus(point, times(normal, -half))]
+    const innerOnLeft = (cut.inner[0] - point[0]) * normal[0] + (cut.inner[1] - point[1]) * normal[1] > 0
+    return innerOnLeft ? [cut.inner, cut.outer] : [cut.outer, cut.inner]
+  }
+  const [startLeft, startRight] = corners(a, cuts.start)
+  const [endLeft, endRight] = corners(b, cuts.end)
+  const arc = (to: Point2) => `A${half.toFixed(2)},${half.toFixed(2)} 0 0 0 ${at(to)}`
+  const endPath = cuts.end ? `L${at(b)} L${at(endRight)}` : end === 'attached' ? `L${at(endRight)}` : arc(endRight)
+  const startPath = cuts.start ? `L${at(a)} L${at(startLeft)}` : start === 'attached' ? `L${at(startLeft)}` : arc(startLeft)
+  const outline = `M${at(startLeft)} L${at(endLeft)} ${endPath} L${at(startRight)} ${startPath}Z`
+
+  // The background-colored rim follows the outside only: never across a joint cut.
+  const rim = [`M${at(startLeft)} L${at(endLeft)}`, `M${at(endRight)} L${at(startRight)}`]
+  if (!cuts.end && end !== 'attached') rim.push(`M${at(endLeft)} ${arc(endRight)}`)
+  if (!cuts.start && start !== 'attached') rim.push(`M${at(startRight)} ${arc(startLeft)}`)
+  const pies = [cuts.start?.pie, cuts.end?.pie].filter((pie): pie is Point2[] => Boolean(pie))
+  for (const pie of pies) rim.push(`M${pie.slice(1).map(at).join(' L')}`)
+
   return (
     <g>
-      {line(GAP, width + GAP_WIDTH * 2)}
-      {line(fill, width)}
-      {line(SHEEN, width * 0.32, offset)}
+      <path d={rim.join(' ')} fill="none" stroke={GAP} strokeWidth={GAP_WIDTH * 2} strokeLinejoin="round" />
+      {/* A hairline in the fill color closes the anti-aliasing seam along the cuts. */}
+      <path d={outline} fill={fill} stroke={fill} strokeWidth={0.6} strokeLinejoin="round" />
+      {pies.map((pie, index) => (
+        <polygon key={index} points={pointsAttr(pie)} fill={fill} stroke={fill} strokeWidth={0.6} strokeLinejoin="round" />
+      ))}
+      {sheen}
     </g>
   )
 }

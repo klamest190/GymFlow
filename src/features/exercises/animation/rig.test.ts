@@ -32,6 +32,12 @@ describe('exercise animations', () => {
     expect(Object.keys(EXERCISE_ANIMATIONS).filter((id) => !ids.has(id))).toEqual([])
   })
 
+  it('show the equipment the catalog names', () => {
+    const shown = EXERCISES.map((exercise) => [exercise.id, EXERCISE_ANIMATIONS[exercise.id]?.equipment])
+    const named = EXERCISES.map((exercise) => [exercise.id, exercise.equipment === 'dumbbell' ? 'dumbbells' : 'none'])
+    expect(shown).toEqual(named)
+  })
+
   it.each(Object.entries(EXERCISE_ANIMATIONS))('%s keeps limbs at their length', (_, spec) => {
     for (const t of STEPS) {
       const skeleton = skeletonAt(spec, t)

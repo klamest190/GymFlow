@@ -16,18 +16,18 @@ const DEFINITIONS: ExerciseDefinition[] = [
   {
     id: 'wide-grip-bench-press',
     name: 'Weites Brustdrücken',
-    aliases: ['bankdrücken weit', 'wide grip bench press', 'bench press', 'brustrücken'],
-    description: 'Bankdrücken mit weitem Griff – Fokus auf die gesamte Brustmuskulatur.',
+    aliases: ['bankdrücken weit', 'wide grip bench press', 'bench press', 'brustrücken', 'kurzhantel bankdrücken', 'dumbbell bench press'],
+    description: 'Bankdrücken mit zwei Kurzhanteln und weit geführten Armen – Fokus auf die gesamte Brustmuskulatur.',
     instructions:
       'Flach auf die Bank legen, Füße fest im Boden, Schulterblätter zusammen- und nach unten ziehen. ' +
-      'Die Stange etwa 1,5-fach schulterbreit greifen. Kontrolliert zur unteren Brust absenken, ' +
-      'die Ellbogen dabei rund 45–60° vom Körper entfernt halten. Kurz ohne Abfedern berühren und ' +
-      'kraftvoll nach oben drücken, bis die Arme fast gestreckt sind.',
+      'Je eine Kurzhantel im Obergriff über der Brust halten, etwa 1,5-fach schulterbreit. Kontrolliert ' +
+      'seitlich neben die untere Brust absenken, die Ellbogen dabei rund 45–60° vom Körper entfernt halten. ' +
+      'Unten kurz halten und kraftvoll nach oben drücken, bis die Arme fast gestreckt sind.',
     formCues: ['Schulterblätter bleiben fixiert', 'Leichtes Hohlkreuz, Gesäß auf der Bank', 'Ellbogen nicht 90° abspreizen'],
     primaryMuscle: 'chest',
     secondaryMuscles: ['shoulders', 'triceps'],
     category: 'strength',
-    equipment: 'barbell',
+    equipment: 'dumbbell',
     difficulty: 'intermediate',
     usesWeight: true,
     defaultSets: 4,
@@ -39,7 +39,7 @@ const DEFINITIONS: ExerciseDefinition[] = [
     aliases: ['butterfly', 'flys', 'fliegende', 'chest fly', 'pec deck'],
     description: 'Isolationsübung für die Brust mit großem Bewegungsradius.',
     instructions:
-      'An der Maschine oder mit Kurzhanteln auf der Flachbank: Arme leicht gebeugt vor der Brust. ' +
+      'Mit je einer Kurzhantel auf der Flachbank liegen, die Arme leicht gebeugt vor der Brust. ' +
       'In einem weiten Bogen öffnen, bis eine deutliche Dehnung in der Brust spürbar ist, der ' +
       'Ellbogenwinkel bleibt dabei konstant. Anschließend die Arme mit bewusster Brustspannung ' +
       'wieder zusammenführen, als würdest du einen großen Baum umarmen.',
@@ -56,17 +56,18 @@ const DEFINITIONS: ExerciseDefinition[] = [
   {
     id: 'close-grip-bench-press',
     name: 'Enges Brustdrücken',
-    aliases: ['bankdrücken eng', 'close grip bench press', 'enges bankdrücken', 'brustrücken'],
-    description: 'Bankdrücken mit engem Griff – verlagert den Fokus auf Trizeps und innere Brust.',
+    aliases: ['bankdrücken eng', 'close grip bench press', 'enges bankdrücken', 'brustrücken', 'kurzhantel eng'],
+    description: 'Enges Drücken mit zwei Kurzhanteln – verlagert den Fokus auf Trizeps und innere Brust.',
     instructions:
-      'Die Stange etwa schulterbreit greifen, Handgelenke gerade über den Ellbogen. Die Stange ' +
-      'zur unteren Brust absenken und die Ellbogen dabei eng am Oberkörper führen. Aus dem ' +
-      'Trizeps heraus nach oben drücken, ohne die Ellbogen nach außen klappen zu lassen.',
-    formCues: ['Griff nicht enger als schulterbreit', 'Ellbogen eng am Körper', 'Handgelenke stabil und neutral'],
+      'Auf der Flachbank zwei Kurzhanteln im Neutralgriff (Handflächen zueinander) eng nebeneinander ' +
+      'über der Brust halten, Handgelenke gerade über den Ellbogen. Zur unteren Brust absenken und die ' +
+      'Ellbogen dabei eng am Oberkörper führen. Aus dem Trizeps heraus nach oben drücken, ohne die ' +
+      'Ellbogen nach außen klappen zu lassen.',
+    formCues: ['Hanteln bleiben eng beieinander', 'Ellbogen eng am Körper', 'Handgelenke stabil und neutral'],
     primaryMuscle: 'triceps',
     secondaryMuscles: ['chest', 'shoulders'],
     category: 'strength',
-    equipment: 'barbell',
+    equipment: 'dumbbell',
     difficulty: 'intermediate',
     usesWeight: true,
     defaultSets: 3,
@@ -132,18 +133,18 @@ const DEFINITIONS: ExerciseDefinition[] = [
   {
     id: 'squats',
     name: 'Squats (Kniebeugen)',
-    aliases: ['squat', 'kniebeuge', 'kniebeugen', 'back squat'],
+    aliases: ['squat', 'kniebeuge', 'kniebeugen', 'dumbbell squat', 'kurzhantel kniebeugen'],
     description: 'Die Königsübung für Beine und Gesäß.',
     instructions:
-      'Etwa schulterbreit stehen, Fußspitzen leicht nach außen. Brust aufrichten, Rumpf fest anspannen ' +
-      'und die Hüfte nach hinten unten absenken, als würdest du dich auf einen Stuhl setzen. Die Knie ' +
-      'folgen der Richtung der Fußspitzen. Mindestens bis die Oberschenkel parallel zum Boden sind, ' +
+      'Etwa schulterbreit stehen, Fußspitzen leicht nach außen, die Kurzhanteln vorne auf den Schultern. ' +
+      'Brust aufrichten, Rumpf fest anspannen und die Hüfte nach hinten unten absenken, als würdest du ' +
+      'dich auf einen Stuhl setzen. Die Knie folgen der Richtung der Fußspitzen. Mindestens bis die Oberschenkel parallel zum Boden sind, ' +
       'dann über die ganze Fußsohle kraftvoll nach oben drücken.',
     formCues: ['Knie nicht nach innen fallen lassen', 'Fersen bleiben am Boden', 'Neutraler Rücken, Blick nach vorn'],
     primaryMuscle: 'quads',
     secondaryMuscles: ['glutes', 'hamstrings', 'core'],
     category: 'strength',
-    equipment: 'barbell',
+    equipment: 'dumbbell',
     difficulty: 'intermediate',
     usesWeight: true,
     defaultSets: 4,
@@ -155,17 +156,17 @@ const DEFINITIONS: ExerciseDefinition[] = [
     aliases: ['lunge', 'ausfallschritt', 'ausfallschritte', 'walking lunges'],
     description: 'Einbeinige Übung für Beine, Gesäß und Stabilität.',
     instructions:
-      'Aufrecht stehen und einen großen Schritt nach vorne machen. Beide Knie beugen, bis das hintere ' +
-      'Knie knapp über dem Boden schwebt und beide Kniegelenke etwa 90° bilden. Das vordere Knie ' +
-      'bleibt über dem Fußgelenk. Über die Ferse des vorderen Beins zurück in den Stand drücken und ' +
+      'Aufrecht stehen, die Kurzhanteln seitlich in den Händen, und einen großen Schritt nach vorne machen. ' +
+      'Beide Knie beugen, bis das hintere Knie knapp über dem Boden schwebt und beide Kniegelenke ' +
+      'etwa 90° bilden. Das vordere Knie bleibt über dem Fußgelenk. Über die Ferse des vorderen Beins zurück in den Stand drücken und ' +
       'die Seite wechseln.',
     formCues: ['Oberkörper aufrecht', 'Vorderes Knie stabil über dem Fuß', 'Schritt lang genug wählen'],
     primaryMuscle: 'quads',
     secondaryMuscles: ['glutes', 'hamstrings'],
     category: 'strength',
-    equipment: 'bodyweight',
+    equipment: 'dumbbell',
     difficulty: 'beginner',
-    usesWeight: false,
+    usesWeight: true,
     defaultSets: 3,
     defaultReps: 12,
   },
@@ -175,16 +176,16 @@ const DEFINITIONS: ExerciseDefinition[] = [
     aliases: ['crunch', 'bauchpresse', 'sit ups'],
     description: 'Grundübung für die gerade Bauchmuskulatur.',
     instructions:
-      'Auf den Rücken legen, Knie angewinkelt, Füße flach am Boden. Hände leicht an die Schläfen legen ' +
-      'oder vor der Brust kreuzen. Mit dem Ausatmen den oberen Rücken Wirbel für Wirbel einrollen, bis ' +
+      'Auf den Rücken legen, Knie angewinkelt, Füße flach am Boden. Die Kurzhanteln aufrecht auf der ' +
+      'Brust halten. Mit dem Ausatmen den oberen Rücken Wirbel für Wirbel einrollen, bis ' +
       'die Schulterblätter vom Boden abheben. Kurz halten und langsam wieder ablegen.',
-    formCues: ['Nicht am Nacken ziehen', 'Unterer Rücken bleibt am Boden', 'Beim Hochkommen ausatmen'],
+    formCues: ['Hanteln fest an der Brust', 'Unterer Rücken bleibt am Boden', 'Beim Hochkommen ausatmen'],
     primaryMuscle: 'core',
     secondaryMuscles: [],
     category: 'core',
-    equipment: 'bodyweight',
+    equipment: 'dumbbell',
     difficulty: 'beginner',
-    usesWeight: false,
+    usesWeight: true,
     defaultSets: 3,
     defaultReps: 20,
   },
@@ -196,15 +197,15 @@ const DEFINITIONS: ExerciseDefinition[] = [
     instructions:
       'Auf den Boden setzen, Knie gebeugt, Oberkörper mit geradem Rücken etwa 45° zurücklehnen. ' +
       'Für mehr Intensität die Füße vom Boden abheben. Den Oberkörper kontrolliert von Seite zu Seite ' +
-      'rotieren und die Hände bzw. das Gewicht jeweils neben die Hüfte führen. Eine Seite plus die ' +
+      'rotieren und die Kurzhanteln jeweils neben die Hüfte führen. Eine Seite plus die ' +
       'andere zählt als eine Wiederholung.',
     formCues: ['Rotation aus dem Rumpf, nicht nur den Armen', 'Rücken bleibt gerade', 'Gleichmäßig atmen'],
     primaryMuscle: 'obliques',
     secondaryMuscles: ['core'],
     category: 'core',
-    equipment: 'bodyweight',
+    equipment: 'dumbbell',
     difficulty: 'beginner',
-    usesWeight: false,
+    usesWeight: true,
     defaultSets: 3,
     defaultReps: 20,
   },
@@ -212,17 +213,16 @@ const DEFINITIONS: ExerciseDefinition[] = [
     id: 'military-press',
     name: 'Military Press (Schulterdrücken)',
     aliases: ['shoulder press', 'overhead press', 'ohp', 'schulterdrücken', 'military press'],
-    description: 'Freie Drückübung über Kopf für kräftige Schultern und einen stabilen Rumpf.',
+    description: 'Freie Drückübung über Kopf mit zwei Kurzhanteln für kräftige Schultern und einen stabilen Rumpf.',
     instructions:
-      'Stehend, Füße hüftbreit, die Stange etwas breiter als schulterbreit auf Höhe der oberen Brust. ' +
-      'Gesäß und Bauch fest anspannen. Die Stange senkrecht nach oben drücken und den Kopf kurz ' +
-      'zurücknehmen, damit sie eng am Gesicht vorbeiläuft. Oben die Arme strecken, den Kopf ' +
-      '„durchs Fenster“ schieben und die Stange kontrolliert zurück zur Brust führen.',
-    formCues: ['Kein Hohlkreuz – Rumpf fest', 'Stange auf gerader Linie führen', 'Handgelenke über den Ellbogen'],
+      'Stehend, Füße hüftbreit, die Kurzhanteln im Obergriff seitlich auf Schulterhöhe. Gesäß und Bauch ' +
+      'fest anspannen. Die Hanteln senkrecht nach oben drücken und oben leicht zusammenführen, bis die ' +
+      'Arme gestreckt sind. Kontrolliert zurück auf Schulterhöhe absenken.',
+    formCues: ['Kein Hohlkreuz – Rumpf fest', 'Hanteln auf gerader Linie führen', 'Handgelenke über den Ellbogen'],
     primaryMuscle: 'shoulders',
     secondaryMuscles: ['triceps', 'core'],
     category: 'strength',
-    equipment: 'barbell',
+    equipment: 'dumbbell',
     difficulty: 'intermediate',
     usesWeight: true,
     defaultSets: 4,

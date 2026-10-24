@@ -1,8 +1,9 @@
 import { animate, useReducedMotion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
+import type { Camera } from './camera'
 import { ExerciseFigure } from './ExerciseFigure'
-import { EXERCISE_ANIMATIONS, type ExerciseAnimationSpec } from './poses'
-import { interpolatePose, solvePose } from './rig'
+import { EXERCISE_ANIMATIONS, skeletonAt, type ExerciseAnimationSpec } from './poses'
+import { stageLayout } from './scene'
 
 /** Pause at both turning points of a repetition, like a controlled rep in the gym. */
 const HOLD_SECONDS = 0.35
@@ -16,12 +17,15 @@ export function ExerciseAnimation({
   exerciseId,
   playing = true,
   compact,
+  camera,
   label,
 }: {
   exerciseId: string
   playing?: boolean
-  /** Thumbnail crop (see `ExerciseFigure`). */
+  /** Thumbnail: fills more of the stage. */
   compact?: boolean
+  /** A camera the viewer turns: framed for every angle. Default: the exercise's fixed angle. */
+  camera?: Camera
   label: string
 }) {
   const spec = EXERCISE_ANIMATIONS[exerciseId] as ExerciseAnimationSpec | undefined
@@ -48,13 +52,15 @@ export function ExerciseAnimation({
     return () => controls.stop()
   }, [spec, running])
 
+  const orbit = Boolean(camera)
+  const layout = useMemo(() => (spec ? stageLayout(spec, orbit ? null : spec.camera, orbit ? 1 : compact ? 0.94 : 0.88) : null), [spec, orbit, compact])
   const shown = running ? progress : (spec?.still ?? 0)
-  const skeleton = useMemo(() => (spec ? solvePose(spec.setup, interpolatePose(spec.from, spec.to, shown)) : null), [spec, shown])
-  if (!spec || !skeleton) return null
+  const skeleton = useMemo(() => (spec ? skeletonAt(spec, shown) : null), [spec, shown])
+  if (!spec || !skeleton || !layout) return null
 
   return (
     <div role="img" aria-label={label} className="size-full">
-      <ExerciseFigure spec={spec} skeleton={skeleton} compact={compact} />
+      <ExerciseFigure spec={spec} skeleton={skeleton} camera={camera ?? spec.camera} layout={layout} />
     </div>
   )
 }

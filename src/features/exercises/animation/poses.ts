@@ -1,4 +1,5 @@
-import { mirror, withHands, type Pose, type RigSetup, type Vec } from './rig'
+import type { Camera } from './camera'
+import { add, interpolatePose, lerp3, limb, scale, seg, solvePose, withHands, type Pose, type RigSetup, type Skeleton, type Vec3 } from './rig'
 
 /** Body regions that can light up as working muscles. */
 export type BodyPart = 'chest' | 'abs' | 'shoulders' | 'upperArms' | 'forearms' | 'thighs'
@@ -9,58 +10,81 @@ export interface ExerciseAnimationSpec {
   from: Pose
   /** Turning point of the repetition. */
   to: Pose
+  /**
+   * Hands placed by inverse kinematics on every frame (overrides the poses' arms): where they
+   * are at progress `t` (+x side first) and which way the elbows point (side-relative).
+   * Keeps a bar on a straight path or the hands on the head while the body moves.
+   */
+  grip?: { at: (skeleton: Skeleton, t: number) => readonly [Vec3, Vec3]; elbows: readonly [Vec3, Vec3] }
   /** Seconds for from → to and back; slow on the lowering (eccentric) part. */
   tempo: readonly [number, number]
   highlight: { primary: BodyPart[]; secondary?: BodyPart[] }
   equipment: 'none' | 'dumbbells' | 'barbell'
+  /** Dumbbell handle direction (world); default sideways. */
+  handle?: Vec3
   ground: 'floor' | 'bench'
   /** Progress (0 = from, 1 = to) for the still image in lists. */
   still: number
-  /** SVG viewBox when the movement needs more room than 0 0 200 200 (e.g. overhead presses). */
-  viewBox?: string
+  /** The angle that shows the movement best (thumbnails, and the default in the detail view). */
+  camera: Camera
 }
 
-const SIDE_STANDING: RigSetup = { view: 'side', root: 'ankle' }
-const FRONT_STANDING: RigSetup = { view: 'front', root: 'ankle' }
-const BENCH: RigSetup = { view: 'end', root: 'chest' }
-
-/** Upright, arms hanging; the ankle (root) stands on the floor line. */
-const standingSide: Pose = {
-  root: [96, 172],
-  torso: 180,
-  head: 180,
-  arms: [
-    [3, 2],
-    [3, 2],
-  ],
-  legs: [
-    [0, 0],
-    [0, 0],
-  ],
+/** The figure at progress `t` of the repetition. */
+export function skeletonAt(spec: ExerciseAnimationSpec, t: number): Skeleton {
+  const pose = interpolatePose(spec.from, spec.to, t)
+  if (!spec.grip) return solvePose(spec.setup, pose)
+  const targets = spec.grip.at(solvePose(spec.setup, pose), t)
+  return solvePose(spec.setup, withHands(spec.setup, pose, targets, spec.grip.elbows))
 }
 
-const standingFront: Pose = {
-  root: [108, 172],
-  torso: 180,
-  head: 180,
-  arms: [[8, 4], mirror([8, 4])],
-  legs: [[4, 2], mirror([4, 2])],
+/** A point in the torso frame of `s` (sideways, up the spine, out of the chest), on both sides. */
+const inTorso = (s: Skeleton, origin: Vec3, [side, up, out]: Vec3): [Vec3, Vec3] => {
+  const rest = add(add(origin, scale(s.spine, up)), scale(s.forward, out))
+  return [add(rest, scale(s.lateral, side)), add(rest, scale(s.lateral, -side))]
+}
+const both = <T>(value: T) => [value, value] as const
+
+const STANDING: RigSetup = { root: 'ankle' }
+const GROUNDED: RigSetup = { root: 'pelvis' }
+const UP = seg(180)
+const SIDEWAYS: Vec3 = [1, 0, 0]
+const FORWARD: Vec3 = [0, 0, 1]
+/** 3/4 view from the front-left: the figure faces right on screen and shows its depth. */
+const THREE_QUARTER: Camera = { yaw: -58, pitch: 14 }
+/** On the bench from the head end: chest, arms and bar in front, the legs further back. */
+const BENCH_VIEW: Camera = { yaw: -152, pitch: 34 }
+
+/** Upright, arms hanging; the +x ankle (root) stands on the floor, the pelvis centered on x = 0. */
+const LEG_SPREAD = 3
+const standing: Pose = {
+  root: [8 + Math.sin((LEG_SPREAD * Math.PI) / 180) * 71, 4, 0],
+  torso: UP,
+  head: UP,
+  arms: both(limb([0, 8], [4, 7])),
+  legs: both(limb([0, LEG_SPREAD], [0, LEG_SPREAD])),
 }
 
-/** Sitting on the floor facing the viewer, knees raised toward the viewer (foreshortened). */
-const SEATED_FRONT: RigSetup = { view: 'front', root: 'pelvis' }
-const seatedFront: Pose = {
-  root: [100, 168],
-  torso: 180,
-  head: 180,
-  arms: [[0, 0], [0, 0]],
-  legs: [[140, 25], mirror([140, 25])],
-  legScale: [0.75, 0.6],
+/** On the back on a flat bench (head toward -z), feet on the floor. */
+const lying: Pose = {
+  root: [0, 49, 18],
+  torso: seg(-90),
+  head: seg(-90),
+  arms: both(limb(180, 180)),
+  legs: both(limb([75, 15], [6, 8])),
 }
 
-const onBench: Pose = { ...standingFront, root: [100, 120], legs: [[0, 0], [0, 0]] }
-const benchPose = (hands: readonly [Vec, Vec], bends: readonly [1 | -1, 1 | -1], armScale?: readonly [number, number]) =>
-  withHands(BENCH, { ...onBench, armScale }, hands, bends)
+/** Seated on the floor leaning back, knees up. */
+const seated: Pose = {
+  root: [0, 9, 0],
+  torso: seg(-140),
+  head: seg(-158),
+  arms: both(limb(90, 90)),
+  legs: both(limb([128, 12], [42, 6])),
+}
+
+/** Bar on the bench press: straight up and down over the lower chest, `halfGrip` from the middle. */
+const benchGrip = (halfGrip: number) => (s: Skeleton, t: number) =>
+  inTorso(s, s.shoulderCenter, lerp3([halfGrip, -3, 48], [halfGrip, -13, 12.5], t))
 
 /** Whether the exercise also lights up supporting muscles (for the legend). */
 export const hasSecondaryHighlight = (exerciseId: string) => Boolean(EXERCISE_ANIMATIONS[exerciseId]?.highlight.secondary?.length)
@@ -68,134 +92,180 @@ export const hasSecondaryHighlight = (exerciseId: string) => Boolean(EXERCISE_AN
 /** Keyed by exercise ID (`data/exercises.ts`); a new catalog exercise without entry shows no animation. */
 export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
   'wide-grip-bench-press': {
-    setup: BENCH,
-    from: benchPose([[140, 66], [60, 66]], [-1, 1]),
-    to: benchPose([[140, 102], [60, 102]], [-1, 1], [0.8, 1]),
+    setup: GROUNDED,
+    from: lying,
+    to: lying,
+    grip: { at: benchGrip(33), elbows: both([0.8, -1, 0.35]) },
     tempo: [1.6, 1],
     highlight: { primary: ['chest'], secondary: ['shoulders', 'upperArms'] },
     equipment: 'barbell',
     ground: 'bench',
     still: 0,
+    camera: BENCH_VIEW,
   },
   'close-grip-bench-press': {
-    setup: BENCH,
-    from: benchPose([[114, 66], [86, 66]], [-1, 1]),
-    // Elbows tucked: the upper arms point toward the feet, so they look very short from here.
-    to: benchPose([[114, 102], [86, 102]], [-1, 1], [0.35, 1.05]),
+    setup: GROUNDED,
+    from: lying,
+    to: lying,
+    // Elbows tucked: they travel toward the feet instead of out to the sides.
+    grip: { at: benchGrip(12), elbows: both([0.25, -1, 1]) },
     tempo: [1.6, 1],
     highlight: { primary: ['upperArms'], secondary: ['chest', 'shoulders'] },
     equipment: 'barbell',
     ground: 'bench',
     still: 0,
+    camera: BENCH_VIEW,
   },
   butterflies: {
-    setup: BENCH,
-    from: benchPose([[108, 62], [92, 62]], [-1, 1]),
-    to: benchPose([[164, 112], [36, 112]], [-1, 1]),
+    setup: GROUNDED,
+    from: lying,
+    to: lying,
+    // The hands move on an arc at a constant distance from the shoulder: the elbow angle stays fixed.
+    grip: {
+      at: (s, t) => {
+        const angle = ((-12 + 92 * t) * Math.PI) / 180
+        const [near] = inTorso(s, s.shoulders[0], [Math.sin(angle) * 45, 3, Math.cos(angle) * 45])
+        const [, far] = inTorso(s, s.shoulders[1], [Math.sin(angle) * 45, 3, Math.cos(angle) * 45])
+        return [near, far]
+      },
+      elbows: both([1, -0.7, 0.2]),
+    },
     tempo: [1.6, 1.2],
     highlight: { primary: ['chest'], secondary: ['shoulders'] },
     equipment: 'dumbbells',
+    handle: FORWARD,
     ground: 'bench',
     still: 0.35,
+    camera: BENCH_VIEW,
   },
   'bicep-curls': {
-    setup: SIDE_STANDING,
-    from: standingSide,
-    to: { ...standingSide, arms: [[10, 160], [10, 160]] },
+    setup: STANDING,
+    from: { ...standing, arms: both(limb([0, 6], [4, 6])) },
+    to: { ...standing, arms: both(limb([9, 6], [152, 4])) },
     tempo: [1, 1.6],
     highlight: { primary: ['upperArms'], secondary: ['forearms'] },
     equipment: 'dumbbells',
     ground: 'floor',
     still: 1,
+    camera: THREE_QUARTER,
   },
   'lateral-raises': {
-    setup: FRONT_STANDING,
-    from: standingFront,
-    to: { ...standingFront, arms: [[86, 80], mirror([86, 80])] },
+    setup: STANDING,
+    from: { ...standing, arms: both(limb([10, 12], [20, 10])) },
+    // Slightly in front of the body (scapular plane), elbows a little bent, up to shoulder height.
+    to: { ...standing, arms: both(limb([78, 70], [88, 60])) },
     tempo: [1, 1.6],
     highlight: { primary: ['shoulders'] },
     equipment: 'dumbbells',
+    handle: FORWARD,
     ground: 'floor',
     still: 1,
+    camera: { yaw: -28, pitch: 12 },
   },
   'front-raises': {
-    setup: SIDE_STANDING,
-    from: { ...standingSide, arms: [[5, 4], [5, 4]] },
-    to: { ...standingSide, arms: [[90, 92], [90, 92]] },
+    setup: STANDING,
+    from: { ...standing, arms: both(limb([8, 6], [10, 4])) },
+    to: { ...standing, arms: both(limb([88, 8], [92, 6])) },
     tempo: [1, 1.6],
     highlight: { primary: ['shoulders'], secondary: ['chest'] },
     equipment: 'dumbbells',
+    handle: SIDEWAYS,
     ground: 'floor',
     still: 1,
+    camera: THREE_QUARTER,
   },
   squats: {
-    setup: SIDE_STANDING,
-    from: { ...standingSide, root: [100, 172], arms: [[-15, 175], [-15, 175]] },
+    setup: STANDING,
+    from: { ...standing, legs: both(limb([0, 10], [0, 6])), feet: both(seg(90, 18)) },
     to: {
-      ...standingSide,
-      root: [100, 172],
-      torso: 145,
-      head: 165,
-      arms: [[-50, 140], [-50, 140]],
-      legs: [[80, -25], [80, -25]],
+      ...standing,
+      torso: seg(145),
+      head: seg(165),
+      legs: both(limb([80, 18], [-25, 8])),
+      feet: both(seg(90, 18)),
     },
+    // Bar on the upper back, hands just outside the shoulders.
+    grip: { at: (s) => inTorso(s, s.shoulderCenter, [27, -3, -9]), elbows: both([0.3, -1, -0.6]) },
     tempo: [1.6, 1],
     highlight: { primary: ['thighs'], secondary: ['abs'] },
     equipment: 'barbell',
     ground: 'floor',
     still: 1,
+    camera: { yaw: -38, pitch: 14 },
   },
   lunges: {
-    setup: SIDE_STANDING,
-    from: { ...standingSide, root: [122, 172], legs: [[40, 0], [-25, -50]], feet: [90, 40] },
-    to: { ...standingSide, root: [122, 172], torso: 178, legs: [[80, -10], [-5, -85]], feet: [90, 60] },
+    // The +x leg steps forward and stays planted (root); the -x knee sinks toward the floor.
+    setup: STANDING,
+    from: {
+      ...standing,
+      root: [10, 4, 28],
+      legs: [limb([40, 3], [0, 2]), limb([-25, 3], [-50, 2])],
+      feet: [seg(90, 8), seg(40)],
+    },
+    to: {
+      ...standing,
+      root: [10, 4, 28],
+      torso: seg(178),
+      legs: [limb([80, 3], [-10, 2]), limb([-5, 3], [-85, 2])],
+      feet: [seg(90, 8), seg(60)],
+    },
+    grip: { at: (s) => inTorso(s, s.pelvis, [15, 8, 1]), elbows: both([1, 0, -0.7]) },
     tempo: [1.4, 1],
     highlight: { primary: ['thighs'] },
     equipment: 'none',
     ground: 'floor',
     still: 1,
+    camera: THREE_QUARTER,
   },
   crunches: {
-    setup: { view: 'side', root: 'pelvis' },
+    setup: GROUNDED,
     from: {
-      root: [112, 163],
-      torso: -92,
-      head: -95,
-      arms: [[-150, -12], [-150, -12]],
-      legs: [[145, 30], [145, 30]],
+      root: [0, 8, 10],
+      torso: seg(-92),
+      head: seg(-96),
+      arms: both(limb(180, 180)),
+      legs: both(limb([145, 10], [30, 8])),
     },
     to: {
-      root: [112, 163],
-      torso: -125,
-      head: -140,
-      arms: [[-183, -45], [-183, -45]],
-      legs: [[145, 30], [145, 30]],
+      root: [0, 8, 10],
+      torso: seg(-125),
+      head: seg(-142),
+      arms: both(limb(180, 180)),
+      legs: both(limb([145, 10], [30, 8])),
     },
+    // Fingertips behind the head, elbows wide.
+    grip: { at: (s) => inTorso(s, s.head, [6, 2, -6]), elbows: both([1, 0, 0.4]) },
     tempo: [1, 1.4],
     highlight: { primary: ['abs'] },
     equipment: 'none',
     ground: 'floor',
     still: 1,
+    camera: { yaw: -62, pitch: 18 },
   },
   'russian-twists': {
-    setup: SEATED_FRONT,
-    from: withHands(SEATED_FRONT, { ...seatedFront, torso: 192, head: 190 }, [[66, 150], [72, 154]], [1, 1]),
-    to: withHands(SEATED_FRONT, { ...seatedFront, torso: 168, head: 170 }, [[128, 154], [134, 150]], [-1, -1]),
+    setup: GROUNDED,
+    from: { ...seated, twist: 45 },
+    to: { ...seated, twist: -45 },
+    // Hands together in front of the belly; they swing with the shoulders.
+    grip: { at: (s) => inTorso(s, s.shoulderCenter, [3, -24, 27]), elbows: both([1, -0.6, 0]) },
     tempo: [0.9, 0.9],
     highlight: { primary: ['abs'] },
     equipment: 'none',
     ground: 'floor',
     still: 0,
+    camera: { yaw: -22, pitch: 24 },
   },
   'military-press': {
-    setup: FRONT_STANDING,
-    from: { ...standingFront, arms: [[40, 178], mirror([40, 178])] },
-    to: { ...standingFront, arms: [[165, 178], mirror([165, 178])] },
+    setup: STANDING,
+    from: standing,
+    to: standing,
+    // From the collarbone straight overhead; elbows slightly in front of the bar at the bottom.
+    grip: { at: (s, t) => inTorso(s, s.shoulderCenter, lerp3([25, 3, 11], [23, 50, 2], t)), elbows: both([0.6, -1, 0.5]) },
     tempo: [1, 1.6],
     highlight: { primary: ['shoulders'], secondary: ['upperArms'] },
     equipment: 'barbell',
     ground: 'floor',
     still: 1,
-    viewBox: '-14 -28 228 228',
+    camera: { yaw: -35, pitch: 10 },
   },
 }

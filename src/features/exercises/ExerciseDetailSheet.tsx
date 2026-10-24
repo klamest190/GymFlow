@@ -1,5 +1,6 @@
-import { Check, Pause, Play, Plus } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { animate, useReducedMotion, type AnimationPlaybackControls } from 'framer-motion'
+import { Check, Pause, Play, Plus, Rotate3d } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
 import {
   CATEGORY_LABELS,
@@ -12,7 +13,7 @@ import { formatDaysAgo } from '../../lib/dates'
 import { bestWeight, formatKg, summarizeSets, type ExerciseSession } from '../../lib/exerciseHistory'
 import type { Exercise } from '../../types/models'
 import { ExerciseAnimation } from './animation/ExerciseAnimation'
-import { EXERCISE_ANIMATIONS, hasSecondaryHighlight } from './animation/poses'
+import { EXERCISE_ANIMATIONS, hasSecondaryHighlight, type ExerciseAnimationSpec } from './animation/poses'
 
 interface ExerciseDetailSheetProps {
   exercise: Exercise | null
@@ -117,15 +118,97 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
   )
 }
 
-/** Looping demo of one repetition, with a legend for the highlighted muscles and pause. */
+/** Shortest signed turn from one angle to another, in degrees (-180…180). */
+const turn = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) - 180
+
+/** Degrees the figure turns per pixel dragged. */
+const DRAG_DEGREES = 0.6
+
+/**
+ * Looping demo of one repetition with a legend for the highlighted muscles and pause. The
+ * figure turns by dragging sideways (or arrow keys); the presets glide to fixed angles.
+ */
 function AnimationStage({ exercise }: { exercise: Exercise }) {
+  const spec = EXERCISE_ANIMATIONS[exercise.id] as ExerciseAnimationSpec | undefined
   const [paused, setPaused] = useState(false)
-  if (!(exercise.id in EXERCISE_ANIMATIONS)) return null
+  const [yaw, setYaw] = useState(spec?.camera.yaw ?? 0)
+  const [turned, setTurned] = useState(false)
+  const drag = useRef<{ x: number; yaw: number } | null>(null)
+  const glide = useRef<AnimationPlaybackControls | null>(null)
+  const reduceMotion = useReducedMotion()
+  useEffect(() => () => glide.current?.stop(), [])
+  if (!spec) return null
+
+  const views = [
+    { label: 'Schräg', yaw: spec.camera.yaw },
+    { label: 'Vorne', yaw: 0 },
+    { label: 'Seite', yaw: -90 },
+  ]
+  const turnTo = (target: number) => {
+    glide.current?.stop()
+    const end = yaw + turn(yaw, target)
+    if (reduceMotion) setYaw(end)
+    else glide.current = animate(yaw, end, { duration: 0.6, ease: [0.22, 1, 0.36, 1], onUpdate: setYaw })
+  }
+  const rotateBy = (degrees: number) => {
+    glide.current?.stop()
+    setYaw((value) => value + degrees)
+    setTurned(true)
+  }
+
   return (
     <div className="relative overflow-hidden rounded-3xl bg-sunken">
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,var(--glow-a),transparent_60%)]" />
-      <div className="relative mx-auto aspect-square w-full max-w-60 py-2">
-        <ExerciseAnimation exerciseId={exercise.id} playing={!paused} label={`Animation: ${exercise.name}`} />
+      <div className="relative flex justify-center px-4 pt-3">
+        <div role="group" aria-label="Blickwinkel" className="flex rounded-full bg-surface-solid/70 p-0.5 text-[12px] font-semibold shadow-soft">
+          {views.map((view) => {
+            const active = Math.abs(turn(yaw, view.yaw)) < 1
+            return (
+              <button
+                key={view.label}
+                type="button"
+                onClick={() => turnTo(view.yaw)}
+                aria-pressed={active}
+                className={`rounded-full px-3 py-1 transition ${active ? 'bg-fg text-bg' : 'text-muted hover:text-fg'}`}
+              >
+                {view.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div
+        tabIndex={0}
+        aria-label="Figur drehen: ziehen oder Pfeiltasten"
+        className="relative mx-auto aspect-square w-full max-w-72 cursor-grab touch-pan-y rounded-3xl outline-none select-none focus-visible:ring-2 focus-visible:ring-accent/70 active:cursor-grabbing"
+        onPointerDown={(event) => {
+          glide.current?.stop()
+          drag.current = { x: event.clientX, yaw }
+          event.currentTarget.setPointerCapture(event.pointerId)
+        }}
+        onPointerMove={(event) => {
+          if (!drag.current) return
+          const dx = event.clientX - drag.current.x
+          setYaw(drag.current.yaw - dx * DRAG_DEGREES)
+          if (Math.abs(dx) > 4) setTurned(true)
+        }}
+        onPointerUp={() => (drag.current = null)}
+        onPointerCancel={() => (drag.current = null)}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowLeft') rotateBy(15)
+          if (event.key === 'ArrowRight') rotateBy(-15)
+        }}
+      >
+        <ExerciseAnimation exerciseId={exercise.id} playing={!paused} camera={{ yaw, pitch: spec.camera.pitch }} label={`Animation: ${exercise.name}`} />
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute inset-x-0 bottom-1 flex justify-center transition-opacity duration-500 ${turned ? 'opacity-0' : 'opacity-100'}`}
+        >
+          <span className="flex items-center gap-1.5 rounded-full bg-surface-solid/80 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-soft">
+            <Rotate3d className="size-3.5" />
+            Zum Drehen ziehen
+          </span>
+        </span>
       </div>
       <div className="relative flex items-center justify-between gap-3 px-4 pb-3.5">
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-medium text-muted">

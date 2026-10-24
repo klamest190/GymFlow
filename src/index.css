@@ -19,9 +19,12 @@
   --shadow-strength: 0.14;
   --glow-a: rgb(184 248 58 / 0.32);
   --glow-b: rgb(10 132 255 / 0.18);
-  /* Exercise animations: solid colors, so overlapping limbs don't show darker joints. */
+  /* Exercise animations: solid colors, so overlapping limbs don't show darker joints.
+     --figure-gap matches the stage background (outlines between parts, depth fog). */
   --figure-body: #4a4a52;
-  --figure-far: #b4b4bc;
+  --figure-gap: #ececf0;
+  --figure-sheen: rgb(255 255 255 / 0.22);
+  --figure-shadow: rgb(15 23 42 / 0.16);
   --figure-highlight: #6cc417;
   --figure-highlight-soft: #b3dd86;
   --figure-gear: #1f1f24;
@@ -46,7 +49,9 @@
   --glow-a: rgb(198 255 61 / 0.16);
   --glow-b: rgb(94 92 230 / 0.2);
   --figure-body: #d4d4da;
-  --figure-far: #55555d;
+  --figure-gap: #26262a;
+  --figure-sheen: rgb(255 255 255 / 0.4);
+  --figure-shadow: rgb(0 0 0 / 0.32);
   --figure-highlight: #c6ff3d;
   --figure-highlight-soft: #6f8f2c;
   --figure-gear: #f4f4f6;

@@ -1,6 +1,7 @@
 import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, type AchievementDefinition, type ProgressMetrics } from '../data/achievements'
 import { RANK_BY_ID, RANKS, type RankDefinition } from '../data/ranks'
 import { addDays, toDateKey } from '../lib/dates'
+import { setLoadKg } from '../lib/workoutMath'
 import type { AchievementId, DateKey, GamificationState, WorkoutLog } from '../types/models'
 
 /**
@@ -19,14 +20,23 @@ export const XP_REWARDS = {
   workout: 150,
   /** Paid on every 3rd consecutive training day (day 3, 6, 9, … of a streak). */
   streakBonus: 500,
+  /** Bonus for the weight moved: 1 XP per this many kg of a set's volume (reps × weight). */
+  volumeKgPerXP: 20,
+  /** At most this much volume bonus per set, so absurd weights can't farm XP. */
+  volumeMaxPerSet: 15,
 } as const
+
+/** Volume bonus of one set, e.g. 12 reps with two 5 kg dumbbells = 120 kg → 6 XP. */
+export function volumeXP(volumeKg: number): number {
+  return Math.min(XP_REWARDS.volumeMaxPerSet, Math.floor(Math.max(0, volumeKg) / XP_REWARDS.volumeKgPerXP))
+}
 
 export const STREAK_BONUS_DAYS = 3
 
 /** Workouts logged from this hour until midnight count as late (achievement "Nachteule"). */
 export const LATE_WORKOUT_HOUR = 22
 
-// Tuned for ~450 XP per workout at 3–4 workouts a week: Bronze after ~3 weeks, Gold after about
+// Tuned for ~450 XP per workout at 3–4 workouts a week (plus a little volume bonus): Bronze after ~3 weeks, Gold after about
 // a year, Grandmaster only after many years. The original brief's 500 · n^1.5 needed ~4.400
 // workouts for Gold, which made everything above Silver unreachable.
 const LEVEL_XP_BASE = 100
@@ -75,6 +85,8 @@ export function nextRank(rank: RankDefinition): RankDefinition | null {
 
 export interface XPBreakdown {
   sets: number
+  /** Bonus for the weight moved (`volumeXP` per set). */
+  volume: number
   workouts: number
   streaks: number
 }
@@ -113,7 +125,7 @@ function isLateWorkout(log: WorkoutLog): boolean {
 export function summarizeProgress(logs: WorkoutLog[]): ProgressSummary {
   const days = logs.filter((log) => log.totals.sets > 0).sort((a, b) => a.date.localeCompare(b.date))
   const metrics = emptyMetrics()
-  const xp: XPBreakdown = { sets: 0, workouts: 0, streaks: 0 }
+  const xp: XPBreakdown = { sets: 0, volume: 0, workouts: 0, streaks: 0 }
   const workoutsPerMonth = new Map<string, number>()
   const reachedOn: Record<AchievementId, DateKey> = {}
   let streak = 0
@@ -135,6 +147,7 @@ export function summarizeProgress(logs: WorkoutLog[]): ProgressSummary {
     if (isLateWorkout(log)) metrics.lateWorkouts += 1
 
     xp.sets += log.totals.sets * XP_REWARDS.set
+    for (const entry of log.entries) for (const set of entry.sets) xp.volume += volumeXP(set.reps * setLoadKg(entry, set))
     xp.workouts += XP_REWARDS.workout
     if (streak % STREAK_BONUS_DAYS === 0) xp.streaks += XP_REWARDS.streakBonus
 
@@ -143,7 +156,7 @@ export function summarizeProgress(logs: WorkoutLog[]): ProgressSummary {
     }
   }
 
-  return { metrics, xp, totalXP: xp.sets + xp.workouts + xp.streaks, reachedOn }
+  return { metrics, xp, totalXP: xp.sets + xp.volume + xp.workouts + xp.streaks, reachedOn }
 }
 
 /** Progress of a (locked) achievement towards its threshold. */

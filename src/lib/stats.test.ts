@@ -8,6 +8,11 @@ describe('computeTotals', () => {
     const totals = computeTotals([entry('bench', 3, 10, 60), entry('crunches', 2, 20)])
     expect(totals).toEqual({ exercises: 2, sets: 5, reps: 70, volumeKg: 1800 })
   })
+
+  it('counts a per-dumbbell weight twice', () => {
+    const totals = computeTotals([entry('curls', 3, 12, 5, { perDumbbell: true })])
+    expect(totals.volumeKg).toBe(3 * 12 * 2 * 5)
+  })
 })
 
 describe('summarize / percentChange', () => {

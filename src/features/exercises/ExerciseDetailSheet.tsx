@@ -78,7 +78,7 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
         <div className="grid grid-cols-3 gap-2">
           <Stat value={`${shown.defaultSets} × ${shown.defaultReps}`} label="Standard" />
           <Stat value={String(sessions.length)} label={`Mal in ${historyDays} T.`} />
-          <Stat value={best !== null ? formatKg(best) : '–'} label="Bestwert" />
+          <Stat value={best !== null ? formatKg(best) : '–'} label="Best je Hantel" />
         </div>
 
         <Section title="Ausführung">

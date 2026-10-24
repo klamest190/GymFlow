@@ -24,12 +24,14 @@ describe('workoutsToCsv', () => {
     const csv = workoutsToCsv([
       log('2026-10-21', [entry('Crunches', 1, 20, null, { primary: 'core' })]),
       log('2026-10-20', [entry('Bankdrücken', 2, 10, 62.5, { primary: 'chest' })]),
+      log('2026-10-22', [entry('Curls', 1, 12, 7.5, { primary: 'biceps', perDumbbell: true })]),
     ])
     expect(lines(csv)).toEqual([
-      'Datum;Übung;Muskelgruppe;Satz;Wiederholungen;Gewicht (kg);Volumen (kg)',
-      '2026-10-20;Bankdrücken;Brust;1;10;62,5;625',
-      '2026-10-20;Bankdrücken;Brust;2;10;62,5;625',
-      '2026-10-21;Crunches;Bauch;1;20;;',
+      'Datum;Übung;Muskelgruppe;Satz;Wiederholungen;Gewicht (kg);Gewicht gilt;Volumen (kg)',
+      '2026-10-20;Bankdrücken;Brust;1;10;62,5;gesamt;625',
+      '2026-10-20;Bankdrücken;Brust;2;10;62,5;gesamt;625',
+      '2026-10-21;Crunches;Bauch;1;20;;;',
+      '2026-10-22;Curls;Bizeps;1;12;7,5;je Hantel;180',
     ])
   })
 })

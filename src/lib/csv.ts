@@ -1,5 +1,6 @@
 import { MUSCLE_GROUP_LABELS } from '../data/muscleGroups'
 import type { BodyWeightEntry, WorkoutLog } from '../types/models'
+import { setLoadKg } from './workoutMath'
 
 /**
  * CSV for German Excel: semicolon separator, decimal comma, UTF-8 with BOM (so umlauts show
@@ -34,12 +35,13 @@ export function workoutsToCsv(logs: WorkoutLog[]): string {
           index + 1,
           set.reps,
           set.weightKg,
-          set.weightKg === null ? null : set.reps * set.weightKg,
+          set.weightKg === null ? null : entry.perDumbbell ? 'je Hantel' : 'gesamt',
+          set.weightKg === null ? null : set.reps * setLoadKg(entry, set),
         ])
       })
     }
   }
-  return toCsv(['Datum', 'Übung', 'Muskelgruppe', 'Satz', 'Wiederholungen', 'Gewicht (kg)', 'Volumen (kg)'], rows)
+  return toCsv(['Datum', 'Übung', 'Muskelgruppe', 'Satz', 'Wiederholungen', 'Gewicht (kg)', 'Gewicht gilt', 'Volumen (kg)'], rows)
 }
 
 export function bodyWeightsToCsv(entries: BodyWeightEntry[]): string {

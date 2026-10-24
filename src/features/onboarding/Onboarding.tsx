@@ -63,6 +63,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       text: 'Jedes Training bringt XP. Mit jedem Level steigst du durch die Ränge, und Erfolge schaltest du dauerhaft frei.',
       points: [
         { icon: Layers, text: `+${XP_REWARDS.set} XP pro Satz` },
+        { icon: Dumbbell, text: `+1 XP je ${XP_REWARDS.volumeKgPerXP} kg bewegtes Gewicht` },
         { icon: Trophy, text: `+${XP_REWARDS.workout} XP pro Workout` },
         { icon: Flame, text: `+${XP_REWARDS.streakBonus} XP für ${STREAK_BONUS_DAYS} Tage in Folge` },
       ],

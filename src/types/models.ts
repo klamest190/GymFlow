@@ -88,6 +88,11 @@ export interface WorkoutEntry {
   primaryMuscle: MuscleGroup
   secondaryMuscles: MuscleGroup[]
   usesWeight: boolean
+  /**
+   * The sets' weight is per dumbbell and counts twice, one in each hand. Missing on entries
+   * logged before, whose weight was the total.
+   */
+  perDumbbell?: boolean
   sets: WorkoutSet[]
   /** Order in the day's list. */
   position: number

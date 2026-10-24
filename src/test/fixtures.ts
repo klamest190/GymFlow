@@ -4,21 +4,22 @@ import type { DateKey, MuscleGroup, WorkoutEntry, WorkoutLog } from '../types/mo
 let counter = 0
 const nextId = () => `id-${++counter}`
 
-/** An entry with `sets` × `reps` at `weightKg` (null = bodyweight). */
+/** An entry with `sets` × `reps` at `weightKg` (null = bodyweight; per dumbbell with `perDumbbell`). */
 export function entry(
   exerciseId: string,
   sets: number,
   reps: number,
   weightKg: number | null = null,
-  muscles: { primary?: MuscleGroup; secondary?: MuscleGroup[] } = {},
+  options: { primary?: MuscleGroup; secondary?: MuscleGroup[]; perDumbbell?: boolean } = {},
 ): WorkoutEntry {
   return {
     id: nextId(),
     exerciseId,
     exerciseName: exerciseId,
-    primaryMuscle: muscles.primary ?? 'chest',
-    secondaryMuscles: muscles.secondary ?? [],
+    primaryMuscle: options.primary ?? 'chest',
+    secondaryMuscles: options.secondary ?? [],
     usesWeight: weightKg !== null,
+    perDumbbell: options.perDumbbell,
     sets: Array.from({ length: sets }, () => ({ id: nextId(), reps, weightKg })),
     position: 0,
   }

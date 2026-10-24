@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { day, log } from '../test/fixtures'
+import { day, entry, log } from '../test/fixtures'
 import type { GamificationState } from '../types/models'
 import {
   XP_REWARDS,
@@ -10,6 +10,7 @@ import {
   levelProgress,
   rankForLevel,
   summarizeProgress,
+  volumeXP,
   xpForNextLevel,
 } from './gamificationService'
 
@@ -78,7 +79,15 @@ describe('summarizeProgress', () => {
     expect(summary.xp.workouts).toBe(9 * XP_REWARDS.workout)
     // Day 3 of the first streak, days 3 and 6 of the second.
     expect(summary.xp.streaks).toBe(3 * XP_REWARDS.streakBonus)
-    expect(summary.totalXP).toBe(summary.xp.sets + summary.xp.workouts + summary.xp.streaks)
+    // 400 kg sets hit the cap of 15; 200 kg sets earn 10.
+    expect(summary.xp.volume).toBe(3 * 10 * 15 + 6 * 2 * 10)
+    expect(summary.totalXP).toBe(summary.xp.sets + summary.xp.volume + summary.xp.workouts + summary.xp.streaks)
+  })
+
+  it('pays the volume bonus per 20 kg, capped per set, for both dumbbells', () => {
+    expect([0, 19, 20, 120, 299, 300, 5000].map(volumeXP)).toEqual([0, 0, 1, 6, 14, 15, 15])
+    // 12 reps with two 5 kg dumbbells move 120 kg.
+    expect(summarizeProgress([log('2026-10-01', [entry('curls', 1, 12, 5, { perDumbbell: true })])]).xp.volume).toBe(6)
   })
 
   it('tracks streaks, months and volume', () => {

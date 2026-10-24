@@ -1,5 +1,5 @@
 import { m, type Variants } from 'framer-motion'
-import { Check, Flame, Layers, Lock, Trophy } from 'lucide-react'
+import { Check, Dumbbell, Flame, Layers, Lock, Trophy } from 'lucide-react'
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
 import { Loadable } from '../../components/ui/Loadable'
 import { ACHIEVEMENTS, type AchievementDefinition, type ProgressMetrics } from '../../data/achievements'
@@ -88,8 +88,14 @@ function LevelCard({ evaluation }: { evaluation: ProgressEvaluation }) {
 
       <RankLadder current={rank} />
 
-      <div className="relative mt-5 grid grid-cols-3 gap-2">
+      <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <XPSource icon={Layers} label="Sätze" xp={summary.xp.sets} rule={`+${XP_REWARDS.set} je Satz`} />
+        <XPSource
+          icon={Dumbbell}
+          label="Gewicht"
+          xp={summary.xp.volume}
+          rule={`+1 je ${XP_REWARDS.volumeKgPerXP} kg bewegt, max. ${XP_REWARDS.volumeMaxPerSet} je Satz`}
+        />
         <XPSource icon={Trophy} label="Workouts" xp={summary.xp.workouts} rule={`+${XP_REWARDS.workout} je Workout`} />
         <XPSource icon={Flame} label="Streaks" xp={summary.xp.streaks} rule={`+${XP_REWARDS.streakBonus} je ${STREAK_BONUS_DAYS} Tage am Stück`} />
       </div>

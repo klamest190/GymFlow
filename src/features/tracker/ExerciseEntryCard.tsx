@@ -118,7 +118,7 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
           >
             <span>Satz</span>
             <span className="text-center">Wdh.</span>
-            {entry.usesWeight && <span className="text-center">kg</span>}
+            {entry.usesWeight && <span className="text-center">{entry.perDumbbell ? 'kg je Hantel' : 'kg'}</span>}
             <span />
           </div>
           <ul className="space-y-1.5">
@@ -150,9 +150,9 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
                   {entry.usesWeight && (
                     <div className="flex justify-center">
                       <NumberStepper
-                        label={`Gewicht Satz ${index + 1}`}
+                        label={`${entry.perDumbbell ? 'Gewicht je Hantel' : 'Gewicht'} Satz ${index + 1}`}
                         value={set.weightKg}
-                        step={2.5}
+                        step={entry.perDumbbell ? 1 : 2.5}
                         min={0}
                         max={999}
                         nullable

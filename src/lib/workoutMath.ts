@@ -6,6 +6,9 @@ export function createSet(reps: number, weightKg: number | null = null): Workout
   return { id: createId(), reps, weightKg }
 }
 
+/** Weight one repetition of the set moves: both dumbbells for a per-dumbbell entry. */
+export const setLoadKg = (entry: Pick<WorkoutEntry, 'perDumbbell'>, set: WorkoutSet) => (set.weightKg ?? 0) * (entry.perDumbbell ? 2 : 1)
+
 export function createEntry(exercise: Exercise, position: number): WorkoutEntry {
   return {
     id: createId(),
@@ -14,6 +17,7 @@ export function createEntry(exercise: Exercise, position: number): WorkoutEntry 
     primaryMuscle: exercise.primaryMuscle,
     secondaryMuscles: exercise.secondaryMuscles,
     usesWeight: exercise.usesWeight,
+    perDumbbell: exercise.equipment === 'dumbbell',
     sets: Array.from({ length: exercise.defaultSets }, () => createSet(exercise.defaultReps)),
     position,
   }
@@ -26,7 +30,7 @@ export function computeTotals(entries: WorkoutEntry[]): WorkoutTotals {
       for (const set of entry.sets) {
         totals.sets += 1
         totals.reps += set.reps
-        totals.volumeKg += set.reps * (set.weightKg ?? 0)
+        totals.volumeKg += set.reps * setLoadKg(entry, set)
       }
       return totals
     },

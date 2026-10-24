@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useDragControls } from 'framer-motion'
+import { AnimatePresence, m, useDragControls } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -36,14 +36,14 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: Shee
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center lg:p-8" role="dialog" aria-modal="true" aria-label={title}>
-          <motion.div
+          <m.div
             className="absolute inset-0 bg-black/40 backdrop-blur-[6px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
-          <motion.div
+          <m.div
             className="relative flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[30px] border border-line bg-surface-solid/95 shadow-float backdrop-blur-2xl lg:max-h-[78vh] lg:max-w-2xl lg:rounded-4xl"
             initial={isDesktop ? { opacity: 0, scale: 0.94, y: 12 } : { y: '100%' }}
             animate={isDesktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
@@ -84,7 +84,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: Shee
                 {footer}
               </footer>
             )}
-          </motion.div>
+          </m.div>
         </div>
       )}
     </AnimatePresence>,

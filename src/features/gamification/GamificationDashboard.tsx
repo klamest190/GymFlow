@@ -1,4 +1,4 @@
-import { motion, type Variants } from 'framer-motion'
+import { m, type Variants } from 'framer-motion'
 import { Check, Flame, Layers, Lock, Trophy } from 'lucide-react'
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
 import { Loadable } from '../../components/ui/Loadable'
@@ -100,7 +100,7 @@ function LevelCard({ evaluation }: { evaluation: ProgressEvaluation }) {
 function RankEmblem({ rank, level }: { rank: RankDefinition; level: number }) {
   const Icon = rank.icon
   return (
-    <motion.div
+    <m.div
       key={rank.id}
       initial={{ scale: 0.7, rotate: -12, opacity: 0 }}
       animate={{ scale: 1, rotate: 0, opacity: 1 }}
@@ -115,7 +115,7 @@ function RankEmblem({ rank, level }: { rank: RankDefinition; level: number }) {
       <span className="absolute -bottom-2 rounded-full bg-surface-solid px-2 py-0.5 text-[12px] font-bold tabular-nums text-fg shadow-soft">
         {level}
       </span>
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -129,21 +129,21 @@ function XPBar({ ratio, current, required, level }: { ratio: number; current: nu
       aria-valuenow={current}
       aria-label={`Fortschritt zu Level ${level + 1}`}
     >
-      <motion.div
+      <m.div
         className="relative h-full overflow-hidden rounded-full bg-linear-to-r from-accent/70 to-accent shadow-accent"
         initial={{ width: 0 }}
         animate={{ width: `${Math.max(ratio * 100, ratio > 0 ? 3 : 0)}%` }}
         transition={{ type: 'spring', stiffness: 60, damping: 18, delay: 0.15 }}
       >
         {/* Soft light passing through the filled part every few seconds. */}
-        <motion.span
+        <m.span
           aria-hidden
           className="absolute inset-y-0 w-16 bg-linear-to-r from-transparent via-white/50 to-transparent"
           initial={{ x: '-4rem' }}
           animate={{ x: '40rem' }}
           transition={{ duration: 2.4, ease: 'easeInOut', repeat: Infinity, repeatDelay: 3, delay: 1.2 }}
         />
-      </motion.div>
+      </m.div>
     </div>
   )
 }
@@ -207,9 +207,9 @@ function AchievementGrid({ unlocked, metrics }: { unlocked: Record<string, DateK
       <p className="mt-0.5 text-[13px] text-muted">Meilensteine, die du einmal freischaltest und für immer behältst.</p>
       <ul className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
         {ACHIEVEMENTS.map((achievement, index) => (
-          <motion.li key={achievement.id} variants={tileMotion} initial="hidden" animate="shown" custom={index}>
+          <m.li key={achievement.id} variants={tileMotion} initial="hidden" animate="shown" custom={index}>
             <AchievementTile achievement={achievement} unlockedOn={unlocked[achievement.id] ?? null} metrics={metrics} />
-          </motion.li>
+          </m.li>
         ))}
       </ul>
     </section>
@@ -230,7 +230,7 @@ function AchievementTile({
   const progress = achievementProgress(achievement, metrics)
 
   return (
-    <motion.div
+    <m.div
       whileHover={unlocked ? { y: -3 } : undefined}
       transition={{ type: 'spring', stiffness: 400, damping: 26 }}
       className={`flex h-full flex-col items-center rounded-2xl p-3 text-center transition-shadow ${
@@ -261,7 +261,7 @@ function AchievementTile({
         ) : achievement.unit ? (
           <>
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-solid/70">
-              <motion.div
+              <m.div
                 className="h-full rounded-full bg-muted"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress.ratio * 100}%` }}
@@ -276,7 +276,7 @@ function AchievementTile({
           <p className="text-[11px] font-medium text-muted">Noch gesperrt</p>
         )}
       </div>
-    </motion.div>
+    </m.div>
   )
 }
 

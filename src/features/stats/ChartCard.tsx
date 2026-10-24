@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { ChartNoAxesColumn } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -40,7 +40,7 @@ export function ChartEmpty({ children }: { children: ReactNode }) {
 /** Frosted-glass tooltip used by all Recharts charts; pops in with a small spring. */
 export function TooltipCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, scale: 0.92, y: 4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 520, damping: 32 }}
@@ -49,7 +49,7 @@ export function TooltipCard({ title, subtitle, children }: { title: string; subt
       <div className="font-semibold tracking-tight">{title}</div>
       {subtitle && <div className="text-[12px] text-muted">{subtitle}</div>}
       <div className="mt-2 space-y-1 text-muted">{children}</div>
-    </motion.div>
+    </m.div>
   )
 }
 

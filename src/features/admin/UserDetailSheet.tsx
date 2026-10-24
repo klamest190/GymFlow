@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { KeyRound, LoaderCircle, Trash2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useSession } from '../../auth/authContext'
@@ -133,7 +133,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
             />
             <AnimatePresence>
               {nameChanged && (
-                <motion.button
+                <m.button
                   type="button"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -144,7 +144,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                 >
                   {busy === 'name' && <LoaderCircle className="size-4 animate-spin" />}
                   Speichern
-                </motion.button>
+                </m.button>
               )}
             </AnimatePresence>
           </div>
@@ -175,7 +175,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
             />
             <AnimatePresence>
               {usernameChanged && (
-                <motion.button
+                <m.button
                   type="button"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -186,7 +186,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                 >
                   {busy === 'username' && <LoaderCircle className="size-4 animate-spin" />}
                   Speichern
-                </motion.button>
+                </m.button>
               )}
             </AnimatePresence>
           </div>

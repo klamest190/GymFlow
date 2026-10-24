@@ -1,11 +1,12 @@
-import { TrendingUp } from 'lucide-react'
+import { Medal, TrendingUp } from 'lucide-react'
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useSession } from '../../auth/authContext'
 import { useToast, type ShowToast } from '../../components/ui/toastContext'
 import { useAllLogs } from '../../hooks/useData'
+import { detectNewRecords, formatRecordValue, personalRecords, type PersonalRecord } from '../../lib/records'
 import { detectProgressEvents, evaluateProgress, isSameState, type ProgressEvent } from '../../services/gamificationService'
 import { repository } from '../../services/repository'
-import type { GamificationState } from '../../types/models'
+import type { GamificationState, WorkoutLog } from '../../types/models'
 import { GamificationContext } from './gamificationContext'
 
 const xpFormatter = new Intl.NumberFormat('de-DE')
@@ -50,6 +51,8 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const celebrated = useRef<GamificationState | null>(null)
   const warned = useRef(false)
 
+  usePersonalRecordToasts(ready ? logs : null, toast)
+
   useEffect(() => {
     if (!evaluation) return
     const { state } = evaluation
@@ -67,5 +70,53 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     })
   }, [evaluation, stored, toast, user.uid])
 
-  return <GamificationContext.Provider value={evaluation}>{children}</GamificationContext.Provider>
+  const value = useMemo(() => (evaluation ? { ...evaluation, logs } : null), [evaluation, logs])
+  return <GamificationContext.Provider value={value}>{children}</GamificationContext.Provider>
+}
+
+/** Wait until the weight stops changing, so stepping up 2,5 kg at a time ends in one toast. */
+const RECORD_SETTLE_MS = 1500
+
+/**
+ * Celebrates a beaten personal record (heaviest set, or most reps for bodyweight exercises)
+ * once per exercise and day. The first load only sets the baseline, so existing records from
+ * the past never pop up.
+ */
+function usePersonalRecordToasts(logs: WorkoutLog[] | null, toast: ShowToast) {
+  const records = useMemo(() => (logs ? personalRecords(logs) : null), [logs])
+  const known = useRef<Map<string, PersonalRecord> | null>(null)
+  const celebrated = useRef(new Set<string>())
+  /** Per exercise and day: the record before today's session and the pending toast. */
+  const pending = useRef(new Map<string, { previous: number; timer: number }>())
+
+  useEffect(() => {
+    if (!records) return
+    const previous = known.current
+    known.current = records
+    if (!previous) return
+    for (const { record, previous: before } of detectNewRecords(previous, records)) {
+      const key = `${record.date}:${record.exerciseId}`
+      if (celebrated.current.has(key)) continue
+      const waiting = pending.current.get(key)
+      window.clearTimeout(waiting?.timer)
+      const baseline = waiting?.previous ?? before
+      const timer = window.setTimeout(() => {
+        pending.current.delete(key)
+        celebrated.current.add(key)
+        toast({
+          tone: 'reward',
+          eyebrow: 'Neue Bestleistung',
+          title: `${record.exerciseName}: ${formatRecordValue(record.kind, record.value)}`,
+          description: `Vorher ${formatRecordValue(record.kind, baseline)}. Stark!`,
+          icon: Medal,
+        })
+      }, RECORD_SETTLE_MS)
+      pending.current.set(key, { previous: baseline, timer })
+    }
+  }, [records, toast])
+
+  useEffect(() => {
+    const timers = pending.current
+    return () => timers.forEach(({ timer }) => window.clearTimeout(timer))
+  }, [])
 }

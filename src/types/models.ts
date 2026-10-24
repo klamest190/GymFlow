@@ -4,6 +4,8 @@
  * Firestore layout (see README.md for the full schema):
  *   users/{uid}                           → UserProfile
  *   users/{uid}/workout_logs/{YYYY-MM-DD} → WorkoutLog (exactly one document per day)
+ *   users/{uid}/templates/{id}            → WorkoutTemplate (own templates; built-ins live in data/templates.ts)
+ *   users/{uid}/body_weights/{YYYY-MM-DD} → BodyWeightEntry (one per day)
  *   usernames/{username}                  → { uid, email } (resolves a username login to the e-mail)
  *
  * Exercises are a fixed, curated catalog hardcoded in `data/exercises.ts` (never stored in
@@ -115,6 +117,33 @@ export interface WorkoutLog {
   updatedAt: number
 }
 
+// ─── users/{uid}/templates/{id} ─────────────────────────────────────────────
+
+export interface TemplateExercise {
+  exerciseId: string
+  /** Planned sets; applied as the day's starting values. */
+  sets: { reps: number; weightKg: number | null }[]
+}
+
+/** A set of exercises that fills a whole training day with one tap. */
+export interface WorkoutTemplate {
+  id: string
+  name: string
+  exercises: TemplateExercise[]
+  createdAt: number
+  /** Ships with the app (data/templates.ts) and can't be deleted. */
+  builtIn?: boolean
+}
+
+// ─── users/{uid}/body_weights/{YYYY-MM-DD} ──────────────────────────────────
+
+export interface BodyWeightEntry {
+  /** Equals the document ID: one weigh-in per day, a second one overwrites it. */
+  date: DateKey
+  weightKg: number
+  updatedAt: number
+}
+
 // ─── users/{uid} ─────────────────────────────────────────────────────────────
 // The account document is the single source of truth for access control: Firebase Auth only
 // proves identity, the security rules grant access only while this document says 'active'.
@@ -167,6 +196,11 @@ export interface UserProfile {
   createdBy: string | null
   updatedAt: number
   lastLoginAt: number | null
+  /**
+   * When the user finished (or skipped) the first-run tour. `null` = not yet, so the tour shows
+   * on every start until then, on any device. Set once by the user, never reset.
+   */
+  onboardingCompletedAt: number | null
   /**
    * Stored flat in the document (`currentXP`, `totalXP`, `level`, `rank`, `unlockedAchievements`).
    * `null` until the app synced it the first time, e.g. for accounts created before the feature.

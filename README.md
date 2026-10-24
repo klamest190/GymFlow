@@ -46,20 +46,26 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 
 | Daten | Nutzer (aktiv) | Nutzer (gesperrt) | Admin | Login ohne Konto |
 |---|---|---|---|---|
-| eigenes `users/{uid}` | lesen; nur `weeklyGoalDays`/`lastLoginAt` und die XP-Felder ändern | lesen | lesen; Name und Benutzername ändern | (fehlt) lesen |
+| eigenes `users/{uid}` | lesen; nur `weeklyGoalDays`/`lastLoginAt`, die XP-Felder und einmalig `onboardingCompletedAt` ändern | lesen | lesen; Name und Benutzername ändern | (fehlt) lesen |
 | fremde `users/{uid}` | – | – | lesen, anlegen, Name/Benutzername/Rolle/Status ändern, löschen (XP **nie**) | – |
 | `usernames/{name}` | einzeln lesen | einzeln lesen | einzeln lesen; anlegen/löschen nur zusammen mit dem Konto | einzeln lesen (auch abgemeldet) |
 | eigene `workout_logs` | lesen, schreiben, löschen | – | lesen, schreiben, löschen | – |
 | fremde `workout_logs` | – | – | lesen und löschen (für Kontolöschung), **nie** schreiben | – |
+| eigene `templates`, `body_weights` | lesen, schreiben, löschen (mit Validierung) | – | wie bei `workout_logs` | – |
+| fremde `templates`, `body_weights` | – | – | lesen und löschen, **nie** schreiben | – |
 | `exercises` | gibt es nicht: fester Katalog im Code | | | |
 
-### Rules testen
+### Tests
 
 ```bash
-npm run test:rules
+npm test             # Unit-Tests (Vitest): XP & Level, Rekorde, Wochenrückblick, CSV, Körpergewicht, Statistik, Datum, Benutzernamen, Animationen
+npm run test:watch   # dasselbe im Watch-Modus
+npm run test:rules   # Security Rules gegen den Firestore-Emulator
 ```
 
-Startet den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf echte Daten, und prüft 84 Fälle über alle Rollen hinweg. Voraussetzungen: Firebase CLI und Java 21+ im PATH.
+- **Unit-Tests** liegen neben dem Code (`*.test.ts` in `src/`), gemeinsame Testdaten in `src/test/fixtures.ts`. Sie laufen in der Zeitzone Europe/Berlin, damit Sommer-/Winterzeit überall gleich geprüft wird.
+- **Rules-Tests** (`tests/`) starten den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf echte Daten, und prüfen 109 Fälle über alle Rollen hinweg. Voraussetzungen: Firebase CLI und Java 21+ im PATH.
+- **CI:** Die GitHub Action [ci.yml](.github/workflows/ci.yml) führt bei jedem Push Lint, Unit-Tests, Build und die Rules-Tests aus.
 
 ## Übungskatalog
 
@@ -76,6 +82,8 @@ Felder: `id`, `name`, `description`, `instructions`, `formCues[]`, `primaryMuscl
 ```
 users/{uid}                               Konto: Rolle, Status, Profil
 users/{uid}/workout_logs/{YYYY-MM-DD}     Genau ein Dokument pro Trainingstag
+users/{uid}/templates/{id}                Eigene Trainingsvorlagen
+users/{uid}/body_weights/{YYYY-MM-DD}     Körpergewicht, ein Eintrag pro Tag
 usernames/{name}                          Benutzername → { uid, email } für den Login
 ```
 
@@ -90,6 +98,7 @@ usernames/{name}                          Benutzername → { uid, email } für d
   "weeklyGoalDays": 3,            // 1–7, vom Nutzer selbst änderbar
   "createdAt": Timestamp, "createdBy": "admin-uid", "updatedAt": Timestamp,
   "lastLoginAt": Timestamp,       // für „Zuletzt aktiv“ in der Nutzerverwaltung
+  "onboardingCompletedAt": Timestamp,  // Einführung abgeschlossen/übersprungen; fehlt = Einführung erscheint beim Start
 
   // Gamification: fehlt bis zum ersten Sync der App, danach immer vollständig (siehe „Level & Erfolge“)
   "currentXP": 1200,              // XP innerhalb des aktuellen Levels
@@ -118,6 +127,10 @@ Das Farbschema (Hell/Dunkel/System) wird pro Gerät in `localStorage` gespeicher
   "createdAt": Timestamp, "updatedAt": Timestamp
 }
 ```
+
+**`users/{uid}/templates/{id}`**: `{ "name": "Push Montag", "exercises": [{ "exerciseId": "squats", "sets": [{ "reps": 8, "weightKg": 80 }] }], "createdAt": Timestamp }` (Name 1–40 Zeichen, 1–20 Übungen). Die mitgelieferten Vorlagen stehen in [templates.ts](src/data/templates.ts), nicht in Firestore.
+
+**`users/{uid}/body_weights/{date}`**: `{ "date": "2026-10-24", "weightKg": 82.4, "updatedAt": Timestamp }` (20–400 kg; ein zweiter Eintrag am selben Tag überschreibt den ersten).
 
 **Designentscheidungen**
 - *Ein Dokument pro Tag* statt eines Dokuments pro Satz: Ein Tag kostet einen Read und einen Write, und das Jahres-Heatmap braucht höchstens 365 Reads.
@@ -149,6 +162,26 @@ Im Profil zeigt GymFlow Level, Rang (Liga) und Erfolge. Logik: [gamificationServ
 - **Sync:** Der `GamificationProvider` lädt alle Trainingstage (ein kleines Dokument pro Tag), berechnet den Stand und spiegelt ihn in `users/{uid}`. Bei einem Level-Up, neuen Rang oder Erfolg erscheint ein Toast. Der erste Sync eines Kontos mit bestehender Historie läuft still, damit nicht alles auf einmal gefeiert wird.
 - **Grenze ohne Server:** Die Rules prüfen nur Form und Plausibilität der XP-Felder. Da der Client sie berechnet, könnte ein manipulierter Client sich eigene XP schreiben, aber nie die eines anderen. Für eine Rangliste müsste die Berechnung in eine Cloud Function (Blaze-Tarif).
 
+## Motivation & Komfort
+
+- **Bestleistungen feiern:** Schlägt ein Satz den bisherigen Rekord einer Übung (schwerstes Gewicht, bei Körpergewichtsübungen die meisten Wiederholungen), erscheint ein Reward-Toast mit altem und neuem Wert. Die App wartet 1,5 Sekunden, bis das Gewicht nicht mehr verändert wird, und meldet jede Übung höchstens einmal pro Tag. Rekorde aus der Vergangenheit lösen beim Start nichts aus. Logik: [records.ts](src/lib/records.ts).
+- **Trainingsvorlagen:** Im Tracker unter „Vorlagen“: vier mitgelieferte Vorlagen (Push, Beine & Core, Arme & Schultern, Ganzkörper) und eigene, die man aus einem eingetragenen Tag speichert, mit allen Sätzen und Gewichten. Beim Anwenden kommen nur Übungen dazu, die an dem Tag noch fehlen. Eine reine „Pull“-Vorlage folgt, sobald der Katalog Rückenübungen hat.
+- **Wochenrückblick:** Montag bis Mittwoch oben im Tab „Heute“: Trainingstage gegenüber dem Wochenziel, Sätze und Volumen im Vergleich zur Woche davor, neue Bestleistungen und freigeschaltete Erfolge der Woche. Wegklicken gilt pro Gerät für diese Woche. Logik: [weeklyRecap.ts](src/lib/weeklyRecap.ts).
+- **Körpergewicht:** Im Profil: Eintrag pro Tag, Veränderung über 30 Tage und Verlauf der letzten 90 Tage.
+- **CSV-Export:** Im Profil, für Trainingsdaten (eine Zeile pro Satz) und Körpergewicht. Format für deutsches Excel: Semikolon, Dezimalkomma, UTF-8 mit BOM. Die Datei entsteht im Browser, es wird nichts hochgeladen.
+
+## Einführung (Onboarding)
+
+Beim ersten Start zeigt GymFlow eine kurze Tour in fünf Schritten: Begrüßung, Tracker, Übungen mit Animation, Level & XP und das Wochenziel (direkt wählbar). Sie erscheint, solange `users/{uid}.onboardingCompletedAt` fehlt, also auch nach einem Neuladen mitten in der Tour und auf jedem Gerät, bis sie abgeschlossen oder übersprungen wird. Gesetzt wird das Feld mit der Serverzeit, und die Rules erlauben es nur einmal und nur dem Nutzer selbst. Im Profil lässt sich die Tour über „Einführung ansehen“ jederzeit wieder öffnen, ohne dass sich am gespeicherten Status etwas ändert. Der Code der Tour wird nur geladen, wenn sie gebraucht wird.
+
+## Ladezeit
+
+Beim Start lädt GymFlow rund 344 KB (gzip). Den Großteil machen Firestore (171 KB, nötig für Echtzeit und Offline-Cache) und React (68 KB) aus. Was dafür sorgt, dass es nicht mehr wird:
+- **Tabs lazy:** Übungen, Statistik (inkl. Recharts, 119 KB), Profil und Admin sind eigene Chunks und werden nach dem Start im Leerlauf vorgeladen.
+- **Framer Motion per `LazyMotion`:** Die Komponenten heißen `m.*` statt `motion.*`; die Animations-Engine (19 KB) kommt als eigener Chunk direkt nach dem ersten Rendern. `strict` meldet versehentliche `motion.*`-Komponenten als Fehler.
+- **Firebase Auth über `initializeAuth`** statt `getAuth`, damit der ungenutzte Code für Popup-/Redirect-Logins entfällt.
+- Firebase und React liegen in eigenen, lange cachebaren Chunks; ein App-Update lädt sie nicht neu.
+
 ## PWA
 
 GymFlow lässt sich als App installieren: über `public/manifest.webmanifest` mit Icons und einen Service Worker (`public/sw.js`, nur im Production-Build registriert), der die App-Hülle offline bereithält. Die Trainingsdaten selbst puffert Firestore offline. Die Installation setzt HTTPS voraus, also gehostet z. B. über Firebase Hosting oder Vercel.
@@ -162,23 +195,31 @@ src/
   data/muscleGroups.ts       Labels & Farben
   data/ranks.ts              Ränge (Ligen) mit Level-Schwellen, Farben, Icons
   data/achievements.ts       Erfolge (Schwellenwerte auf Trainingskennzahlen)
+  data/templates.ts          Mitgelieferte Trainingsvorlagen
   services/                  Repository-Interface + Firestore- und localStorage-Implementierung
   services/gamificationService.ts  XP-Kurve, Level, Rang, Erfolge, Level-Up-Erkennung
   lib/stats.ts               Auswertungen für das Dashboard
+  lib/records.ts             Bestleistungen und deren Verbesserungen
+  lib/weeklyRecap.ts         Wochenrückblick (letzte Woche vs. Woche davor)
+  lib/bodyWeight.ts          Körpergewicht: Eingabe, Trend, Diagrammpunkte
+  lib/csv.ts                 CSV-Export für Excel
   lib/pwa.ts                 Service-Worker-Registrierung, Install-Prompt
   lib/passwords.ts           Sichere Startpasswörter für neue Konten
   lib/usernames.ts           Benutzernamen: Format, Normalisierung, Vorschlag aus dem Namen
   auth/                      AuthProvider, useAuth/useSession, deutsche Fehlermeldungen
   hooks/                     useLogsInRange, useAllLogs, useAllUsers, useDayDraft, useTheme
   components/                AppShell (Sidebar/TabBar), Sheet, Toasts, SegmentedControl, NumberStepper, AnimatedNumber
-  features/tracker/          Daily Tracker (WeekStrip, DaySummary, ExerciseEntryCard, ExercisePicker)
+  features/tracker/          Daily Tracker (WeekStrip, DaySummary, ExerciseEntryCard, ExercisePicker, TemplateSheet, WeeklyRecapCard)
   features/exercises/        Übungskatalog und Detail-Sheet; animation/ mit Skelett, Posen und SVG-Figur
   features/stats/            Statistik-Dashboard (Recharts, lazy geladen)
   features/auth/             Login-Screen (inkl. Passwort vergessen), Kein-Zugang-Screen
   features/admin/            Nutzerverwaltung: Liste (mit Level), Anlegen, Bearbeiten, Sperren, Löschen
   features/gamification/     GamificationProvider (Sync + Toasts), GamificationDashboard (Level, Rang, Erfolge), RankBadge/LevelBadge
-  features/profile/          Profil: Konto, Level & Erfolge, Passwort ändern, Wochenziel, Darstellung, App installieren
+  features/onboarding/       Einführung beim ersten Start (lazy geladen)
+  features/profile/          Profil: Konto, Level & Erfolge, Körpergewicht, Export, Passwort ändern, Wochenziel, Darstellung, App installieren, Einführung
+  test/fixtures.ts           Testdaten-Bausteine für die Unit-Tests (*.test.ts neben dem Code)
 public/                      Manifest, Icons, Service Worker
 firestore.rules              Security Rules (RBAC)
 tests/                       Rules-Tests gegen den Firestore-Emulator
+.github/workflows/ci.yml     CI: Lint, Unit-Tests, Build, Rules-Tests
 ```

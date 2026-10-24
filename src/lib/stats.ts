@@ -133,7 +133,8 @@ export function heatmapGrid(logs: WorkoutLog[], today: DateKey, weeks: number, m
   const totalsByDate = new Map(logs.map((log) => [log.date, log.totals]))
   const values = new Map(logs.map((log) => [log.date, log.totals[metric]]))
   const sorted = [...values.values()].filter((value) => value > 0).sort((a, b) => a - b)
-  const quantile = (q: number) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] ?? 0
+  // Nearest-rank quantile: of [2, 4, 6, 8] the lower quarter is 2, so each value gets its own level.
+  const quantile = (q: number) => sorted[Math.max(0, Math.ceil(q * sorted.length) - 1)] ?? 0
   const thresholds = [quantile(0.25), quantile(0.5), quantile(0.75)]
 
   const levelOf = (date: DateKey): HeatmapDay['level'] => {

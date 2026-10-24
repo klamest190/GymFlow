@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { RotateCcw, Search, SearchX, X } from 'lucide-react'
 import { useState } from 'react'
 import { useUserId } from '../../auth/authContext'
@@ -61,7 +61,7 @@ export function ExerciseCatalog() {
           />
           <AnimatePresence>
             {catalog.search && (
-              <motion.button
+              <m.button
                 type="button"
                 aria-label="Suche leeren"
                 onClick={() => catalog.setSearch('')}
@@ -71,7 +71,7 @@ export function ExerciseCatalog() {
                 className="grid size-5 shrink-0 place-items-center rounded-full bg-muted/40 text-bg"
               >
                 <X className="size-3" strokeWidth={3} />
-              </motion.button>
+              </m.button>
             )}
           </AnimatePresence>
         </label>
@@ -96,7 +96,7 @@ export function ExerciseCatalog() {
       >
         <AnimatePresence mode="wait" initial={false}>
           {catalog.exercises.length > 0 ? (
-            <motion.ul key="list" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <m.ul key="list" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <AnimatePresence>
                 {catalog.exercises.map((exercise, index) => (
                   <ExerciseCard
@@ -108,7 +108,7 @@ export function ExerciseCatalog() {
                   />
                 ))}
               </AnimatePresence>
-            </motion.ul>
+            </m.ul>
           ) : (
             <EmptyState key="empty" hasSearch={catalog.search.trim() !== ''} onReset={catalog.resetFilters} />
           )}
@@ -151,14 +151,14 @@ function ExerciseCard({
   // The figure stands still in the list (calm) and only demonstrates the movement on hover/focus.
   const [active, setActive] = useState(false)
   return (
-    <motion.li
+    <m.li
       layout
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0, transition: { delay: Math.min(index, 8) * 0.04, ...spring } }}
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
       transition={spring}
     >
-      <motion.button
+      <m.button
         type="button"
         onClick={onClick}
         onHoverStart={() => setActive(true)}
@@ -173,7 +173,7 @@ function ExerciseCard({
         transition={spring}
         className="glass relative flex h-full w-full flex-col rounded-3xl p-5 text-left"
       >
-        <motion.span
+        <m.span
           aria-hidden
           variants={shadowMotion}
           transition={{ duration: 0.25 }}
@@ -213,8 +213,8 @@ function ExerciseCard({
             <span className="text-muted">Noch nicht trainiert</span>
           )}
         </div>
-      </motion.button>
-    </motion.li>
+      </m.button>
+    </m.li>
   )
 }
 
@@ -244,26 +244,26 @@ function ExerciseCardSkeleton() {
 
 function EmptyState({ hasSearch, onReset }: { hasSearch: boolean; onReset: () => void }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.15 } }}
       transition={spring}
       className="glass mt-6 flex flex-col items-center rounded-3xl px-6 py-14 text-center"
     >
-      <motion.span
+      <m.span
         initial={{ scale: 0.6, rotate: -12 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 14, delay: 0.05 }}
         className="grid size-16 place-items-center rounded-full bg-sunken"
       >
         <SearchX className="size-7 text-muted" />
-      </motion.span>
+      </m.span>
       <h2 className="mt-4 text-[18px] font-bold tracking-tight">Keine Übung gefunden</h2>
       <p className="mt-1 max-w-xs text-[15px] text-muted">
         {hasSearch ? 'Versuche einen anderen Suchbegriff oder eine andere Muskelgruppe.' : 'Für diese Muskelgruppe gibt es keine Übung.'}
       </p>
-      <motion.button
+      <m.button
         type="button"
         onClick={onReset}
         whileTap={{ scale: 0.96 }}
@@ -271,7 +271,7 @@ function EmptyState({ hasSearch, onReset }: { hasSearch: boolean; onReset: () =>
       >
         <RotateCcw className="size-4" strokeWidth={2.5} />
         Filter zurücksetzen
-      </motion.button>
-    </motion.div>
+      </m.button>
+    </m.div>
   )
 }

@@ -1,4 +1,4 @@
-import { motion, useSpring, useTransform } from 'framer-motion'
+import { m, useSpring, useTransform } from 'framer-motion'
 import { useEffect } from 'react'
 
 const formatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
@@ -20,5 +20,5 @@ export function AnimatedNumber({ value, compact, className }: { value: number; c
     spring.set(value)
   }, [spring, value])
 
-  return <motion.span className={className}>{display}</motion.span>
+  return <m.span className={className}>{display}</m.span>
 }

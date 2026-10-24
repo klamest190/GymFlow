@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { CircleAlert, CircleCheck, Info, Sparkles, X } from 'lucide-react'
 import { useCallback, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               const Icon = toast.icon ?? tone.icon
               const reward = toast.tone === 'reward'
               return (
-                <motion.div
+                <m.div
                   key={toast.id}
                   layout
                   initial={{ opacity: 0, y: -16, scale: reward ? 0.9 : 0.96 }}
@@ -59,14 +59,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   {reward && <RewardSweep />}
                   <span className={`relative grid size-8 shrink-0 place-items-center rounded-full ${tone.className}`}>
                     {reward && <RewardPulse />}
-                    <motion.span
+                    <m.span
                       className="relative"
                       initial={reward ? { scale: 0.3, rotate: -30 } : false}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: 'spring', stiffness: 380, damping: 14, delay: 0.1 }}
                     >
                       <Icon className="size-4.5" strokeWidth={2.5} />
-                    </motion.span>
+                    </m.span>
                   </span>
                   <div className="relative min-w-0 flex-1 pt-0.5">
                     {toast.eyebrow && (
@@ -83,7 +83,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   >
                     <X className="size-3.5" strokeWidth={2.5} />
                   </button>
-                </motion.div>
+                </m.div>
               )
             })}
           </AnimatePresence>
@@ -97,7 +97,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 /** One band of light sweeping across the card. */
 function RewardSweep() {
   return (
-    <motion.span
+    <m.span
       aria-hidden
       className="pointer-events-none absolute inset-y-0 left-0 w-1/2 -skew-x-12 bg-linear-to-r from-transparent via-accent/30 to-transparent"
       initial={{ x: '-120%' }}
@@ -110,7 +110,7 @@ function RewardSweep() {
 /** Accent ring expanding out of the icon, twice. */
 function RewardPulse() {
   return (
-    <motion.span
+    <m.span
       aria-hidden
       className="absolute inset-0 rounded-full bg-accent"
       initial={{ scale: 1, opacity: 0.6 }}

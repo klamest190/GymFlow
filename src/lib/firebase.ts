@@ -1,5 +1,5 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app'
-import { getAuth, type Auth } from 'firebase/auth'
+import { browserLocalPersistence, indexedDBLocalPersistence, initializeAuth, type Auth } from 'firebase/auth'
 import {
   initializeFirestore,
   persistentLocalCache,
@@ -31,7 +31,9 @@ export function getFirebase() {
     db = initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
-    auth = getAuth(app)
+    // initializeAuth instead of getAuth: getAuth also bundles the popup/redirect sign-in code
+    // (Google etc.), which GymFlow never uses with e-mail/password only.
+    auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] })
     // German texts in Firebase-sent e-mails (password reset).
     auth.languageCode = 'de'
     // Analytics is optional and unavailable in some browsers (e.g. with tracking protection);

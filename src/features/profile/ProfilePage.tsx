@@ -1,6 +1,7 @@
-import { motion } from 'framer-motion'
-import { Check, Download, KeyRound, LoaderCircle, LogOut, Share, Smartphone } from 'lucide-react'
+import { m } from 'framer-motion'
+import { Check, Download, KeyRound, LoaderCircle, LogOut, PlayCircle, Share, Smartphone } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { useBodyWeights } from '../../hooks/useData'
 import { useAuth, useSession } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
@@ -11,6 +12,10 @@ import { useInstallState } from '../../lib/pwa'
 import { repository } from '../../services/repository'
 import { RoleBadge, UserAvatar } from '../admin/UserBadges'
 import { GamificationDashboard } from '../gamification/GamificationDashboard'
+import { useReplayOnboarding } from '../onboarding/onboardingContext'
+import { BodyWeightCard } from './BodyWeightCard'
+import { ExportCard } from './ExportCard'
+import { Card } from './ProfileCard'
 
 const GOAL_OPTIONS = [1, 2, 3, 4, 5, 6, 7]
 
@@ -18,6 +23,9 @@ export function ProfilePage() {
   const { user, profile } = useSession()
   const { preference, setPreference } = useTheme()
   const toast = useToast()
+  const replayOnboarding = useReplayOnboarding()
+  // One subscription for the weight card and the export.
+  const bodyWeights = useBodyWeights(user.uid)
 
   const setGoal = (weeklyGoalDays: number) => {
     haptic()
@@ -38,6 +46,8 @@ export function ProfilePage() {
 
         <GamificationDashboard />
 
+        <BodyWeightCard entries={bodyWeights} />
+
         <Card title="Wochenziel" description="An wie vielen Tagen pro Woche willst du trainieren? Der Fortschritt erscheint als Ring in der Statistik.">
           <div className="grid grid-cols-7 gap-1.5 rounded-2xl bg-sunken p-1.5" role="radiogroup" aria-label="Trainingstage pro Woche">
             {GOAL_OPTIONS.map((days) => {
@@ -54,7 +64,7 @@ export function ProfilePage() {
                   }`}
                 >
                   {active && (
-                    <motion.span
+                    <m.span
                       layoutId="goal-active"
                       className="absolute inset-0 rounded-xl bg-accent shadow-accent"
                       transition={{ type: 'spring', stiffness: 520, damping: 38 }}
@@ -83,7 +93,20 @@ export function ProfilePage() {
           />
         </Card>
 
+        <ExportCard bodyWeights={bodyWeights} />
+
         <InstallCard />
+
+        <Card title="Einführung" description="Die kurze Tour zu Tracker, Übungen, Level und Wochenziel.">
+          <button
+            type="button"
+            onClick={replayOnboarding}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sunken py-3 text-[15px] font-semibold transition hover:bg-surface-solid"
+          >
+            <PlayCircle className="size-4.5" />
+            Einführung ansehen
+          </button>
+        </Card>
 
         <p className="px-1 pt-2 text-center text-[12px] text-muted">
           GymFlow · {EXERCISES.length} Übungen im Katalog ·{' '}
@@ -91,16 +114,6 @@ export function ProfilePage() {
         </p>
       </div>
     </div>
-  )
-}
-
-function Card({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  return (
-    <section className="glass rounded-3xl p-4 sm:p-5">
-      <h2 className="text-[17px] font-semibold tracking-tight">{title}</h2>
-      {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
-      <div className="mt-4">{children}</div>
-    </section>
   )
 }
 

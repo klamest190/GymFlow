@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useId } from 'react'
 
 interface SegmentedControlProps<T extends string> {
@@ -29,7 +29,7 @@ export function SegmentedControl<T extends string>({ value, onChange, options, l
             } ${active ? 'text-fg' : 'text-muted hover:text-fg'}`}
           >
             {active && (
-              <motion.span
+              <m.span
                 layoutId={layoutId}
                 className="absolute inset-0 rounded-xl bg-surface-solid shadow-[0_1px_3px_rgb(0_0_0/0.12),0_4px_12px_-4px_rgb(0_0_0/0.15)]"
                 transition={{ type: 'spring', stiffness: 520, damping: 38 }}

@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 23.10.2026 · Benutzername-Login umgesetzt, **Rules dafür noch nicht deployt** · Einrichtung in der Firebase Console steht noch aus
+Stand: 24.10.2026 · Onboarding, Tests/CI, kleineres Bundle, Bestleistungen, Vorlagen, Wochenrückblick, Körpergewicht und CSV-Export umgesetzt, **Rules dafür noch nicht deployt** · Einrichtung in der Firebase Console steht noch aus
 
 ## Weitermachen
 
@@ -38,14 +38,19 @@ npm run dev
 | **Benutzername-Login** (23.10.) | ✅ Login mit Benutzername oder E-Mail (auch „Passwort vergessen“). Admin vergibt den Benutzernamen beim Anlegen (Vorschlag aus dem Namen) und kann ihn in der Nutzerverwaltung setzen/ändern. Lookup über `usernames/{name}`, Rules erweitert, 84 Tests grün |
 | **Ruhigere Oberfläche** (23.10.) | ✅ Sidebar springt beim Tab-Wechsel nicht mehr (`scrollbar-gutter`), Tabs werden im Hintergrund vorgeladen, Skeletons nur bei spürbarer Ladezeit (`Loadable`) |
 | **Übungs-Animationen** (23.10.) | ✅ Animierte Vektor-Figur für alle 11 Übungen: Zielmuskel neongrün, Tempo mit langsamer exzentrischer Phase, Hell/Dunkel. Katalog: Standbild, Bewegung beim Hovern. Detailansicht: Schleife mit Legende und Pause |
+| **Einführung** (24.10.) | ✅ Tour in 5 Schritten beim ersten Start, mit Wochenziel-Auswahl. Abschluss in `users/{uid}.onboardingCompletedAt` (Serverzeit, nur einmal setzbar), erneut ansehen im Profil |
+| **Tests & CI** (24.10.) | ✅ 90 Unit-Tests mit Vitest (`npm test`), 93 Rules-Tests; GitHub Action für Lint, Tests, Build und Rules. Ein Test fand einen Fehler in der Heatmap: Die dunkelste Stufe war bei wenigen Trainingstagen unerreichbar (behoben) |
+| **Ladezeit** (24.10.) | ✅ Start 363 → 344 KB gzip: Framer Motion per `LazyMotion`, Firebase Auth ohne Popup-Code |
+| **Motivation & Komfort** (24.10.) | ✅ Reward-Toast bei neuer Bestleistung; Vorlagen (4 mitgeliefert + eigene aus einem Tag speichern); Wochenrückblick Mo–Mi auf „Heute“; Körpergewicht mit 90-Tage-Verlauf im Profil; CSV-Export für Training und Körpergewicht. Jetzt 121 Unit-Tests und 109 Rules-Tests |
 
 ### Behobener Fehler (19.10.)
 
 Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten, weil `signIn()` doppelt lief (React StrictMode). Danach merkte sie sich das falsche, und Firestore lehnte alle Lese- und Schreibzugriffe ab, bis die Seite neu geladen wurde. `signIn()` war danach idempotent. Das Gast-Login wurde inzwischen durch E-Mail/Passwort ersetzt; der `AuthProvider` legt keine Konten mehr selbst an, damit kann der Fehler nicht wieder auftreten.
 
-## Offen: Benutzername-Login
+## Offen: Benutzername-Login & Einführung
 
-- [ ] **Rules deployen:** `firebase deploy --only firestore:rules --project gymflow-917db`. Bis dahin klappt der Login nur per E-Mail, und das Anlegen neuer Nutzer schlägt fehl (die Rules kennen das Feld `username` noch nicht).
+- [ ] **Rules deployen:** `firebase deploy --only firestore:rules --project gymflow-917db`. Bis dahin klappen Login per Benutzername und das Anlegen neuer Nutzer nicht, die Einführung kann ihren Abschluss nicht speichern (sie käme bei jedem Start wieder), und eigene Vorlagen sowie Körpergewicht lassen sich nicht speichern.
+- [ ] **CI prüfen:** nach dem ersten Push unter GitHub → Actions nachsehen, ob beide Jobs grün sind.
 - [ ] **Eigenen Benutzernamen setzen:** Admin → eigenes Konto öffnen → „Benutzername“. Bestehende Konten haben noch keinen.
 
 ## Offen: nur in der Firebase Console möglich (sonst kann sich niemand anmelden)
@@ -73,7 +78,6 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 - **Hosting:** Für die Nutzung auf dem Handy und die PWA-Installation braucht GymFlow eine HTTPS-Adresse. Naheliegend ist Firebase Hosting im selben Projekt: `firebase.json` um `hosting` mit `dist` und SPA-Rewrite ergänzen, dann `npm run build && npx firebase-tools deploy --only hosting`. Die Domain anschließend bei den autorisierten Domains eintragen.
 - **Katalog erweitern:** Bisher gibt es keine reine Rückenübung (z. B. Rudern, Klimmzüge, Latzug). Neue Einträge kommen in `DEFINITIONS` in `src/data/exercises.ts`, bestehende IDs nie ändern. Für die Animation zusätzlich eine Pose in `src/features/exercises/animation/poses.ts` anlegen.
 - Satz-Timer (Pausenzeit zwischen Sätzen) im Tracker
-- Export der Trainingsdaten (CSV)
 
 ## Getroffene Entscheidungen
 

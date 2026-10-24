@@ -1,4 +1,4 @@
-import { motion, useAnimate } from 'framer-motion'
+import { m, useAnimate } from 'framer-motion'
 import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { haptic } from '../../hooks/useUi'
@@ -51,7 +51,7 @@ export function NumberStepper({ value, onChange, step, min = 0, max = 9999, null
 
   return (
     <div className="flex min-w-0 items-center gap-1" role="group" aria-label={label}>
-      <motion.button
+      <m.button
         type="button"
         whileTap={{ scale: 0.82 }}
         className={buttonClass}
@@ -60,7 +60,7 @@ export function NumberStepper({ value, onChange, step, min = 0, max = 9999, null
         aria-label={`${label} verringern`}
       >
         <Minus className="size-3.5" strokeWidth={3} />
-      </motion.button>
+      </m.button>
       <input
         ref={scope}
         value={text}
@@ -76,7 +76,7 @@ export function NumberStepper({ value, onChange, step, min = 0, max = 9999, null
         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         className="w-11 min-w-0 rounded-lg bg-transparent py-1 text-center text-[17px] font-semibold tabular-nums tracking-tight outline-none placeholder:text-muted/60 focus:bg-sunken"
       />
-      <motion.button
+      <m.button
         type="button"
         whileTap={{ scale: 0.82 }}
         className={buttonClass}
@@ -85,7 +85,7 @@ export function NumberStepper({ value, onChange, step, min = 0, max = 9999, null
         aria-label={`${label} erhöhen`}
       >
         <Plus className="size-3.5" strokeWidth={3} />
-      </motion.button>
+      </m.button>
     </div>
   )
 }

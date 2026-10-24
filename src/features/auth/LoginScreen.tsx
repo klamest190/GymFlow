@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { ArrowLeft, ChartNoAxesColumn, CircleUser, Dumbbell, Eye, EyeOff, LoaderCircle, Lock, Mail, MailCheck, ShieldCheck, Sparkles } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useAuth } from '../../auth/authContext'
@@ -35,7 +35,7 @@ export function LoginScreen() {
               <p className="mt-3 text-[15px] text-muted">Dein Training. Präzise erfasst.</p>
             </div>
 
-            <motion.div
+            <m.div
               layout
               transition={{ type: 'spring', stiffness: 380, damping: 34 }}
               className="glass overflow-hidden rounded-4xl p-6 shadow-float sm:p-8"
@@ -57,7 +57,7 @@ export function LoginScreen() {
                   </Panel>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </m.div>
 
             <p className="mt-6 text-center text-[13px] text-muted">
               Noch keinen Zugang? GymFlow ist ein geschlossenes System. Zugänge vergibt dein Admin.
@@ -76,9 +76,9 @@ export function LoginScreen() {
 
 function Panel({ children }: { children: ReactNode }) {
   return (
-    <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
+    <m.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -262,7 +262,7 @@ function FormError({ message }: { message: string | null }) {
   return (
     <AnimatePresence>
       {message && (
-        <motion.p
+        <m.p
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
@@ -270,7 +270,7 @@ function FormError({ message }: { message: string | null }) {
           className="overflow-hidden"
         >
           <span className="mt-4 block rounded-2xl bg-danger/10 px-4 py-3 text-[14px] font-medium text-danger">{message}</span>
-        </motion.p>
+        </m.p>
       )}
     </AnimatePresence>
   )
@@ -311,7 +311,7 @@ function BrandPanel() {
       </h2>
       <ul className="mt-10 space-y-5">
         {FEATURES.map(({ icon: Icon, title, text }, index) => (
-          <motion.li
+          <m.li
             key={title}
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
@@ -325,10 +325,10 @@ function BrandPanel() {
               <span className="block text-[16px] font-semibold tracking-tight">{title}</span>
               <span className="block text-[14px] text-muted">{text}</span>
             </span>
-          </motion.li>
+          </m.li>
         ))}
       </ul>
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45, type: 'spring', stiffness: 200, damping: 26 }}
@@ -341,7 +341,7 @@ function BrandPanel() {
           <span className="block text-[13px] font-medium text-muted">Premium-Erlebnis</span>
           <span className="block text-[17px] font-semibold tracking-tight">Offline-fähig, auf jedem Gerät</span>
         </span>
-      </motion.div>
+      </m.div>
     </aside>
   )
 }

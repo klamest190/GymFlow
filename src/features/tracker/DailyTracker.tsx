@@ -1,20 +1,23 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { CalendarDays, CloudCheck, CloudOff, Dumbbell, LoaderCircle, Moon, Plus, Sun } from 'lucide-react'
+import { AnimatePresence, m } from 'framer-motion'
+import { CalendarDays, CloudCheck, CloudOff, Dumbbell, LayoutList, LoaderCircle, Moon, Plus, Sun } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { EXERCISES, getExercise } from '../../data/exercises'
 import { Loadable } from '../../components/ui/Loadable'
+import { useToast } from '../../components/ui/toastContext'
 import { useLogsInRange } from '../../hooks/useData'
 import { useDayDraft, type SyncState } from '../../hooks/useDayDraft'
 import { useUserId } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
 import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
-import { createEntry } from '../../lib/workoutMath'
-import type { DateKey, Exercise, WorkoutEntry } from '../../types/models'
+import { createEntry, createSet } from '../../lib/workoutMath'
+import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
 import { DaySummary } from './DaySummary'
 import { ExerciseEntryCard } from './ExerciseEntryCard'
 import { ExercisePicker } from './ExercisePicker'
+import { TemplateSheet } from './TemplateSheet'
 import { WeekStrip } from './WeekStrip'
+import { WeeklyRecapCard } from './WeeklyRecapCard'
 
 /**
  * Daily Workout Tracker: pick a day (today or any past day), add exercises from
@@ -25,6 +28,8 @@ export function DailyTracker() {
   const userId = useUserId()
   const [date, setDate] = useState<DateKey>(todayKey)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+  const toast = useToast()
 
   const week = weekDays(date)
   const { logs, ready } = useLogsInRange(userId, week[0], week[6])
@@ -41,11 +46,31 @@ export function DailyTracker() {
   const changeEntry = (next: WorkoutEntry) => update((current) => current.map((entry) => (entry.id === next.id ? next : entry)))
   const removeEntry = (id: string) => update((current) => current.filter((entry) => entry.id !== id))
 
+  // Appends the template's exercises with their planned sets; exercises already on the day stay as they are.
+  const applyTemplate = (template: WorkoutTemplate) => {
+    const added = template.exercises.flatMap((item) => {
+      const exercise = getExercise(item.exerciseId)
+      if (!exercise || addedIds.has(item.exerciseId)) return []
+      const entry = createEntry(exercise, 0)
+      const sets = item.sets.map((set) => createSet(set.reps, exercise.usesWeight ? set.weightKg : null))
+      return [{ ...entry, sets: sets.length > 0 ? sets : entry.sets }]
+    })
+    setTemplatesOpen(false)
+    if (added.length === 0) {
+      toast({ tone: 'info', title: 'Schon eingetragen', description: `Alle Übungen aus „${template.name}“ sind an diesem Tag bereits drin.` })
+      return
+    }
+    update((current) => [...current, ...added])
+    toast({ tone: 'success', title: `„${template.name}“ eingetragen`, description: `${added.length} ${added.length === 1 ? 'Übung' : 'Übungen'} hinzugefügt.` })
+  }
+
   const suggestions = EXERCISES.filter((exercise) => !addedIds.has(exercise.id)).slice(0, 5)
 
   return (
     <div className="mx-auto max-w-6xl">
       <TrackerHeader date={date} onDateChange={setDate} syncState={syncState} />
+
+      <WeeklyRecapCard />
 
       <div className="mt-5 lg:mt-8">
         <WeekStrip selected={date} onSelect={setDate} activeDates={activeDates} />
@@ -58,24 +83,34 @@ export function DailyTracker() {
               Übungen
               <span className="ml-2 text-[17px] font-semibold text-muted tabular-nums">{entries.length}</span>
             </h2>
-            <button
-              type="button"
-              onClick={() => setPickerOpen(true)}
-              className="hidden items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[14px] font-semibold text-accent-ink shadow-accent transition hover:brightness-105 active:scale-95 lg:flex"
-            >
-              <Plus className="size-4" strokeWidth={3} />
-              Übung hinzufügen
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTemplatesOpen(true)}
+                className="flex items-center gap-2 rounded-full bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-surface-solid active:scale-95"
+              >
+                <LayoutList className="size-4" strokeWidth={2.5} />
+                Vorlagen
+              </button>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                className="hidden items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[14px] font-semibold text-accent-ink shadow-accent transition hover:brightness-105 active:scale-95 lg:flex"
+              >
+                <Plus className="size-4" strokeWidth={3} />
+                Übung hinzufügen
+              </button>
+            </div>
           </div>
 
           <Loadable ready={ready} skeleton={<EntriesSkeleton />}>
             {entries.length === 0 ? (
-              <EmptyState isToday={date === todayKey()} onAdd={() => setPickerOpen(true)} />
+              <EmptyState isToday={date === todayKey()} onAdd={() => setPickerOpen(true)} onTemplates={() => setTemplatesOpen(true)} />
             ) : (
-              <motion.ul layout className="space-y-3">
+              <m.ul layout className="space-y-3">
                 <AnimatePresence initial={false} mode="popLayout">
                   {entries.map((entry) => (
-                    <motion.li
+                    <m.li
                       key={entry.id}
                       layout
                       initial={{ opacity: 0, y: 24, scale: 0.97 }}
@@ -89,10 +124,10 @@ export function DailyTracker() {
                         onChange={changeEntry}
                         onRemove={() => removeEntry(entry.id)}
                       />
-                    </motion.li>
+                    </m.li>
                   ))}
                 </AnimatePresence>
-              </motion.ul>
+              </m.ul>
             )}
           </Loadable>
         </div>
@@ -141,7 +176,7 @@ export function DailyTracker() {
       {/* Mobile floating action button above the tab bar. Portaled because the page
           transition's transform/filter would otherwise become its containing block. */}
       {createPortal(
-      <motion.button
+      <m.button
         type="button"
         onClick={() => setPickerOpen(true)}
         whileTap={{ scale: 0.92 }}
@@ -153,7 +188,7 @@ export function DailyTracker() {
       >
         <Plus className="size-5" strokeWidth={3} />
         Übung
-      </motion.button>,
+      </m.button>,
         document.body,
       )}
 
@@ -164,6 +199,7 @@ export function DailyTracker() {
         addedIds={addedIds}
         onAdd={addExercise}
       />
+      <TemplateSheet open={templatesOpen} onClose={() => setTemplatesOpen(false)} entries={entries} onApply={applyTemplate} />
     </div>
   )
 }
@@ -177,7 +213,7 @@ function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDat
       <div className="min-w-0">
         <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">{formatFullDate(date)}</p>
         <AnimatePresence mode="wait" initial={false}>
-          <motion.h1
+          <m.h1
             key={date}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -186,7 +222,7 @@ function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDat
             className="mt-1 truncate text-[34px] font-bold leading-none tracking-tight lg:text-[44px]"
           >
             {relativeDayLabel(date)}
-          </motion.h1>
+          </m.h1>
         </AnimatePresence>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -232,7 +268,7 @@ function SyncBadge({ state }: { state: SyncState }) {
   }[state]
   const Icon = config.icon
   return (
-    <motion.span
+    <m.span
       key={config.label}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -243,13 +279,13 @@ function SyncBadge({ state }: { state: SyncState }) {
     >
       <Icon className={`size-4 ${config.spin ? 'animate-spin' : ''} ${state === 'saved' ? 'text-accent-fg' : ''}`} />
       {config.label}
-    </motion.span>
+    </m.span>
   )
 }
 
-function EmptyState({ isToday, onAdd }: { isToday: boolean; onAdd: () => void }) {
+function EmptyState({ isToday, onAdd, onTemplates }: { isToday: boolean; onAdd: () => void; onTemplates: () => void }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="glass flex flex-col items-center rounded-3xl px-6 py-12 text-center"
@@ -266,15 +302,25 @@ function EmptyState({ isToday, onAdd }: { isToday: boolean; onAdd: () => void })
       <p className="mt-1.5 max-w-xs text-[15px] text-muted">
         {isToday ? 'Füge deine erste Übung hinzu und tracke Sätze und Wiederholungen.' : 'Trage dein Training einfach nachträglich ein.'}
       </p>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="mt-6 flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink shadow-accent transition active:scale-95"
-      >
-        <Plus className="size-4.5" strokeWidth={3} />
-        Übung hinzufügen
-      </button>
-    </motion.div>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink shadow-accent transition active:scale-95"
+        >
+          <Plus className="size-4.5" strokeWidth={3} />
+          Übung hinzufügen
+        </button>
+        <button
+          type="button"
+          onClick={onTemplates}
+          className="flex items-center gap-2 rounded-full bg-sunken px-5 py-3 text-[15px] font-semibold transition hover:bg-surface-solid active:scale-95"
+        >
+          <LayoutList className="size-4.5" strokeWidth={2.5} />
+          Vorlage verwenden
+        </button>
+      </div>
+    </m.div>
   )
 }
 

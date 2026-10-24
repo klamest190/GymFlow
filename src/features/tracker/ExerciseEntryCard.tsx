@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useMotionValue, useTransform } from 'framer-motion'
+import { AnimatePresence, m, useMotionValue, useTransform } from 'framer-motion'
 import { Check, Info, Plus, Trash2, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { NumberStepper } from '../../components/ui/NumberStepper'
@@ -43,17 +43,17 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
   return (
     <div className="relative">
       {/* Revealed behind the card while swiping left on touch devices. */}
-      <motion.div
+      <m.div
         style={{ opacity: deleteOpacity }}
         className="absolute inset-0 flex items-center justify-end rounded-3xl bg-danger pr-7 text-white"
         aria-hidden
       >
-        <motion.span style={{ scale: deleteScale }}>
+        <m.span style={{ scale: deleteScale }}>
           <Trash2 className="size-6" />
-        </motion.span>
-      </motion.div>
+        </m.span>
+      </m.div>
 
-      <motion.article
+      <m.article
         style={{ x: dragX }}
         drag={isTouch ? 'x' : false}
         dragDirectionLock
@@ -88,7 +88,7 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
 
         <AnimatePresence initial={false}>
           {showInfo && exercise && (
-            <motion.div
+            <m.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -106,7 +106,7 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
                   ))}
                 </ul>
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -124,7 +124,7 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
           <ul className="space-y-1.5">
             <AnimatePresence initial={false}>
               {entry.sets.map((set, index) => (
-                <motion.li
+                <m.li
                   key={set.id}
                   layout
                   initial={{ opacity: 0, y: -6, scale: 0.98 }}
@@ -173,11 +173,11 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
                   ) : (
                     <span />
                   )}
-                </motion.li>
+                </m.li>
               ))}
             </AnimatePresence>
           </ul>
-          <motion.button
+          <m.button
             type="button"
             layout
             whileTap={{ scale: 0.97 }}
@@ -186,9 +186,9 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
           >
             <Plus className="size-4" strokeWidth={2.75} />
             Satz hinzufügen
-          </motion.button>
+          </m.button>
         </div>
-      </motion.article>
+      </m.article>
     </div>
   )
 }

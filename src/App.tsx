@@ -1,14 +1,16 @@
-import { motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Dumbbell } from 'lucide-react'
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { useAuth } from './auth/authContext'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { useAuth, useSession } from './auth/authContext'
 import { AppShell } from './components/layout/AppShell'
 import type { TabId } from './components/layout/tabs'
 import { LoginScreen } from './features/auth/LoginScreen'
 import { NoAccessScreen } from './features/auth/NoAccessScreen'
 import { GamificationProvider } from './features/gamification/GamificationProvider'
+import { OnboardingContext } from './features/onboarding/onboardingContext'
 import { DailyTracker } from './features/tracker/DailyTracker'
 import { useDelayedFlag } from './hooks/useDelayedFlag'
+import { repository } from './services/repository'
 
 // The start tab ships in the main bundle; the others (incl. Recharts) are separate chunks that
 // are preloaded in the background right after start (see SignedInApp).
@@ -22,6 +24,8 @@ const ExerciseCatalog = lazy(() => TAB_MODULES.exercises().then((m) => ({ defaul
 const StatsDashboard = lazy(() => TAB_MODULES.stats().then((m) => ({ default: m.StatsDashboard })))
 const ProfilePage = lazy(() => TAB_MODULES.profile().then((m) => ({ default: m.ProfilePage })))
 const AdminDashboard = lazy(() => TAB_MODULES.admin().then((m) => ({ default: m.AdminDashboard })))
+// Needed once per account, so it never weighs on the regular bundle.
+const Onboarding = lazy(() => import('./features/onboarding/Onboarding').then((m) => ({ default: m.Onboarding })))
 
 /** Downloads the other tabs once the browser is idle, so switching tabs never waits for code. */
 function usePreloadTabs(isAdmin: boolean) {
@@ -59,23 +63,45 @@ export default function App() {
 }
 
 function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
+  const { user, profile } = useSession()
   const [tab, setTab] = useState<TabId>('today')
   // A demoted admin must not stay on the admin tab.
   const activeTab = tab === 'admin' && !isAdmin ? 'today' : tab
   usePreloadTabs(isAdmin)
 
+  // The tour shows until users/{uid}.onboardingCompletedAt is set, so it appears exactly once
+  // per account, on any device. `dismissed` hides it right away even if the write is still
+  // queued (offline); if the write fails, it simply comes back on the next start.
+  const [dismissed, setDismissed] = useState(false)
+  const [replaying, setReplaying] = useState(false)
+  const showOnboarding = replaying || (profile.onboardingCompletedAt === null && !dismissed)
+  const notYetCompleted = profile.onboardingCompletedAt === null
+  const finishOnboarding = useCallback(() => {
+    setReplaying(false)
+    setDismissed(true)
+    if (notYetCompleted) {
+      repository.completeOnboarding(user.uid).catch((error) => console.error('[GymFlow] saving onboarding failed', error))
+    }
+  }, [notYetCompleted, user.uid])
+  const replayOnboarding = useCallback(() => setReplaying(true), [])
+
   return (
     // Above the tabs, so a level-up is celebrated right where the set was logged.
     <GamificationProvider>
-      <AppShell tab={activeTab} onTabChange={setTab}>
-        <Suspense fallback={<TabSkeleton />}>
-          {activeTab === 'today' && <DailyTracker />}
-          {activeTab === 'exercises' && <ExerciseCatalog />}
-          {activeTab === 'stats' && <StatsDashboard />}
-          {activeTab === 'admin' && <AdminDashboard />}
-          {activeTab === 'profile' && <ProfilePage />}
+      <OnboardingContext.Provider value={replayOnboarding}>
+        <AppShell tab={activeTab} onTabChange={setTab}>
+          <Suspense fallback={<TabSkeleton />}>
+            {activeTab === 'today' && <DailyTracker />}
+            {activeTab === 'exercises' && <ExerciseCatalog />}
+            {activeTab === 'stats' && <StatsDashboard />}
+            {activeTab === 'admin' && <AdminDashboard />}
+            {activeTab === 'profile' && <ProfilePage />}
+          </Suspense>
+        </AppShell>
+        <Suspense fallback={null}>
+          <AnimatePresence>{showOnboarding && <Onboarding key="onboarding" onDone={finishOnboarding} />}</AnimatePresence>
         </Suspense>
-      </AppShell>
+      </OnboardingContext.Provider>
     </GamificationProvider>
   )
 }
@@ -84,7 +110,7 @@ function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
 function TabSkeleton() {
   const visible = useDelayedFlag(true)
   return (
-    <motion.div
+    <m.div
       className="mx-auto max-w-6xl"
       aria-busy
       initial={{ opacity: 0 }}
@@ -94,7 +120,7 @@ function TabSkeleton() {
       <div className="skeleton h-4 w-32 rounded-full" />
       <div className="skeleton mt-3 h-10 w-56 rounded-2xl" />
       <div className="glass mt-8 h-64 rounded-3xl" />
-    </motion.div>
+    </m.div>
   )
 }
 

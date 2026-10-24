@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { ChevronRight, Crown, Search, ShieldAlert, UserCheck, UserPlus, Users, UserX, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useSession } from '../../auth/authContext'
@@ -177,7 +177,7 @@ function UserListSkeleton() {
 
 function UserRow({ user, isSelf, index, onOpen }: { user: UserProfile; isSelf: boolean; index: number; onOpen: () => void }) {
   return (
-    <motion.li
+    <m.li
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0, transition: { delay: Math.min(index, 10) * 0.025 } }}
@@ -226,6 +226,6 @@ function UserRow({ user, isSelf, index, onOpen }: { user: UserProfile; isSelf: b
           {user.role === 'admin' && <RoleBadge role={user.role} />}
         </span>
       </button>
-    </motion.li>
+    </m.li>
   )
 }

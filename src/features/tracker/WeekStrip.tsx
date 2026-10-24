@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { addDays, dayOfMonth, formatMonth, formatWeekday, todayKey, weekDays } from '../../lib/dates'
@@ -41,7 +41,7 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
         </div>
       </div>
 
-      <motion.div
+      <m.div
         className="relative touch-pan-y overflow-hidden"
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
@@ -53,7 +53,7 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
         }}
       >
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-          <motion.div
+          <m.div
             key={days[0]}
             custom={direction}
             variants={{
@@ -83,7 +83,7 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
                   aria-label={day}
                 >
                   {isSelected && (
-                    <motion.span
+                    <m.span
                       layoutId="week-selected"
                       className="absolute inset-0 rounded-2xl bg-accent shadow-accent"
                       transition={{ type: 'spring', stiffness: 520, damping: 38 }}
@@ -111,9 +111,9 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
                 </button>
               )
             })}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
-      </motion.div>
+      </m.div>
     </section>
   )
 }

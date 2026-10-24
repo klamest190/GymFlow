@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
@@ -5,6 +6,12 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  test: {
+    // Unit tests only; tests/ holds the security rules tests, which need the emulator (npm run test:rules).
+    include: ['src/**/*.test.{ts,tsx}'],
+    // Fixed time zone, so date logic behaves the same locally and in CI (with DST changes).
+    env: { TZ: 'Europe/Berlin' },
+  },
   build: {
     // The Firestore SDK alone is ~565 kB (offline cache + realtime listeners) and can't be split
     // further; keep the warning for anything larger than that.
@@ -19,7 +26,8 @@ export default defineConfig({
             { name: 'firebase-auth', test: /node_modules[\\/]@firebase[\\/]auth[\\/]/, priority: 2 },
             { name: 'firebase', test: /node_modules[\\/](@firebase|firebase)[\\/]/, priority: 1 },
             { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
-            { name: 'motion', test: /node_modules[\\/](framer-motion|motion-dom|motion-utils)[\\/]/ },
+            // No group for framer-motion: its animation features are loaded lazily (LazyMotion in
+            // main.tsx) and must stay in their own chunk instead of joining the startup bundle.
           ],
         },
       },

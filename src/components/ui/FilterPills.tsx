@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useEffect, useId, useRef } from 'react'
 
 export interface FilterOption<T extends string> {
@@ -37,7 +37,7 @@ export function FilterPills<T extends string>({ value, onChange, options, label,
       {options.map((option) => {
         const active = option.value === value
         return (
-          <motion.button
+          <m.button
             key={option.value}
             ref={active ? activeRef : undefined}
             type="button"
@@ -50,7 +50,7 @@ export function FilterPills<T extends string>({ value, onChange, options, label,
             }`}
           >
             {active && (
-              <motion.span
+              <m.span
                 layoutId={layoutId}
                 className="absolute inset-0 rounded-full bg-accent shadow-accent"
                 transition={{ type: 'spring', stiffness: 480, damping: 36 }}
@@ -60,7 +60,7 @@ export function FilterPills<T extends string>({ value, onChange, options, label,
               <span className={`relative size-2 rounded-full ${option.dot} ${active ? 'ring-2 ring-accent-ink/25' : ''}`} />
             )}
             <span className="relative whitespace-nowrap">{option.label}</span>
-          </motion.button>
+          </m.button>
         )
       })}
     </div>

@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useState } from 'react'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
@@ -42,7 +42,7 @@ export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; cl
                 <span className="truncate">{MUSCLE_GROUP_LABELS[row.muscle]}</span>
               </span>
               <span className="h-2.5 overflow-hidden rounded-full bg-sunken">
-                <motion.span
+                <m.span
                   className="block h-full rounded-full"
                   style={{ backgroundColor: theme.accent }}
                   initial={{ width: 0 }}

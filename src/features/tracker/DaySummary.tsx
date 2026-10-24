@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Flame, Layers, Repeat } from 'lucide-react'
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
@@ -44,7 +44,7 @@ export function DaySummary({ entries }: { entries: WorkoutEntry[] }) {
       <div className="mt-4">
         <div className="flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-sunken">
           {muscles.map(([muscle, reps]) => (
-            <motion.div
+            <m.div
               key={muscle}
               layout
               className={`h-full rounded-full ${MUSCLE_GROUP_TINTS[muscle]}`}

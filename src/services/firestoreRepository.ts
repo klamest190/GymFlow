@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth'
 import {
   Timestamp,
+  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -27,14 +28,28 @@ import {
 } from 'firebase/firestore'
 import { getFirebase } from '../lib/firebase'
 import { isEmailLogin, isValidUsername, normalizeUsername } from '../lib/usernames'
-import { DEFAULT_WEEKLY_GOAL_DAYS, RANK_IDS, type GamificationState, type RankId, type UserProfile, type WorkoutLog } from '../types/models'
+import {
+  DEFAULT_WEEKLY_GOAL_DAYS,
+  RANK_IDS,
+  type BodyWeightEntry,
+  type GamificationState,
+  type RankId,
+  type UserProfile,
+  type WorkoutLog,
+  type WorkoutTemplate,
+} from '../types/models'
 import type { GymflowRepository } from './repository'
 
 export const COLLECTIONS = {
   users: 'users',
   workoutLogs: 'workout_logs',
+  templates: 'templates',
+  bodyWeights: 'body_weights',
   usernames: 'usernames',
 } as const
+
+/** Per-user subcollections, all removed when an admin deletes the account. */
+const USER_SUBCOLLECTIONS = [COLLECTIONS.workoutLogs, COLLECTIONS.templates, COLLECTIONS.bodyWeights] as const
 
 const logError = (context: string) => (error: Error) => console.error(`[GymFlow] ${context}`, error)
 
@@ -76,6 +91,7 @@ function readProfile(snapshot: DocumentSnapshot<DocumentData>): UserProfile {
     createdBy: data.createdBy ?? null,
     updatedAt: toMillis(data.updatedAt),
     lastLoginAt: toMillisOrNull(data.lastLoginAt),
+    onboardingCompletedAt: toMillisOrNull(data.onboardingCompletedAt),
     gamification: readGamification(data),
   }
 }
@@ -84,6 +100,8 @@ export function createFirestoreRepository(): GymflowRepository {
   const { app, db, auth } = getFirebase()
   const userDoc = (userId: string) => doc(db, COLLECTIONS.users, userId)
   const logsCollection = (userId: string) => collection(db, COLLECTIONS.users, userId, COLLECTIONS.workoutLogs)
+  const templatesCollection = (userId: string) => collection(db, COLLECTIONS.users, userId, COLLECTIONS.templates)
+  const bodyWeightsCollection = (userId: string) => collection(db, COLLECTIONS.users, userId, COLLECTIONS.bodyWeights)
   const usernameDoc = (username: string) => doc(db, COLLECTIONS.usernames, username)
 
   const usernameTaken = async (username: string) => (await getDoc(usernameDoc(username))).exists()
@@ -134,6 +152,10 @@ export function createFirestoreRepository(): GymflowRepository {
 
     async recordLogin(userId) {
       await updateDoc(userDoc(userId), { lastLoginAt: serverTimestamp() })
+    },
+
+    async completeOnboarding(userId) {
+      await updateDoc(userDoc(userId), { onboardingCompletedAt: serverTimestamp() })
     },
 
     async saveGamification(userId, state) {
@@ -199,6 +221,7 @@ export function createFirestoreRepository(): GymflowRepository {
           createdBy: adminId,
           updatedAt: now,
           lastLoginAt: null,
+          onboardingCompletedAt: null,
           gamification: null,
         }
       } finally {
@@ -223,12 +246,14 @@ export function createFirestoreRepository(): GymflowRepository {
     },
 
     async deleteUser(userId) {
-      // Batches are limited to 500 writes; one doc per training day stays far below that per chunk.
-      const logs = await getDocs(logsCollection(userId))
-      for (let index = 0; index < logs.docs.length; index += 450) {
-        const batch = writeBatch(db)
-        logs.docs.slice(index, index + 450).forEach((log) => batch.delete(log.ref))
-        await batch.commit()
+      // Batches are limited to 500 writes, so each subcollection is deleted in chunks.
+      for (const name of USER_SUBCOLLECTIONS) {
+        const docs = (await getDocs(collection(db, COLLECTIONS.users, userId, name))).docs
+        for (let index = 0; index < docs.length; index += 450) {
+          const batch = writeBatch(db)
+          docs.slice(index, index + 450).forEach((document) => batch.delete(document.ref))
+          await batch.commit()
+        }
       }
       const username = (await getDoc(userDoc(userId))).data()?.username
       const batch = writeBatch(db)
@@ -259,6 +284,46 @@ export function createFirestoreRepository(): GymflowRepository {
         createdAt: Timestamp.fromMillis(log.createdAt),
         updatedAt: serverTimestamp(),
       })
+    },
+
+    subscribeTemplates(userId, onChange) {
+      return onSnapshot(
+        templatesCollection(userId),
+        (snap) => onChange(snap.docs.map((d) => readDoc<WorkoutTemplate>(d)).sort((a, b) => b.createdAt - a.createdAt)),
+        logError('templates'),
+      )
+    },
+
+    async saveTemplate(userId, template) {
+      await addDoc(templatesCollection(userId), { name: template.name, exercises: template.exercises, createdAt: serverTimestamp() })
+    },
+
+    async deleteTemplate(userId, templateId) {
+      await deleteDoc(doc(templatesCollection(userId), templateId))
+    },
+
+    subscribeBodyWeights(userId, onChange) {
+      return onSnapshot(
+        bodyWeightsCollection(userId),
+        (snap) =>
+          onChange(
+            snap.docs
+              .map((d) => {
+                const data = d.data({ serverTimestamps: 'estimate' })
+                return { date: d.id, weightKg: data.weightKg, updatedAt: toMillis(data.updatedAt) } satisfies BodyWeightEntry
+              })
+              .sort((a, b) => a.date.localeCompare(b.date)),
+          ),
+        logError('body weights'),
+      )
+    },
+
+    async saveBodyWeight(userId, date, weightKg) {
+      await setDoc(doc(bodyWeightsCollection(userId), date), { date, weightKg, updatedAt: serverTimestamp() })
+    },
+
+    async deleteBodyWeight(userId, date) {
+      await deleteDoc(doc(bodyWeightsCollection(userId), date))
     },
   }
 }

@@ -1,5 +1,15 @@
 import { isFirebaseConfigured } from '../lib/firebase'
-import type { AuthUser, DateKey, GamificationState, NewUserInput, UserProfile, UserUpdate, WorkoutLog } from '../types/models'
+import type {
+  AuthUser,
+  BodyWeightEntry,
+  DateKey,
+  GamificationState,
+  NewUserInput,
+  UserProfile,
+  UserUpdate,
+  WorkoutLog,
+  WorkoutTemplate,
+} from '../types/models'
 import { createFirestoreRepository } from './firestoreRepository'
 import { createLocalRepository } from './localRepository'
 
@@ -29,6 +39,8 @@ export interface GymflowRepository {
   subscribeProfile(userId: string, onChange: (profile: UserProfile | null) => void, onError: (error: Error) => void): Unsubscribe
   saveProfile(userId: string, changes: Pick<UserProfile, 'weeklyGoalDays'>): Promise<void>
   recordLogin(userId: string): Promise<void>
+  /** Marks the first-run tour as done for good (server timestamp). */
+  completeOnboarding(userId: string): Promise<void>
   /** Mirrors the derived XP/level/rank/achievements into the account document. */
   saveGamification(userId: string, state: GamificationState): Promise<void>
 
@@ -43,7 +55,8 @@ export interface GymflowRepository {
   /** Sets or renames the username (moves the mapping); fails with `username-taken`. */
   setUsername(user: UserProfile, username: string): Promise<void>
   /**
-   * Deletes the account document, its username and all workout logs, which removes every access.
+   * Deletes the account document, its username and all its data (logs, templates, body weights),
+   * which removes every access.
    * The Auth login itself can only be deleted server-side (Firebase Console) on the free plan.
    */
   deleteUser(userId: string): Promise<void>
@@ -53,6 +66,19 @@ export interface GymflowRepository {
   subscribeLogs(userId: string, from: DateKey, to: DateKey, onChange: (logs: WorkoutLog[]) => void): Unsubscribe
   /** Writes the whole day document; an empty day deletes it so analytics only see real training days. */
   saveLog(log: WorkoutLog): Promise<void>
+
+  // ─── users/{uid}/templates ───
+  /** Own templates, newest first (built-ins come from data/templates.ts). */
+  subscribeTemplates(userId: string, onChange: (templates: WorkoutTemplate[]) => void): Unsubscribe
+  saveTemplate(userId: string, template: Pick<WorkoutTemplate, 'name' | 'exercises'>): Promise<void>
+  deleteTemplate(userId: string, templateId: string): Promise<void>
+
+  // ─── users/{uid}/body_weights ───
+  /** All weigh-ins, oldest first. */
+  subscribeBodyWeights(userId: string, onChange: (entries: BodyWeightEntry[]) => void): Unsubscribe
+  /** One entry per day; saving the same day again overwrites it. */
+  saveBodyWeight(userId: string, date: DateKey, weightKg: number): Promise<void>
+  deleteBodyWeight(userId: string, date: DateKey): Promise<void>
 }
 
 export const repository: GymflowRepository = isFirebaseConfigured ? createFirestoreRepository() : createLocalRepository()

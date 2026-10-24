@@ -222,3 +222,82 @@ describe('usernames (login by username)', () => {
   test('admin still renames the display name of a user with username', () =>
     assertSucceeds(updateDoc(doc(as(ADMIN), 'users', USER), { displayName: 'Neu', updatedAt: serverTimestamp() })))
 })
+
+describe('onboarding (first-run tour, shown until completed)', () => {
+  const own = () => doc(as(USER), 'users', USER)
+  test('user completes the tour with the server time', () => assertSucceeds(updateDoc(own(), { onboardingCompletedAt: serverTimestamp() })))
+  test('user cannot backdate or invent the completion time', () =>
+    assertFails(updateDoc(own(), { onboardingCompletedAt: new Date('2020-01-01') })))
+  test('user cannot reset a completed tour', async () => {
+    await assertSucceeds(updateDoc(own(), { onboardingCompletedAt: serverTimestamp() }))
+    await assertFails(updateDoc(own(), { onboardingCompletedAt: null }))
+  })
+  test('user cannot overwrite a completed tour', async () => {
+    await assertSucceeds(updateDoc(own(), { onboardingCompletedAt: serverTimestamp() }))
+    await assertFails(updateDoc(own(), { onboardingCompletedAt: serverTimestamp() }))
+  })
+  test('completed tour does not block other own updates', async () => {
+    await assertSucceeds(updateDoc(own(), { onboardingCompletedAt: serverTimestamp() }))
+    await assertSucceeds(updateDoc(own(), { weeklyGoalDays: 5, updatedAt: serverTimestamp() }))
+  })
+  test('goal and tour can be saved together', () =>
+    assertSucceeds(updateDoc(own(), { weeklyGoalDays: 4, onboardingCompletedAt: serverTimestamp(), updatedAt: serverTimestamp() })))
+  test('admin cannot complete the tour for someone else', () =>
+    assertFails(updateDoc(doc(as(ADMIN), 'users', USER), { onboardingCompletedAt: serverTimestamp() })))
+  test('disabled user cannot complete the tour', () =>
+    assertFails(updateDoc(doc(as(DISABLED), 'users', DISABLED), { onboardingCompletedAt: serverTimestamp() })))
+  test('admin still manages an account with a completed tour', async () => {
+    await assertSucceeds(updateDoc(own(), { onboardingCompletedAt: serverTimestamp() }))
+    await assertSucceeds(updateDoc(doc(as(ADMIN), 'users', USER), { status: 'disabled', updatedAt: serverTimestamp() }))
+  })
+})
+
+describe('workout templates', () => {
+  const template = (overrides = {}) => ({
+    name: 'Push',
+    exercises: [{ exerciseId: 'squats', sets: [{ reps: 8, weightKg: 60 }] }],
+    createdAt: serverTimestamp(),
+    ...overrides,
+  })
+  const own = (db) => doc(db, 'users', USER, 'templates', 't1')
+  test('user saves own template', () => assertSucceeds(setDoc(own(as(USER)), template())))
+  test('user reads and deletes own templates', async () => {
+    await assertSucceeds(setDoc(own(as(USER)), template()))
+    await assertSucceeds(getDocs(collection(as(USER), 'users', USER, 'templates')))
+    await assertSucceeds(deleteDoc(own(as(USER))))
+  })
+  test('rejects an empty name', () => assertFails(setDoc(own(as(USER)), template({ name: '' }))))
+  test('rejects a template without exercises', () => assertFails(setDoc(own(as(USER)), template({ exercises: [] }))))
+  test('rejects unknown fields', () => assertFails(setDoc(own(as(USER)), template({ shared: true }))))
+  test('cannot write another user’s templates', () => assertFails(setDoc(doc(as(USER), 'users', OTHER, 'templates', 't1'), template())))
+  test('cannot read another user’s templates', () => assertFails(getDocs(collection(as(USER), 'users', OTHER, 'templates'))))
+  test('disabled user cannot save templates', () => assertFails(setDoc(doc(as(DISABLED), 'users', DISABLED, 'templates', 't1'), template())))
+  test('admin can read but not write a user’s templates', async () => {
+    await assertSucceeds(getDocs(collection(as(ADMIN), 'users', USER, 'templates')))
+    await assertFails(setDoc(own(as(ADMIN)), template()))
+  })
+})
+
+describe('body weights', () => {
+  const weighIn = (date, weightKg = 82.4) => ({ date, weightKg, updatedAt: serverTimestamp() })
+  const own = (db, date = '2026-10-24') => doc(db, 'users', USER, 'body_weights', date)
+  test('user logs today’s weight', () => assertSucceeds(setDoc(own(as(USER)), weighIn('2026-10-24'))))
+  test('user overwrites and deletes a weigh-in', async () => {
+    await assertSucceeds(setDoc(own(as(USER)), weighIn('2026-10-24')))
+    await assertSucceeds(setDoc(own(as(USER)), weighIn('2026-10-24', 81.9)))
+    await assertSucceeds(deleteDoc(own(as(USER))))
+  })
+  test('rejects a date that does not match the ID', () => assertFails(setDoc(own(as(USER)), weighIn('2026-10-23'))))
+  test('rejects implausible weights', async () => {
+    await assertFails(setDoc(own(as(USER)), weighIn('2026-10-24', 5)))
+    await assertFails(setDoc(own(as(USER)), weighIn('2026-10-24', 900)))
+    await assertFails(setDoc(own(as(USER)), weighIn('2026-10-24', '82')))
+  })
+  test('cannot read another user’s weights', () => assertFails(getDocs(collection(as(USER), 'users', OTHER, 'body_weights'))))
+  test('disabled user cannot log weight', () => assertFails(setDoc(doc(as(DISABLED), 'users', DISABLED, 'body_weights', '2026-10-24'), weighIn('2026-10-24'))))
+  test('admin deletes a user’s weights (account deletion), but never writes them', async () => {
+    await env.withSecurityRulesDisabled((context) => setDoc(own(context.firestore()), weighIn('2026-10-24')))
+    await assertFails(setDoc(own(as(ADMIN), '2026-10-25'), weighIn('2026-10-25')))
+    await assertSucceeds(deleteDoc(own(as(ADMIN))))
+  })
+})

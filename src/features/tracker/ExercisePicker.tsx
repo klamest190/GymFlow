@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Check, ChevronDown, Plus, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
@@ -101,7 +101,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                   </span>
                   <ChevronDown className={`size-4 shrink-0 text-muted transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 </button>
-                <motion.button
+                <m.button
                   type="button"
                   whileTap={{ scale: 0.85 }}
                   disabled={added}
@@ -115,20 +115,20 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                   aria-label={added ? `${exercise.name} bereits hinzugefügt` : `${exercise.name} hinzufügen`}
                 >
                   <AnimatePresence mode="wait" initial={false}>
-                    <motion.span
+                    <m.span
                       key={String(added)}
                       initial={{ scale: 0.4, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.4, opacity: 0 }}
                     >
                       {added ? <Check className="size-4.5" strokeWidth={3} /> : <Plus className="size-4.5" strokeWidth={2.75} />}
-                    </motion.span>
+                    </m.span>
                   </AnimatePresence>
-                </motion.button>
+                </m.button>
               </div>
               <AnimatePresence initial={false}>
                 {expanded && (
-                  <motion.div
+                  <m.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
@@ -142,7 +142,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                         Standard: {exercise.defaultSets} × {exercise.defaultReps}
                       </p>
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
             </li>

@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Dumbbell, LogOut, Moon, Sun } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useAuth, useSession } from '../../auth/authContext'
@@ -21,7 +21,7 @@ export function AppShell({ tab, onTabChange, children }: AppShellProps) {
         <main className="min-w-0 flex-1 px-4 pb-36 pt-[calc(env(safe-area-inset-top)+20px)] sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
           {/* Each tab starts at the top, reset while the old one is already faded out (no visible jump). */}
           <AnimatePresence mode="wait" initial={false} onExitComplete={() => window.scrollTo({ top: 0 })}>
-            <motion.div
+            <m.div
               key={tab}
               initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
@@ -29,7 +29,7 @@ export function AppShell({ tab, onTabChange, children }: AppShellProps) {
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               {children}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </main>
       </div>
@@ -84,7 +84,7 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
                 }`}
               >
                 {active && (
-                  <motion.span
+                  <m.span
                     layoutId="sidebar-active"
                     className="absolute inset-0 rounded-2xl bg-accent shadow-accent"
                     transition={{ type: 'spring', stiffness: 500, damping: 38 }}
@@ -120,9 +120,9 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
             className="flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-[15px] font-medium text-muted transition hover:bg-sunken hover:text-fg"
           >
             {isDark ? 'Dunkel' : 'Hell'}
-            <motion.span key={String(isDark)} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}>
+            <m.span key={String(isDark)} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}>
               {isDark ? <Moon className="size-5" /> : <Sun className="size-5" />}
-            </motion.span>
+            </m.span>
           </button>
         </div>
       </div>
@@ -148,15 +148,15 @@ function TabBar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
               aria-current={active ? 'page' : undefined}
             >
               {active && (
-                <motion.span
+                <m.span
                   layoutId="tabbar-active"
                   className="absolute inset-0 rounded-[22px] bg-accent"
                   transition={{ type: 'spring', stiffness: 500, damping: 36 }}
                 />
               )}
-              <motion.span className="relative" whileTap={{ scale: 0.85 }}>
+              <m.span className="relative" whileTap={{ scale: 0.85 }}>
                 <Icon className="size-[22px]" strokeWidth={active ? 2.5 : 2} />
-              </motion.span>
+              </m.span>
               <span className="relative">{label}</span>
             </button>
           )

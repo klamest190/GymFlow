@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Check, ChevronDown } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
@@ -110,14 +110,14 @@ export function Select<T extends string>({ value, onChange, options, label, clas
       >
         {selected?.leading}
         <span className="min-w-0 flex-1 truncate">{selected?.label}</span>
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 30 }}>
+        <m.span animate={{ rotate: open ? 180 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 30 }}>
           <ChevronDown className="size-4 text-muted" strokeWidth={2.5} />
-        </motion.span>
+        </m.span>
       </button>
 
       <AnimatePresence>
         {open && (
-          <motion.ul
+          <m.ul
             id={listId}
             role="listbox"
             aria-label={label}
@@ -152,7 +152,7 @@ export function Select<T extends string>({ value, onChange, options, label, clas
                 </li>
               )
             })}
-          </motion.ul>
+          </m.ul>
         )}
       </AnimatePresence>
     </div>

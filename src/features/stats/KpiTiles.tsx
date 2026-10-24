@@ -1,4 +1,4 @@
-import { motion, type Variants } from 'framer-motion'
+import { m, type Variants } from 'framer-motion'
 import { Dumbbell, Flame, Layers, Minus, Repeat, TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react'
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
 import type { Trend, WeekComparison } from '../../hooks/useWorkoutStats'
@@ -46,13 +46,13 @@ export function KpiTiles({ week, weeklyGoalDays, weekStreak }: KpiTilesProps) {
     <section aria-label="Diese Woche">
       <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">Diese Woche</h2>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <motion.div variants={tileMotion} initial="hidden" animate="shown" custom={0}>
+        <m.div variants={tileMotion} initial="hidden" animate="shown" custom={0}>
           <GoalTile days={week.thisWeek.days} goal={weeklyGoalDays} weekStreak={weekStreak} />
-        </motion.div>
+        </m.div>
         {METRIC_TILES.map((tile, index) => (
-          <motion.div key={tile.metric} variants={tileMotion} initial="hidden" animate="shown" custom={index + 1}>
+          <m.div key={tile.metric} variants={tileMotion} initial="hidden" animate="shown" custom={index + 1}>
             <MetricTile {...tile} trend={week.trends[tile.metric]} comparisonWindow={comparisonWindow} />
-          </motion.div>
+          </m.div>
         ))}
       </div>
     </section>
@@ -72,7 +72,7 @@ function GoalTile({ days, goal, weekStreak }: { days: number; goal: number; week
         <svg viewBox="0 0 64 64" className="size-14 shrink-0 -rotate-90 lg:size-16" aria-hidden>
           {/* Meter: the unfilled track is a lighter step of the same ramp. */}
           <circle cx="32" cy="32" r={radius} fill="none" strokeWidth="8" stroke={theme.accentSoft} opacity={0.6} />
-          <motion.circle
+          <m.circle
             cx="32"
             cy="32"
             r={radius}
@@ -150,7 +150,7 @@ function TrendBadge({ change, title }: { change: number | null; title: string })
   const Icon = change > 0 ? TrendingUp : change < 0 ? TrendingDown : Minus
   const tone = change > 0 ? 'bg-accent/25 text-accent-fg' : change < 0 ? 'bg-danger/12 text-danger' : 'bg-sunken text-muted'
   return (
-    <motion.span
+    <m.span
       title={title}
       initial={{ opacity: 0, scale: 0.7 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -160,6 +160,6 @@ function TrendBadge({ change, title }: { change: number | null; title: string })
       <Icon className="size-3.5" strokeWidth={2.5} />
       {change > 0 ? '+' : ''}
       {change} %
-    </motion.span>
+    </m.span>
   )
 }

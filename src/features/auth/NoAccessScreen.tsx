@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { LogOut, ShieldOff, UserX } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../auth/authContext'
@@ -24,7 +24,7 @@ export function NoAccessScreen({ email, reason }: { email: string | null; reason
 
   return (
     <div className="grid min-h-dvh place-items-center p-4">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         className="glass w-full max-w-[420px] rounded-4xl p-8 text-center shadow-float"
@@ -47,7 +47,7 @@ export function NoAccessScreen({ email, reason }: { email: string | null; reason
           <LogOut className="size-4.5" />
           Abmelden
         </button>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

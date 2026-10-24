@@ -1,5 +1,12 @@
 import { isEmailLogin, normalizeUsername } from '../lib/usernames'
-import { DEFAULT_WEEKLY_GOAL_DAYS, type AuthUser, type UserProfile, type WorkoutLog } from '../types/models'
+import {
+  DEFAULT_WEEKLY_GOAL_DAYS,
+  type AuthUser,
+  type BodyWeightEntry,
+  type UserProfile,
+  type WorkoutLog,
+  type WorkoutTemplate,
+} from '../types/models'
 import type { GymflowRepository } from './repository'
 
 /**
@@ -11,7 +18,13 @@ const KEYS = {
   logs: 'gymflow:workout_logs',
   users: 'gymflow:users',
   session: 'gymflow:session',
+  templates: 'gymflow:templates',
+  bodyWeights: 'gymflow:body_weights',
 } as const
+
+/** Per-user records stored as `{ "<userId>/<id>": value }`, like the logs. */
+type UserScoped<T> = Record<string, T>
+const ownedBy = (userId: string, key: string) => key.startsWith(`${userId}/`)
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -85,6 +98,7 @@ export function createLocalRepository(): GymflowRepository {
           createdBy: null,
           updatedAt: now,
           lastLoginAt: null,
+          onboardingCompletedAt: null,
           gamification: null,
         }
         saveUser(user)
@@ -115,6 +129,11 @@ export function createLocalRepository(): GymflowRepository {
       if (user) saveUser({ ...user, lastLoginAt: Date.now() })
     },
 
+    async completeOnboarding(userId) {
+      const user = readUsers()[userId]
+      if (user && !user.onboardingCompletedAt) saveUser({ ...user, onboardingCompletedAt: Date.now() })
+    },
+
     async saveGamification(userId, state) {
       const user = readUsers()[userId]
       if (user) saveUser({ ...user, gamification: state })
@@ -142,6 +161,7 @@ export function createLocalRepository(): GymflowRepository {
         createdBy: adminId,
         updatedAt: now,
         lastLoginAt: null,
+        onboardingCompletedAt: null,
         gamification: null,
       }
       saveUser(user)
@@ -165,9 +185,11 @@ export function createLocalRepository(): GymflowRepository {
       const users = readUsers()
       delete users[userId]
       write(KEYS.users, users)
-      const logs = read<Record<string, WorkoutLog>>(KEYS.logs, {})
-      for (const key of Object.keys(logs)) if (key.startsWith(`${userId}/`)) delete logs[key]
-      write(KEYS.logs, logs)
+      for (const storageKey of [KEYS.logs, KEYS.templates, KEYS.bodyWeights]) {
+        const records = read<UserScoped<unknown>>(storageKey, {})
+        for (const key of Object.keys(records)) if (ownedBy(userId, key)) delete records[key]
+        write(storageKey, records)
+      }
       notify()
     },
 
@@ -186,6 +208,53 @@ export function createLocalRepository(): GymflowRepository {
       if (log.entries.length === 0) delete logs[key]
       else logs[key] = log
       write(KEYS.logs, logs)
+      notify()
+    },
+
+    subscribeTemplates(userId, onChange) {
+      return listen(() => {
+        const templates = Object.entries(read<UserScoped<WorkoutTemplate>>(KEYS.templates, {}))
+          .filter(([key]) => ownedBy(userId, key))
+          .map(([, template]) => template)
+        onChange(templates.sort((a, b) => b.createdAt - a.createdAt))
+      })
+    },
+
+    async saveTemplate(userId, template) {
+      const id = crypto.randomUUID()
+      const templates = read<UserScoped<WorkoutTemplate>>(KEYS.templates, {})
+      templates[`${userId}/${id}`] = { id, name: template.name, exercises: template.exercises, createdAt: Date.now() }
+      write(KEYS.templates, templates)
+      notify()
+    },
+
+    async deleteTemplate(userId, templateId) {
+      const templates = read<UserScoped<WorkoutTemplate>>(KEYS.templates, {})
+      delete templates[`${userId}/${templateId}`]
+      write(KEYS.templates, templates)
+      notify()
+    },
+
+    subscribeBodyWeights(userId, onChange) {
+      return listen(() => {
+        const entries = Object.entries(read<UserScoped<BodyWeightEntry>>(KEYS.bodyWeights, {}))
+          .filter(([key]) => ownedBy(userId, key))
+          .map(([, entry]) => entry)
+        onChange(entries.sort((a, b) => a.date.localeCompare(b.date)))
+      })
+    },
+
+    async saveBodyWeight(userId, date, weightKg) {
+      const entries = read<UserScoped<BodyWeightEntry>>(KEYS.bodyWeights, {})
+      entries[`${userId}/${date}`] = { date, weightKg, updatedAt: Date.now() }
+      write(KEYS.bodyWeights, entries)
+      notify()
+    },
+
+    async deleteBodyWeight(userId, date) {
+      const entries = read<UserScoped<BodyWeightEntry>>(KEYS.bodyWeights, {})
+      delete entries[`${userId}/${date}`]
+      write(KEYS.bodyWeights, entries)
       notify()
     },
   }

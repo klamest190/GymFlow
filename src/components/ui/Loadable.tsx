@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import type { ReactNode } from 'react'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 
@@ -22,7 +22,7 @@ export function Loadable({ ready, skeleton, children, className }: LoadableProps
   return (
     <AnimatePresence mode="wait" initial={false}>
       {ready ? (
-        <motion.div
+        <m.div
           key="content"
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -30,9 +30,9 @@ export function Loadable({ ready, skeleton, children, className }: LoadableProps
           className={className}
         >
           {children}
-        </motion.div>
+        </m.div>
       ) : showSkeleton ? (
-        <motion.div
+        <m.div
           key="skeleton"
           aria-busy
           initial={{ opacity: 0 }}
@@ -42,7 +42,7 @@ export function Loadable({ ready, skeleton, children, className }: LoadableProps
           className={className}
         >
           {skeleton}
-        </motion.div>
+        </m.div>
       ) : null}
     </AnimatePresence>
   )

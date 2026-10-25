@@ -54,9 +54,9 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
           {trend && (
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-[32px] font-bold leading-none tracking-tight tabular-nums">
+                <p className="numeral text-[39px] leading-none">
                   {kg.format(trend.latest.weightKg)}
-                  <span className="ml-1 text-[16px] font-semibold text-muted">kg</span>
+                  <span className="ml-1 text-[20px] text-muted">kg</span>
                 </p>
                 <p className="mt-1 text-[13px] text-muted">{formatDaysAgo(trend.latest.date)}</p>
               </div>
@@ -70,7 +70,7 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
             <label htmlFor={inputId} className="sr-only">
               Gewicht heute in kg
             </label>
-            <div className="flex min-w-0 flex-1 items-center rounded-2xl bg-sunken pr-4 ring-fg/40 focus-within:ring-2">
+            <div className="flex min-w-0 flex-1 items-center rounded-xl bg-sunken pr-4 ring-fg/40 focus-within:ring-2">
               <input
                 id={inputId}
                 value={input}

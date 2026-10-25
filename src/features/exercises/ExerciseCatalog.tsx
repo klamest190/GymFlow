@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { RotateCcw, Search, SearchX, X } from 'lucide-react'
+import { RotateCcw, Search, X } from 'lucide-react'
 import { useState } from 'react'
 import { useSession } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
@@ -221,10 +221,7 @@ function EmptyState({ hasSearch, onReset }: { hasSearch: boolean; onReset: () =>
       transition={fade}
       className="glass mt-6 flex flex-col items-center rounded-3xl px-6 py-14 text-center"
     >
-      <span className="grid size-16 place-items-center rounded-full bg-sunken">
-        <SearchX className="size-7 text-muted" />
-      </span>
-      <h2 className="headline mt-4 text-[25px]">Keine Übung gefunden</h2>
+      <h2 className="headline text-[31px]">Keine Übung gefunden</h2>
       <p className="mt-1 max-w-xs text-[15px] text-muted">
         {hasSearch ? 'Versuche einen anderen Suchbegriff oder eine andere Muskelgruppe.' : 'Für diese Muskelgruppe gibt es keine Übung.'}
       </p>

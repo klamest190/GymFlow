@@ -79,7 +79,7 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
                   type="button"
                   disabled={isFuture}
                   onClick={() => onSelect(day)}
-                  className={`relative flex flex-col items-center gap-1 rounded-xl pb-2.5 pt-2 transition-[opacity,color] disabled:opacity-30 ${
+                  className={`relative flex flex-col items-center gap-1 rounded-xl pb-2.5 pt-2 transition-[opacity,color] focus-visible:outline-offset-[-3px] disabled:opacity-30 ${
                     isSelected ? 'text-bg' : 'hover:bg-sunken'
                   }`}
                   aria-pressed={isSelected}
@@ -95,7 +95,7 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
                   </span>
                   <span className="numeral relative text-[25px] leading-none">{dayOfMonth(day)}</span>
                   {/* Training days: a plate-yellow bar, like a collar on the bar. */}
-                  <span className={`relative h-[3px] w-5 rounded-full ${hasWorkout ? 'bg-accent' : 'bg-transparent'}`} />
+                  <span className={`relative h-[3px] w-5 rounded-full ${hasWorkout ? (isSelected ? 'bg-accent dark:bg-accent-ink' : 'bg-accent-mark') : 'bg-transparent'}`} />
                 </button>
               )
             })}

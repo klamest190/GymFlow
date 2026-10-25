@@ -27,12 +27,12 @@ export function SegmentedControl<T extends string>({ value, onChange, options, l
             onClick={() => onChange(option.value)}
             className={`relative flex-1 whitespace-nowrap rounded-lg font-semibold transition-colors ${
               size === 'sm' ? 'px-2.5 py-1.5 text-[12px]' : 'px-3 py-2 text-[13px]'
-            } ${active ? 'text-fg' : 'text-muted hover:text-fg'}`}
+            } ${active ? 'text-bg' : 'text-muted hover:text-fg'}`}
           >
             {active && (
               <m.span
                 layoutId={layoutId}
-                className="absolute inset-0 rounded-lg bg-surface-solid shadow-[0_1px_2px_rgb(0_0_0/0.12)]"
+                className="absolute inset-0 rounded-lg bg-fg"
                 transition={snap}
               />
             )}

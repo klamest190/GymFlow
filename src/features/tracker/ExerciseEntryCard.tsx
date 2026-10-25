@@ -52,7 +52,7 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
       {/* Revealed behind the card while swiping left on touch devices. */}
       <m.div
         style={{ opacity: deleteOpacity }}
-        className="absolute inset-0 flex items-center justify-end rounded-3xl bg-danger pr-7 text-white"
+        className="absolute inset-0 flex items-center justify-end rounded-3xl bg-danger-fill pr-7 text-white"
         aria-hidden
       >
         <m.span style={{ scale: deleteScale }}>

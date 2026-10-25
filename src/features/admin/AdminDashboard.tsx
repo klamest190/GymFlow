@@ -195,7 +195,7 @@ function UserRow({ user, isSelf, onOpen }: { user: UserProfile; isSelf: boolean;
               {isSelf && <span className="shrink-0 rounded-full bg-sunken px-2 py-0.5 text-[11px] font-semibold text-muted">Du</span>}
             </span>
             <span className="block truncate text-[13px] text-muted">
-              {user.username && <span className="font-medium text-fg/80">@{user.username} · </span>}
+              {user.username && <span className="mr-2 font-medium text-fg/80">@{user.username}</span>}
               {user.email}
             </span>
           </span>

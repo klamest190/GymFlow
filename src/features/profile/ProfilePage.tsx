@@ -16,8 +16,8 @@ import { RoleBadge, UserAvatar } from '../admin/UserBadges'
 import { GamificationDashboard } from '../gamification/GamificationDashboard'
 import { useReplayOnboarding } from '../onboarding/onboardingContext'
 import { BodyWeightCard } from './BodyWeightCard'
-import { ExportCard } from './ExportCard'
-import { Card } from './ProfileCard'
+import { ExportRow } from './ExportCard'
+import { ProfileSection, SettingRow, SettingsList } from './ProfileCard'
 
 const GOAL_OPTIONS = [1, 2, 3, 4, 5, 6, 7]
 
@@ -47,69 +47,65 @@ export function ProfilePage() {
 
         <GamificationDashboard />
 
-        <BodyWeightCard entries={bodyWeights} />
+        <ProfileSection title="Training">
+          <SettingsList>
+            <SettingRow title="Wochenziel" description="Trainingstage pro Woche. Deinen Fortschritt zeigt die Statistik.">
+              <div className="grid grid-cols-7 gap-1.5 rounded-xl bg-sunken p-1" role="radiogroup" aria-label="Trainingstage pro Woche">
+                {GOAL_OPTIONS.map((days) => {
+                  const active = profile.weeklyGoalDays === days
+                  return (
+                    <button
+                      key={days}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      aria-label={`${days} ${days === 1 ? 'Tag' : 'Tage'}`}
+                      onClick={() => setGoal(days)}
+                      className={`numeral relative rounded-lg py-2 text-[20px] transition-colors ${active ? 'text-bg' : 'text-muted hover:text-fg'}`}
+                    >
+                      {active && <m.span layoutId="goal-active" className="absolute inset-0 rounded-lg bg-fg" transition={snap} />}
+                      <span className="relative">{days}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </SettingRow>
+            <DumbbellRow />
+          </SettingsList>
+          <BodyWeightCard entries={bodyWeights} />
+        </ProfileSection>
 
-        <Card title="Wochenziel" description="An wie vielen Tagen pro Woche willst du trainieren? Dein Fortschritt erscheint in der Statistik unter „Diese Woche“.">
-          <div className="grid grid-cols-7 gap-1.5 rounded-2xl bg-sunken p-1.5" role="radiogroup" aria-label="Trainingstage pro Woche">
-            {GOAL_OPTIONS.map((days) => {
-              const active = profile.weeklyGoalDays === days
-              return (
-                <button
-                  key={days}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setGoal(days)}
-                  className={`relative rounded-xl py-2.5 text-[16px] font-bold tabular-nums transition-colors ${
-                    active ? 'text-bg' : 'text-muted hover:text-fg'
-                  }`}
-                >
-                  {active && (
-                    <m.span
-                      layoutId="goal-active"
-                      className="absolute inset-0 rounded-xl bg-fg"
-                      transition={snap}
-                    />
-                  )}
-                  <span className="relative">{days}</span>
-                </button>
-              )
-            })}
-          </div>
-          <p className="mt-2 px-1 text-[13px] text-muted">
-            {profile.weeklyGoalDays} {profile.weeklyGoalDays === 1 ? 'Trainingstag' : 'Trainingstage'} pro Woche
-          </p>
-        </Card>
-
-        <DumbbellCard />
-
-        <Card title="Darstellung" description="„System“ folgt automatisch der Einstellung deines Geräts.">
-          <SegmentedControl<ThemePreference>
-            label="Farbschema"
-            value={preference}
-            onChange={setPreference}
-            options={[
-              { value: 'light', label: 'Hell' },
-              { value: 'dark', label: 'Dunkel' },
-              { value: 'system', label: 'System' },
-            ]}
-          />
-        </Card>
-
-        <ExportCard bodyWeights={bodyWeights} />
-
-        <InstallCard />
-
-        <Card title="Einführung" description="Die kurze Tour zu Tracker, Übungen, Level und Wochenziel.">
-          <button
-            type="button"
-            onClick={replayOnboarding}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-sunken py-3 text-[15px] font-semibold transition hover:bg-surface-solid"
-          >
-            <PlayCircle className="size-4.5" />
-            Einführung ansehen
-          </button>
-        </Card>
+        <ProfileSection title="App">
+          <SettingsList>
+            <SettingRow title="Darstellung" description="„System“ folgt deinem Gerät." inline>
+              <div className="w-64">
+                <SegmentedControl<ThemePreference>
+                  label="Farbschema"
+                  size="sm"
+                  value={preference}
+                  onChange={setPreference}
+                  options={[
+                    { value: 'light', label: 'Hell' },
+                    { value: 'dark', label: 'Dunkel' },
+                    { value: 'system', label: 'System' },
+                  ]}
+                />
+              </div>
+            </SettingRow>
+            <ExportRow bodyWeights={bodyWeights} />
+            <InstallRow />
+            <SettingRow title="Einführung" description="Die kurze Tour zu Tracker, Übungen, Level und Wochenziel." inline>
+              <button
+                type="button"
+                onClick={replayOnboarding}
+                className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-fg hover:text-bg"
+              >
+                <PlayCircle className="size-4" />
+                Ansehen
+              </button>
+            </SettingRow>
+          </SettingsList>
+        </ProfileSection>
 
         <p className="px-1 pt-2 text-center text-[12px] text-muted">
           GymFlow mit {EXERCISES.length} Übungen im Katalog.{' '}
@@ -201,7 +197,7 @@ function ActionButton({
 }
 
 /** The user's dumbbell weight: where new exercises start, so it needn't be typed every time. */
-function DumbbellCard() {
+function DumbbellRow() {
   const { user, profile } = useSession()
   const toast = useToast()
 
@@ -213,21 +209,21 @@ function DumbbellCard() {
   }
 
   return (
-    <Card title="Meine Kurzhanteln" description="Mit diesem Gewicht je Hantel starten neue Übungen. Im Tracker kannst du es für jeden Satz anpassen.">
-      <div className="flex items-center justify-between gap-4 rounded-xl bg-sunken px-4 py-3">
-        <span className="text-[15px] font-medium">kg je Hantel</span>
+    <SettingRow title="Meine Kurzhanteln" description="Kilo je Hantel, mit denen neue Übungen starten. Pro Satz änderst du es im Tracker." inline>
+      <div className="flex items-center gap-2">
         <NumberStepper label="Gewicht je Hantel" value={profile.dumbbellKg} step={1} min={0.5} max={50} onChange={save} />
+        <span className="text-[14px] font-medium text-muted">kg</span>
       </div>
-    </Card>
+    </SettingRow>
   )
 }
 
-function InstallCard() {
+function InstallRow() {
   const install = useInstallState()
   const [installing, setInstalling] = useState(false)
 
   return (
-    <Card title="App installieren" description="GymFlow läuft auch als App vom Homescreen, im Vollbild und offline.">
+    <SettingRow title="App installieren" description="GymFlow läuft auch als App vom Homescreen, im Vollbild und offline.">
       {install.kind === 'installed' && (
         <p className="flex items-center gap-2 text-[14px] font-medium text-accent-fg">
           <Check className="size-4" strokeWidth={3} />
@@ -250,17 +246,17 @@ function InstallCard() {
         </button>
       )}
       {install.kind === 'ios' && (
-        <p className="flex items-start gap-2 rounded-2xl bg-sunken p-4 text-[14px] leading-relaxed">
+        <p className="flex items-start gap-2 rounded-xl bg-sunken p-4 text-[14px] leading-relaxed">
           <Share className="mt-0.5 size-4 shrink-0 text-accent-fg" />
           In Safari unten auf „Teilen“ tippen und dann „Zum Home-Bildschirm“ wählen.
         </p>
       )}
       {install.kind === 'unavailable' && (
-        <p className="flex items-start gap-2 rounded-2xl bg-sunken p-4 text-[14px] leading-relaxed text-muted">
+        <p className="flex items-start gap-2 rounded-xl bg-sunken p-4 text-[14px] leading-relaxed text-muted">
           <Smartphone className="mt-0.5 size-4 shrink-0" />
           Öffne GymFlow in Chrome, Edge oder Safari auf dem Handy, um es zum Homescreen hinzuzufügen.
         </p>
       )}
-    </Card>
+    </SettingRow>
   )
 }

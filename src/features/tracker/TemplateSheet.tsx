@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { BookmarkPlus, ChevronRight, LoaderCircle, Sparkles, Trash2 } from 'lucide-react'
+import { BookmarkPlus, ChevronRight, LoaderCircle, Trash2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useUserId } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
@@ -130,7 +130,7 @@ export function TemplateSheet({ open, onClose, entries, onApply }: TemplateSheet
             </ul>
           )}
         </Section>
-        <Section title="Von GymFlow" icon={<Sparkles className="size-3.5" />}>
+        <Section title="Von GymFlow">
           <ul className="space-y-2">
             {BUILT_IN_TEMPLATES.map((template) => (
               <TemplateRow key={template.id} template={template} onApply={onApply} />

@@ -12,11 +12,13 @@
   --surface-sunken: rgb(28 31 34 / 0.06);
   --line: rgb(28 31 34 / 0.12);
   --text: #1c1f22; /* graphite */
-  --muted: #5e656b;
+  --muted: #575e64;
   --accent: #f2c200; /* 15 kg plate yellow, fills only */
-  --accent-fg: #7a5f00; /* accent used as text on light surfaces */
+  --accent-fg: #6f5600; /* accent used as text on light surfaces */
+  --accent-mark: #9c7a00; /* accent as a small mark without text beside it (≥ 3:1 on chalk and steel) */
   --accent-ink: #1c1f22; /* text on accent fills */
   --danger: #b82b23;
+  --danger-fill: #b82b23; /* solid red behind white icons and text */
   --focus: #1c1f22;
   /* Knurling: the crosshatch of a dumbbell grip, the app's only ornament. */
   --knurl: rgb(28 31 34 / 0.07);
@@ -50,8 +52,10 @@
   --muted: #9aa2a8;
   --accent: #f2c200;
   --accent-fg: #f2c200;
+  --accent-mark: #f2c200;
   --accent-ink: #1c1f22;
-  --danger: #ff6b5e;
+  --danger: #ff7a6e;
+  --danger-fill: #c4342b;
   --focus: #f2c200;
   --knurl: rgb(255 255 255 / 0.055);
   --region-push: #e0574d;
@@ -81,8 +85,10 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-mark: var(--accent-mark);
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-danger-fill: var(--danger-fill);
   --color-region-push: var(--region-push);
   --color-region-pull: var(--region-pull);
   --color-region-core: var(--region-core);

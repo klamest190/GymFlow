@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 24.10.2026 · Onboarding, Tests/CI, kleineres Bundle, Bestleistungen, Vorlagen, Wochenrückblick, Körpergewicht und CSV-Export umgesetzt, **Rules dafür noch nicht deployt** · Einrichtung in der Firebase Console steht noch aus
+Stand: 25.10.2026. Neues Design „Eisen“ auf dem Branch `redesign-eisen` (noch nicht in `main`). Onboarding, Tests/CI, kleineres Bundle, Bestleistungen, Vorlagen, Wochenrückblick, Körpergewicht und CSV-Export umgesetzt, **Rules dafür noch nicht deployt**. Einrichtung in der Firebase Console steht noch aus.
 
 ## Weitermachen
 
@@ -46,6 +46,7 @@ npm run dev
 | **Tests & CI** (24.10.) | ✅ 90 Unit-Tests mit Vitest (`npm test`), 93 Rules-Tests; GitHub Action für Lint, Tests, Build und Rules. Ein Test fand einen Fehler in der Heatmap: Die dunkelste Stufe war bei wenigen Trainingstagen unerreichbar (behoben) |
 | **Ladezeit** (24.10.) | ✅ Start 363 → 344 KB gzip: Framer Motion per `LazyMotion`, Firebase Auth ohne Popup-Code |
 | **Motivation & Komfort** (24.10.) | ✅ Reward-Toast bei neuer Bestleistung; Vorlagen (4 mitgeliefert + eigene aus einem Tag speichern); Wochenrückblick Mo–Mi auf „Heute“; Körpergewicht mit 90-Tage-Verlauf im Profil; CSV-Export für Training und Körpergewicht. Jetzt 121 Unit-Tests und 109 Rules-Tests |
+| **Design „Eisen“** (25.10.) | ✅ Neue visuelle Identität statt Neon-Lime mit Glas (Regeln siehe „Design-Regeln“ unten). „Heute“ als Satz-Protokoll mit großen Zahlen und einem aufgeklappten Satz; Statistik mit Wochenziel als Scheiben-Balken; Profil in die Abschnitte Training und App gegliedert; Login mit 3D-Figur; neue App-Icons. Behoben: Übungskarten zuckten und glitten beim Hovern seitlich (volle Layout-Animation plus Hover-Lift). Kontraste aller Farbpaare geprüft, Tastatur-Fokus überall sichtbar |
 
 ### Behobener Fehler (19.10.)
 
@@ -94,4 +95,16 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 - **Farbschema pro Gerät** (localStorage), nicht synchronisiert.
 - **Benutzername zusätzlich zur E-Mail** (entschieden am 23.10.): E-Mail bleibt Pflicht, damit „Passwort vergessen“ immer funktioniert. In Kauf genommen: Wer einen Benutzernamen kennt, kann die zugehörige E-Mail abfragen (öffentlicher Lookup vor dem Login, ohne Cloud Functions nicht vermeidbar).
 - **XP abgeleitet statt pro Aktion vergeben:** Trainingstage sind bearbeitbar, also wird alles aus der Historie neu berechnet (nicht farmbar, geräteübergreifend gleich). Ein „abgeschlossenes Workout“ ist ein Trainingstag mit mindestens einem Satz. Den 3-Tage-Streak-Bonus gibt es an jedem 3. Tag einer Serie. Erfolge bleiben auch nach dem Löschen von Tagen freigeschaltet, XP nicht.
-- Akzentfarbe Neongrün (im Light Mode in Diagrammen dunkler, wegen des Kontrasts), Schrift Inter, Design im Apple-Stil mit Glassmorphism.
+- **Design „Eisen“ statt Neongrün mit Glas** (entschieden am 25.10.): Das alte Design war sauber gebaut, sah aber aus wie viele generierte Apps. Die neue Identität kommt aus der Welt der Hantelscheiben. Verworfen: Lime behalten und nur entrümpeln („Evolution“), und ein Papier-Trainingsheft (zu weit weg vom Studio).
+
+## Design-Regeln
+
+Damit neue Screens im Stil bleiben. Tokens in `src/index.css`, Bewegung in `src/lib/motion.ts`.
+
+- **Farben:** Kreide-Grund `#e8eae7`, Graphit-Text, Stahl-Flächen. **Ein Akzent: Scheiben-Gelb `#f2c200`**, nur als Fläche. Als Text immer `text-accent-fg` (dunkles Senf im hellen Modus), als kleine Markierung ohne Text daneben `bg-accent-mark` (≥ 3:1). Rote Flächen mit weißem Inhalt nutzen `bg-danger-fill`.
+- **Graphit heißt Auswahl, Gelb heißt Aktion oder Fortschritt.** Gewählte Tage, Filter und Segmente sind `bg-fg text-bg`. Gelb tragen nur Haupt-Buttons, der FAB, Fortschrittsbalken, Trainingstage und der aktive Tab-Strich. Pro Screen höchstens eine gelbe Fläche, die ins Auge springt.
+- **Muskelgruppen** sind nach vier Körperregionen eingefärbt (Drücken, Ziehen, Rumpf, Beine) in Wettkampf-Scheibenfarben, immer mit dem Namen daneben. Zwölf eigene Farben wären nicht unterscheidbar. Neue Farben vorher mit dem Paletten-Validator prüfen (Farbenblindheit, Kontrast).
+- **Schrift:** nur Archivo. `headline` für Titel (schmal, fett), `numeral` für Zahlen (noch schmaler, gestanzt), sonst normale Breite. Labels in normaler Schreibung, keine GROSSBUCHSTABEN mit Sperrung, keine Ketten mit Mittelpunkten („A · B · C“), sondern Sätze oder Kommas.
+- **Flächen:** massiv, kein Glas, kein Glow. Radien nach Rang: Flächen 20 px (`rounded-3xl`), Steuerelemente 12 px (`rounded-xl`), Sheets 28 px. Pillenform nur für Filter und Chips. Nicht alles ist eine Karte: Zusammenfassungen stehen direkt auf dem Grund, Einstellungen als Zeilen (`SettingsList`/`SettingRow`).
+- **Einziges Ornament:** das Rändelmuster (`knurl`) wie am Hantelgriff, nur am aktiven Satz, am Wochenziel und am XP-Balken.
+- **Bewegung:** nur die Presets `snap` (Reaktion auf Tipp), `settle` (Umstellungen), `fade`, `reveal` (Aufklappen). Keine Federn, die nachwippen, keine gestaffelten Einblendungen, kein Hover-Lift. Nur `transform` und `opacity` animieren; `layout="position"` statt vollem `layout`, sonst verzerren Karten oder springen beim Neu-Rendern. `MotionConfig reducedMotion="user"` respektiert „Bewegung reduzieren“.

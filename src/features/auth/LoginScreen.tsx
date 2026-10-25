@@ -9,7 +9,7 @@ import { repository } from '../../services/repository'
 
 type Mode = 'login' | 'reset' | 'reset-sent'
 
-// Loaded on desktop only, and after the form: the login screen stays light.
+// Loaded after the form, so the login screen itself stays light.
 const ExerciseAnimation = lazy(() =>
   import('../exercises/animation/ExerciseAnimation').then((module) => ({ default: module.ExerciseAnimation })),
 )
@@ -26,9 +26,18 @@ export function LoginScreen() {
 
         <main className="flex items-center justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:px-0 lg:py-12">
           <div className="w-full max-w-[420px]">
-            <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-              <Wordmark size="lg" />
-              <p className="mt-3 text-[15px] text-muted">Dein Training. Präzise erfasst.</p>
+            <div className="mb-6 flex items-center gap-4 lg:hidden">
+              <div className="glass size-24 shrink-0 overflow-hidden rounded-2xl">
+                <div className="size-full bg-sunken">
+                  <Suspense fallback={null}>
+                    <ExerciseAnimation exerciseId="military-press" compact label="Schulterdrücken mit zwei Kurzhanteln" />
+                  </Suspense>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <Wordmark size="lg" />
+                <p className="mt-2 text-[15px] text-muted">Dein Training. Präzise erfasst.</p>
+              </div>
             </div>
 
             <div className="glass overflow-hidden rounded-4xl p-6 sm:p-8">

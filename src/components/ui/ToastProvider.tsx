@@ -11,7 +11,7 @@ const MAX_VISIBLE = 3
 
 const TONES: Record<ToastTone, { icon: typeof Info; className: string }> = {
   success: { icon: CircleCheck, className: 'bg-fg text-bg' },
-  error: { icon: CircleAlert, className: 'bg-danger text-white' },
+  error: { icon: CircleAlert, className: 'bg-danger-fill text-white' },
   info: { icon: Info, className: 'bg-sunken text-fg' },
   reward: { icon: Sparkles, className: 'bg-accent text-accent-ink' },
 }

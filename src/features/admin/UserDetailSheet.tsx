@@ -110,10 +110,8 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
           <UserAvatar user={shown} size="lg" />
           <div className="min-w-0">
             <p className="headline truncate text-[25px]">{shown.displayName}</p>
-            <p className="truncate text-[14px] text-muted">
-              {shown.username && <span className="font-medium text-fg/80">@{shown.username} · </span>}
-              {shown.email}
-            </p>
+            {shown.username && <p className="truncate text-[14px] font-medium text-fg/80">@{shown.username}</p>}
+            <p className="truncate text-[14px] text-muted">{shown.email}</p>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <RoleBadge role={shown.role} />
               <LevelBadge gamification={shown.gamification} />
@@ -280,7 +278,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                       type="button"
                       onClick={deleteUser}
                       disabled={busy === 'delete'}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-danger py-2.5 text-[14px] font-semibold text-white"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-danger-fill py-2.5 text-[14px] font-semibold text-white"
                     >
                       {busy === 'delete' && <LoaderCircle className="size-4 animate-spin" />}
                       Endgültig löschen

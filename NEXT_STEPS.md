@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 25.10.2026. Neues Design „Eisen“ auf dem Branch `redesign-eisen` (noch nicht in `main`). Onboarding, Tests/CI, kleineres Bundle, Bestleistungen, Vorlagen, Wochenrückblick, Körpergewicht und CSV-Export umgesetzt, **Rules dafür noch nicht deployt**. Einrichtung in der Firebase Console steht noch aus.
+Stand: 25.10.2026. Neues Design „Eisen“ umgesetzt und in `main`. Onboarding, Tests/CI, kleineres Bundle, Bestleistungen, Vorlagen, Wochenrückblick, Körpergewicht und CSV-Export umgesetzt, **Rules dafür noch nicht deployt**. Einrichtung in der Firebase Console steht noch aus.
 
 ## Weitermachen
 

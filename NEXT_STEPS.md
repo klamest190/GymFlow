@@ -41,6 +41,7 @@ npm run dev
 | **3D-Animationen** (24.10.) | ✅ Figuren in echtem 3D: perspektivische Kamera, Schattierung, Tiefen-Abblendung, Bodenschatten. Pro Übung ein schräger Standard-Blickwinkel; in der Detailansicht frei drehbar (Ziehen/Pfeiltasten) mit den Ansichten Schräg, Vorne und Seite |
 | **Kurzhanteln & Zeichenreihenfolge** (24.10.) | ✅ Alle 11 Übungen mit zwei kleinen Kurzhanteln, in Animation und Katalog (Ausrüstung, Texte; Lunges, Crunches und Russian Twists jetzt mit Gewicht). Kein Flackern mehr zwischen Hand und Hantel; Gelenke und Bauch/Brust wechseln die Reihenfolge ohne sichtbaren Sprung; Regressionstest gegen Flackern |
 | **Gewicht je Hantel & XP** (24.10.) | ✅ Eingabe „kg je Hantel“ (±1 kg); Volumen zählt beide Hanteln (alte Einträge bleiben Gesamtgewicht); Gewichts-Bonus +1 XP je 20 kg Volumen, max. 15 je Satz, eigene Kachel im Profil und in der Einführung; CSV mit Spalte „Gewicht gilt“ |
+| **Hantelgewicht im Profil** (25.10.) | ✅ Karte „Meine Kurzhanteln“ (Standard 5 kg): neue Übungen starten mit diesem Gewicht je Hantel, pro Satz weiter änderbar. Rules erlauben `dumbbellKg` (0,5–50) dem Nutzer selbst; **Rules-Deploy nötig** |
 | **Einführung** (24.10.) | ✅ Tour in 5 Schritten beim ersten Start, mit Wochenziel-Auswahl. Abschluss in `users/{uid}.onboardingCompletedAt` (Serverzeit, nur einmal setzbar), erneut ansehen im Profil |
 | **Tests & CI** (24.10.) | ✅ 90 Unit-Tests mit Vitest (`npm test`), 93 Rules-Tests; GitHub Action für Lint, Tests, Build und Rules. Ein Test fand einen Fehler in der Heatmap: Die dunkelste Stufe war bei wenigen Trainingstagen unerreichbar (behoben) |
 | **Ladezeit** (24.10.) | ✅ Start 363 → 344 KB gzip: Framer Motion per `LazyMotion`, Firebase Auth ohne Popup-Code |
@@ -52,7 +53,7 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 
 ## Offen: Benutzername-Login & Einführung
 
-- [ ] **Rules deployen:** `firebase deploy --only firestore:rules --project gymflow-917db`. Bis dahin klappen Login per Benutzername und das Anlegen neuer Nutzer nicht, die Einführung kann ihren Abschluss nicht speichern (sie käme bei jedem Start wieder), und eigene Vorlagen sowie Körpergewicht lassen sich nicht speichern.
+- [ ] **Rules deployen:** `firebase deploy --only firestore:rules --project gymflow-917db`. Bis dahin klappen Login per Benutzername und das Anlegen neuer Nutzer nicht, die Einführung kann ihren Abschluss nicht speichern (sie käme bei jedem Start wieder), eigene Vorlagen, Körpergewicht und das Hantelgewicht im Profil lassen sich nicht speichern.
 - [ ] **CI prüfen:** nach dem ersten Push unter GitHub → Actions nachsehen, ob beide Jobs grün sind.
 - [ ] **Eigenen Benutzernamen setzen:** Admin → eigenes Konto öffnen → „Benutzername“. Bestehende Konten haben noch keinen.
 

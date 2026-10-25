@@ -41,6 +41,12 @@ service cloud.firestore {
         && math.floor(data.weeklyGoalDays) == data.weeklyGoalDays;
     }
 
+    // Weight of one dumbbell in kg (0.5–50): absent on older accounts, which use the app's default.
+    function validDumbbell(data) {
+      return !('dumbbellKg' in data)
+        || (data.dumbbellKg is number && data.dumbbellKg >= 0.5 && data.dumbbellKg <= 50);
+    }
+
     // Gamification mirror (XP, level, rank, achievements): absent until the app's first sync, then
     // always complete. The client derives it from the workout logs; without Cloud Functions the
     // rules can only check shape and plausibility, not recompute it.
@@ -90,7 +96,7 @@ service cloud.firestore {
     }
 
     function validAccount(data) {
-      return data.keys().hasOnly(['email', 'username', 'displayName', 'role', 'status', 'weeklyGoalDays',
+      return data.keys().hasOnly(['email', 'username', 'displayName', 'role', 'status', 'weeklyGoalDays', 'dumbbellKg',
                                   'createdAt', 'createdBy', 'updatedAt', 'lastLoginAt', 'onboardingCompletedAt',
                                   'currentXP', 'totalXP', 'level', 'rank', 'unlockedAchievements'])
         && data.email is string
@@ -98,6 +104,7 @@ service cloud.firestore {
         && data.role in ['admin', 'user']
         && data.status in ['active', 'disabled']
         && validGoal(data)
+        && validDumbbell(data)
         && validProgress(data);
     }
 
@@ -117,8 +124,8 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid;
 
       // Admin: name, username, role and status of any account, but never their own role/status
-      // (no lockout). User: only their weekly goal, login timestamp, onboarding flag and own XP
-      // mirror, and only while active. Nobody else's XP is writable, not even by an admin.
+      // (no lockout). User: only their weekly goal, dumbbell weight, login timestamp, onboarding flag
+      // and own XP mirror, and only while active. Nobody else's XP is writable, not even by an admin.
       allow update: if (
           isAdmin()
           && validAccount(request.resource.data)
@@ -127,10 +134,11 @@ service cloud.firestore {
           && (usernameUnchanged() || usernameClaimed(request.resource.data, uid))
         ) || (
           isSelf(uid) && isActive()
-          && changedOnly(['weeklyGoalDays', 'updatedAt', 'lastLoginAt', 'onboardingCompletedAt',
+          && changedOnly(['weeklyGoalDays', 'dumbbellKg', 'updatedAt', 'lastLoginAt', 'onboardingCompletedAt',
                           'currentXP', 'totalXP', 'level', 'rank', 'unlockedAchievements'])
           && validOnboarding()
           && validGoal(request.resource.data)
+          && validDumbbell(request.resource.data)
           && validProgress(request.resource.data)
         );
 

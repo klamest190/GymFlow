@@ -88,6 +88,12 @@ describe('active user', () => {
   test('records own login', () => assertSucceeds(updateDoc(doc(as(USER), 'users', USER), { lastLoginAt: serverTimestamp() })))
   test('rejects an invalid weekly goal', () => assertFails(updateDoc(doc(as(USER), 'users', USER), { weeklyGoalDays: 9 })))
   test('rejects a fractional weekly goal', () => assertFails(updateDoc(doc(as(USER), 'users', USER), { weeklyGoalDays: 2.5 })))
+  test('updates own dumbbell weight', () => assertSucceeds(updateDoc(doc(as(USER), 'users', USER), { dumbbellKg: 7.5, updatedAt: serverTimestamp() })))
+  test('rejects an implausible dumbbell weight', async () => {
+    await assertFails(updateDoc(doc(as(USER), 'users', USER), { dumbbellKg: 0 }))
+    await assertFails(updateDoc(doc(as(USER), 'users', USER), { dumbbellKg: 80 }))
+    await assertFails(updateDoc(doc(as(USER), 'users', USER), { dumbbellKg: '5' }))
+  })
   test('cannot promote itself to admin', () => assertFails(updateDoc(doc(as(USER), 'users', USER), { role: 'admin' })))
   test('cannot change own status', () => assertFails(updateDoc(doc(as(USER), 'users', USER), { status: 'disabled' })))
   test('cannot rename itself (admin-managed)', () => assertFails(updateDoc(doc(as(USER), 'users', USER), { displayName: 'Hacker' })))
@@ -108,6 +114,7 @@ describe('disabled user', () => {
   test('cannot write own logs', () =>
     assertFails(setDoc(doc(as(DISABLED), 'users', DISABLED, 'workout_logs', '2026-10-18'), log(DISABLED, '2026-10-18'))))
   test('cannot change own weekly goal', () => assertFails(updateDoc(doc(as(DISABLED), 'users', DISABLED), { weeklyGoalDays: 4 })))
+  test('cannot change own dumbbell weight', () => assertFails(updateDoc(doc(as(DISABLED), 'users', DISABLED), { dumbbellKg: 6 })))
   test('cannot reactivate itself', () => assertFails(updateDoc(doc(as(DISABLED), 'users', DISABLED), { status: 'active' })))
 })
 

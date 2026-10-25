@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { useBodyWeights } from '../../hooks/useData'
 import { useAuth, useSession } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
+import { NumberStepper } from '../../components/ui/NumberStepper'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { useToast } from '../../components/ui/toastContext'
 import { EXERCISES } from '../../data/exercises'
@@ -79,6 +80,8 @@ export function ProfilePage() {
             {profile.weeklyGoalDays} {profile.weeklyGoalDays === 1 ? 'Trainingstag' : 'Trainingstage'} pro Woche
           </p>
         </Card>
+
+        <DumbbellCard />
 
         <Card title="Darstellung" description="„System“ folgt automatisch der Einstellung deines Geräts.">
           <SegmentedControl<ThemePreference>
@@ -194,6 +197,28 @@ function ActionButton({
       {busy ? <LoaderCircle className="size-4.5 animate-spin" /> : icon}
       {children}
     </button>
+  )
+}
+
+/** The user's dumbbell weight: where new exercises start, so it needn't be typed every time. */
+function DumbbellCard() {
+  const { user, profile } = useSession()
+  const toast = useToast()
+
+  const save = (dumbbellKg: number | null) => {
+    if (dumbbellKg === null || dumbbellKg === profile.dumbbellKg) return
+    repository.saveProfile(user.uid, { dumbbellKg }).catch((error) =>
+      toast({ tone: 'error', title: 'Hantelgewicht nicht gespeichert', description: authErrorMessage(error) }),
+    )
+  }
+
+  return (
+    <Card title="Meine Kurzhanteln" description="Mit diesem Gewicht je Hantel starten neue Übungen. Im Tracker kannst du es für jeden Satz anpassen.">
+      <div className="flex items-center justify-between gap-4 rounded-2xl bg-sunken px-4 py-3">
+        <span className="text-[15px] font-medium">kg je Hantel</span>
+        <NumberStepper label="Gewicht je Hantel" value={profile.dumbbellKg} step={1} min={0.5} max={50} onChange={save} />
+      </div>
+    </Card>
   )
 }
 

@@ -37,7 +37,7 @@ export interface GymflowRepository {
   // ─── users/{uid}: own account ───
   /** Emits `null` if the account document doesn't exist (not provisioned or deleted). */
   subscribeProfile(userId: string, onChange: (profile: UserProfile | null) => void, onError: (error: Error) => void): Unsubscribe
-  saveProfile(userId: string, changes: Pick<UserProfile, 'weeklyGoalDays'>): Promise<void>
+  saveProfile(userId: string, changes: Partial<Pick<UserProfile, 'weeklyGoalDays' | 'dumbbellKg'>>): Promise<void>
   recordLogin(userId: string): Promise<void>
   /** Marks the first-run tour as done for good (server timestamp). */
   completeOnboarding(userId: string): Promise<void>

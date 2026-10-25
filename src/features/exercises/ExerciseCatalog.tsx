@@ -1,7 +1,7 @@
 import { AnimatePresence, m } from 'framer-motion'
 import { RotateCcw, Search, SearchX, X } from 'lucide-react'
 import { useState } from 'react'
-import { useUserId } from '../../auth/authContext'
+import { useSession } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
 import { FilterPills, type FilterOption } from '../../components/ui/FilterPills'
 import { Loadable } from '../../components/ui/Loadable'
@@ -24,8 +24,8 @@ const SKELETON_CARDS = 6
 
 /** Read-only overview of the fixed exercise catalog with per-exercise history. */
 export function ExerciseCatalog() {
-  const userId = useUserId()
-  const catalog = useExercises(userId)
+  const { user, profile } = useSession()
+  const catalog = useExercises(user.uid, profile.dumbbellKg)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const toast = useToast()
   const selected = selectedId ? (getExercise(selectedId) ?? null) : null

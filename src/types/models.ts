@@ -196,6 +196,8 @@ export interface UserProfile {
   status: UserStatus
   /** Target number of training days per week (1–7), shown as goal ring on the dashboard. */
   weeklyGoalDays: number
+  /** Weight of one dumbbell (kg) that newly added exercises start with; each set can still differ. */
+  dumbbellKg: number
   createdAt: number
   /** uid of the admin who created the account; `null` for the bootstrap admin created in the console. */
   createdBy: string | null
@@ -214,6 +216,8 @@ export interface UserProfile {
 }
 
 export const DEFAULT_WEEKLY_GOAL_DAYS = 3
+/** Dumbbell weight until the user sets their own (also for accounts from before the setting). */
+export const DEFAULT_DUMBBELL_KG = 5
 
 /** What an admin enters to create an account. */
 export interface NewUserInput {

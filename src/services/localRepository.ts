@@ -1,5 +1,6 @@
 import { isEmailLogin, normalizeUsername } from '../lib/usernames'
 import {
+  DEFAULT_DUMBBELL_KG,
   DEFAULT_WEEKLY_GOAL_DAYS,
   type AuthUser,
   type BodyWeightEntry,
@@ -47,7 +48,11 @@ function write(key: string, value: unknown) {
 /** Demo-mode error with a Firebase-style code, so the UI's error mapping works unchanged. */
 const demoError = (code: string) => Object.assign(new Error(code), { code })
 
-const readUsers = () => read<Record<string, UserProfile>>(KEYS.users, {})
+/** Stored accounts; demo accounts from before the dumbbell setting get the default. */
+const readUsers = () =>
+  Object.fromEntries(
+    Object.entries(read<Record<string, UserProfile>>(KEYS.users, {})).map(([id, user]) => [id, { ...user, dumbbellKg: user.dumbbellKg ?? DEFAULT_DUMBBELL_KG }]),
+  )
 
 /** Finds an account by e-mail or username (demo data from before usernames has none). */
 const findUser = (login: string) => {
@@ -94,6 +99,7 @@ export function createLocalRepository(): GymflowRepository {
           role: 'admin',
           status: 'active',
           weeklyGoalDays: DEFAULT_WEEKLY_GOAL_DAYS,
+          dumbbellKg: DEFAULT_DUMBBELL_KG,
           createdAt: now,
           createdBy: null,
           updatedAt: now,
@@ -157,6 +163,7 @@ export function createLocalRepository(): GymflowRepository {
         role: input.role,
         status: 'active',
         weeklyGoalDays: DEFAULT_WEEKLY_GOAL_DAYS,
+        dumbbellKg: DEFAULT_DUMBBELL_KG,
         createdAt: now,
         createdBy: adminId,
         updatedAt: now,

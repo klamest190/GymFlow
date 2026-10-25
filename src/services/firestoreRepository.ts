@@ -29,6 +29,7 @@ import {
 import { getFirebase } from '../lib/firebase'
 import { isEmailLogin, isValidUsername, normalizeUsername } from '../lib/usernames'
 import {
+  DEFAULT_DUMBBELL_KG,
   DEFAULT_WEEKLY_GOAL_DAYS,
   RANK_IDS,
   type BodyWeightEntry,
@@ -87,6 +88,7 @@ function readProfile(snapshot: DocumentSnapshot<DocumentData>): UserProfile {
     role: data.role === 'admin' ? 'admin' : 'user',
     status: data.status === 'active' ? 'active' : 'disabled',
     weeklyGoalDays: data.weeklyGoalDays ?? DEFAULT_WEEKLY_GOAL_DAYS,
+    dumbbellKg: typeof data.dumbbellKg === 'number' ? data.dumbbellKg : DEFAULT_DUMBBELL_KG,
     createdAt: toMillis(data.createdAt),
     createdBy: data.createdBy ?? null,
     updatedAt: toMillis(data.updatedAt),
@@ -217,6 +219,7 @@ export function createFirestoreRepository(): GymflowRepository {
           role: input.role,
           status: 'active',
           weeklyGoalDays: DEFAULT_WEEKLY_GOAL_DAYS,
+          dumbbellKg: DEFAULT_DUMBBELL_KG,
           createdAt: now,
           createdBy: adminId,
           updatedAt: now,

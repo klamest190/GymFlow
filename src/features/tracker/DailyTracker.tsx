@@ -7,10 +7,10 @@ import { Loadable } from '../../components/ui/Loadable'
 import { useToast } from '../../components/ui/toastContext'
 import { useLogsInRange } from '../../hooks/useData'
 import { useDayDraft, type SyncState } from '../../hooks/useDayDraft'
-import { useUserId } from '../../auth/authContext'
+import { useSession } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
 import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
-import { createEntry, createSet } from '../../lib/workoutMath'
+import { createEntry, createSet, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
 import { DaySummary } from './DaySummary'
 import { ExerciseEntryCard } from './ExerciseEntryCard'
@@ -25,7 +25,8 @@ import { WeeklyRecapCard } from './WeeklyRecapCard'
  * add button. Desktop: entries on the left, sticky summary + quick add on the right.
  */
 export function DailyTracker() {
-  const userId = useUserId()
+  const { user, profile } = useSession()
+  const userId = user.uid
   const [date, setDate] = useState<DateKey>(todayKey)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
@@ -40,8 +41,8 @@ export function DailyTracker() {
   const addedIds = useMemo(() => new Set(entries.map((entry) => entry.exerciseId)), [entries])
 
   const addExercise = useCallback(
-    (exercise: Exercise) => update((current) => [...current, createEntry(exercise, current.length)]),
-    [update],
+    (exercise: Exercise) => update((current) => [...current, createEntry(exercise, current.length, profile.dumbbellKg)]),
+    [update, profile.dumbbellKg],
   )
   const changeEntry = (next: WorkoutEntry) => update((current) => current.map((entry) => (entry.id === next.id ? next : entry)))
   const removeEntry = (id: string) => update((current) => current.filter((entry) => entry.id !== id))
@@ -51,8 +52,9 @@ export function DailyTracker() {
     const added = template.exercises.flatMap((item) => {
       const exercise = getExercise(item.exerciseId)
       if (!exercise || addedIds.has(item.exerciseId)) return []
-      const entry = createEntry(exercise, 0)
-      const sets = item.sets.map((set) => createSet(set.reps, exercise.usesWeight ? set.weightKg : null))
+      const entry = createEntry(exercise, 0, profile.dumbbellKg)
+      // Planned sets keep their weight; sets saved without one start at the user's dumbbell weight.
+      const sets = item.sets.map((set) => createSet(set.reps, exercise.usesWeight ? (set.weightKg ?? startWeightKg(exercise, profile.dumbbellKg)) : null))
       return [{ ...entry, sets: sets.length > 0 ? sets : entry.sets }]
     })
     setTemplatesOpen(false)

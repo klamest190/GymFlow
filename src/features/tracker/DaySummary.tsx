@@ -5,8 +5,13 @@ import { settle } from '../../lib/motion'
 import { computeMuscleGroupReps, computeTotals } from '../../lib/workoutMath'
 import type { MuscleGroup, WorkoutEntry } from '../../types/models'
 
-/** Day totals as stamped figures straight on the page, plus the split by body region. */
-export function DaySummary({ entries }: { entries: WorkoutEntry[] }) {
+const xpFormatter = new Intl.NumberFormat('de-DE')
+
+/**
+ * Day totals as stamped figures straight on the page, plus the split by body region. For today
+ * also the XP the day will earn once it's over (`pendingXP`).
+ */
+export function DaySummary({ entries, pendingXP = 0 }: { entries: WorkoutEntry[]; pendingXP?: number }) {
   const totals = computeTotals(entries)
   const repsByRegion = { push: 0, pull: 0, core: 0, legs: 0 } satisfies Record<BodyRegion, number>
   for (const [muscle, reps] of Object.entries(computeMuscleGroupReps(entries)) as [MuscleGroup, number][]) {
@@ -62,6 +67,13 @@ export function DaySummary({ entries }: { entries: WorkoutEntry[] }) {
           <p className="mt-2.5 text-[13px] text-muted">Hier siehst du, welche Körperregionen du heute trainiert hast.</p>
         )}
       </div>
+
+      {pendingXP > 0 && (
+        <p className="mt-3 text-[13px] text-muted">
+          <span className="font-semibold text-accent-fg tabular-nums">+{xpFormatter.format(pendingXP)} XP</span> für heute. Gutgeschrieben
+          werden sie morgen, wenn der Trainingstag abgeschlossen ist.
+        </p>
+      )}
     </section>
   )
 }

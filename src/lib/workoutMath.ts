@@ -12,7 +12,11 @@ export const setLoadKg = (entry: Pick<WorkoutEntry, 'perDumbbell'>, set: Workout
 /** Weight a new set of the exercise starts with: the user's dumbbell weight, or none. */
 export const startWeightKg = (exercise: Exercise, dumbbellKg: number) => (exercise.usesWeight && exercise.equipment === 'dumbbell' ? dumbbellKg : null)
 
-/** A new entry with the exercise's default sets, each at `dumbbellKg` per dumbbell if it uses dumbbells. */
+/** A newly added exercise starts small; the user adds sets as they go. */
+export const NEW_ENTRY_SETS = 1
+export const NEW_ENTRY_REPS = 10
+
+/** A new entry with one set of 10 reps, at `dumbbellKg` per dumbbell if it uses dumbbells. */
 export function createEntry(exercise: Exercise, position: number, dumbbellKg: number): WorkoutEntry {
   return {
     id: createId(),
@@ -22,7 +26,7 @@ export function createEntry(exercise: Exercise, position: number, dumbbellKg: nu
     secondaryMuscles: exercise.secondaryMuscles,
     usesWeight: exercise.usesWeight,
     perDumbbell: exercise.equipment === 'dumbbell',
-    sets: Array.from({ length: exercise.defaultSets }, () => createSet(exercise.defaultReps, startWeightKg(exercise, dumbbellKg))),
+    sets: Array.from({ length: NEW_ENTRY_SETS }, () => createSet(NEW_ENTRY_REPS,startWeightKg(exercise, dumbbellKg))),
     position,
   }
 }

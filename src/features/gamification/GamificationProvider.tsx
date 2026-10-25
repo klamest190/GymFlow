@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useSession } from '../../auth/authContext'
 import { useToast, type ShowToast } from '../../components/ui/toastContext'
 import { useAllLogs } from '../../hooks/useData'
+import { useToday } from '../../hooks/useToday'
 import { detectNewRecords, formatRecordValue, personalRecords, type PersonalRecord } from '../../lib/records'
 import { detectProgressEvents, evaluateProgress, isSameState, type ProgressEvent } from '../../services/gamificationService'
 import { repository } from '../../services/repository'
@@ -36,7 +37,8 @@ function celebrate(toast: ShowToast, event: ProgressEvent) {
 
 /**
  * Keeps XP, level, rank and achievements in sync with the training history for the whole
- * signed-in app: derives them live from all logs, celebrates gains with toasts and mirrors the
+ * signed-in app: derives them from all finished days (today counts once it's over, see
+ * `evaluateProgress`), celebrates gains with toasts and mirrors the
  * result into `users/{uid}`. Screens read the derived value, so they stay correct even if the
  * mirror write fails (e.g. offline, or rules not deployed yet).
  */
@@ -45,7 +47,8 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const toast = useToast()
   const { logs, ready } = useAllLogs(user.uid)
   const stored = profile.gamification
-  const evaluation = useMemo(() => (ready ? evaluateProgress(logs, stored) : null), [ready, logs, stored])
+  const today = useToday()
+  const evaluation = useMemo(() => (ready ? evaluateProgress(logs, stored, today) : null), [ready, logs, stored, today])
   // Last state this device celebrated: prevents repeated toasts while our own write is still
   // on its way back through the profile snapshot (and under StrictMode's double effects).
   const celebrated = useRef<GamificationState | null>(null)

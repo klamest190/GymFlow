@@ -1,6 +1,6 @@
 import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, type AchievementDefinition, type ProgressMetrics } from '../data/achievements'
 import { RANK_BY_ID, RANKS, type RankDefinition } from '../data/ranks'
-import { addDays, toDateKey } from '../lib/dates'
+import { addDays, toDateKey, todayKey } from '../lib/dates'
 import { setLoadKg } from '../lib/workoutMath'
 import type { AchievementId, DateKey, GamificationState, WorkoutLog } from '../types/models'
 
@@ -12,7 +12,8 @@ import type { AchievementId, DateKey, GamificationState, WorkoutLog } from '../t
  * and would drift whenever a past day is corrected. Deriving keeps XP exact and idempotent across
  * devices; `users/{uid}` only stores the result (see `GamificationState`).
  *
- * A "completed workout" is a training day with at least one logged set (one log per day).
+ * A "completed workout" is a finished training day (before today) with at least one logged set
+ * (one log per day).
  */
 
 export const XP_REWARDS = {
@@ -218,13 +219,24 @@ export function detectProgressEvents(previous: GamificationState, next: Gamifica
 }
 
 export interface ProgressEvaluation {
+  /** Finished days only (before `today`). */
   summary: ProgressSummary
   state: GamificationState
   progress: LevelProgress
+  /** XP the still open day will add once it's over; not part of `summary` yet. */
+  pendingXP: number
 }
 
-/** Entry point after logs changed: the full picture for `logs`, merged with the stored state. */
-export function evaluateProgress(logs: WorkoutLog[], stored: GamificationState | null): ProgressEvaluation {
-  const summary = summarizeProgress(logs)
-  return { summary, state: buildGamificationState(summary, stored), progress: levelProgress(summary.totalXP) }
+/**
+ * Entry point after logs changed: the full picture for `logs`, merged with the stored state.
+ *
+ * Only finished days pay out. Today is still open, so an exercise added by mistake and deleted
+ * again never earns XP, a level-up or an (ever lasting) achievement. Today's XP is reported as
+ * pending and credited, with its toasts, on the next day.
+ */
+export function evaluateProgress(logs: WorkoutLog[], stored: GamificationState | null, today: DateKey = todayKey()): ProgressEvaluation {
+  const finished = logs.filter((log) => log.date < today)
+  const summary = summarizeProgress(finished)
+  const pendingXP = finished.length === logs.length ? 0 : summarizeProgress(logs).totalXP - summary.totalXP
+  return { summary, state: buildGamificationState(summary, stored), progress: levelProgress(summary.totalXP), pendingXP }
 }

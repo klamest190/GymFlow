@@ -13,6 +13,7 @@ import { settle } from '../../lib/motion'
 import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
 import { createEntry, createSet, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
+import { useGamification } from '../gamification/gamificationContext'
 import { DaySummary } from './DaySummary'
 import { ExerciseEntryCard } from './ExerciseEntryCard'
 import { ExercisePicker } from './ExercisePicker'
@@ -32,6 +33,7 @@ export function DailyTracker() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const toast = useToast()
+  const gamification = useGamification()
 
   const week = weekDays(date)
   const { logs, ready } = useLogsInRange(userId, week[0], week[6])
@@ -138,7 +140,7 @@ export function DailyTracker() {
         {/* Mobile: summary sits above the entries. Desktop: sticky right column. */}
         <aside className="order-first space-y-4 lg:order-none lg:col-start-2 lg:row-start-1">
           <div className="space-y-4 lg:sticky lg:top-10">
-            {entries.length > 0 && <DaySummary entries={entries} />}
+            {entries.length > 0 && <DaySummary entries={entries} pendingXP={date === todayKey() ? (gamification?.pendingXP ?? 0) : 0} />}
             {suggestions.length > 0 && (
               <section className="hidden border-t border-line px-1 pt-5 lg:block">
                 <h2 className="text-[14px] font-semibold text-muted">Schnell hinzufügen</h2>
@@ -153,7 +155,7 @@ export function DailyTracker() {
                         <span className="min-w-0">
                           <span className="block truncate text-[15px] font-semibold tracking-tight">{exercise.name}</span>
                           <span className="text-[12px] text-muted tabular-nums">
-                            {exercise.defaultSets} × {exercise.defaultReps}
+                            Empfohlen: {exercise.defaultSets} × {exercise.defaultReps}
                           </span>
                         </span>
                         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken transition group-hover:bg-fg group-hover:text-bg">

@@ -56,6 +56,12 @@ function LevelCard({ evaluation }: { evaluation: ProgressEvaluation }) {
           <p className="mt-1 text-[13px] text-muted">
             <AnimatedNumber value={summary.totalXP} className="font-semibold text-fg tabular-nums" /> XP gesamt
           </p>
+          {evaluation.pendingXP > 0 && (
+            <p className="mt-0.5 text-[13px] text-muted">
+              <span className="font-semibold text-accent-fg tabular-nums">+{format(evaluation.pendingXP)} XP</span> von heute, gutgeschrieben
+              morgen
+            </p>
+          )}
         </div>
       </div>
 

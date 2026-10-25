@@ -5,7 +5,7 @@ import { NumberStepper } from '../../components/ui/NumberStepper'
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { haptic, useIsTouch } from '../../hooks/useUi'
 import { reveal, settle, snap } from '../../lib/motion'
-import { createSet } from '../../lib/workoutMath'
+import { createSet, NEW_ENTRY_REPS } from '../../lib/workoutMath'
 import type { Exercise, WorkoutEntry, WorkoutSet } from '../../types/models'
 
 interface ExerciseEntryCardProps {
@@ -39,7 +39,7 @@ export function ExerciseEntryCard({ entry, exercise, onChange, onRemove }: Exerc
 
   const addSet = () => {
     const last = entry.sets.at(-1)
-    const next = createSet(last?.reps ?? exercise?.defaultReps ?? 10, last?.weightKg ?? null)
+    const next = createSet(last?.reps ?? NEW_ENTRY_REPS,last?.weightKg ?? null)
     haptic(12)
     setSelectedId(next.id)
     onChange({ ...entry, sets: [...entry.sets, next] })

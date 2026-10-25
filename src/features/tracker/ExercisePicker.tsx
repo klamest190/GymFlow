@@ -139,7 +139,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                       <p className="text-fg/85">{exercise.description}</p>
                       {exercise.instructions && <p className="mt-2">{exercise.instructions}</p>}
                       <p className="mt-2 text-[13px] font-medium">
-                        Standard: {exercise.defaultSets} × {exercise.defaultReps}
+                        Empfohlen: {exercise.defaultSets} × {exercise.defaultReps}
                       </p>
                     </div>
                   </m.div>

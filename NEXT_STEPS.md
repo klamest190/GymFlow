@@ -47,6 +47,7 @@ npm run dev
 | **Ladezeit** (24.10.) | ✅ Start 363 → 344 KB gzip: Framer Motion per `LazyMotion`, Firebase Auth ohne Popup-Code |
 | **Motivation & Komfort** (24.10.) | ✅ Reward-Toast bei neuer Bestleistung; Vorlagen (4 mitgeliefert + eigene aus einem Tag speichern); Wochenrückblick Mo–Mi auf „Heute“; Körpergewicht mit 90-Tage-Verlauf im Profil; CSV-Export für Training und Körpergewicht. Jetzt 121 Unit-Tests und 109 Rules-Tests |
 | **Design „Eisen“** (25.10.) | ✅ Neue visuelle Identität statt Neon-Lime mit Glas (Regeln siehe „Design-Regeln“ unten). „Heute“ als Satz-Protokoll mit großen Zahlen und einem aufgeklappten Satz; Statistik mit Wochenziel als Scheiben-Balken; Profil in die Abschnitte Training und App gegliedert; Login mit 3D-Figur; neue App-Icons. Behoben: Übungskarten zuckten und glitten beim Hovern seitlich (volle Layout-Animation plus Hover-Lift). Kontraste aller Farbpaare geprüft, Tastatur-Fokus überall sichtbar |
+| **Kleinerer Start & XP am Folgetag** (25.10.) | ✅ Neue Übungen starten mit 1 Satz × 10 Wdh. (Katalogwerte heißen jetzt „Empfohlen“). XP, Level und Erfolge zählen nur abgeschlossene Tage; der laufende Tag zeigt „+X XP für heute“ im Tracker und im Profil und wird am nächsten Tag gutgeschrieben (mit Toast). Versehentlich angelegte und wieder gelöschte Übungen bringen so nichts mehr |
 
 ### Behobener Fehler (19.10.)
 
@@ -95,6 +96,7 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 - **Farbschema pro Gerät** (localStorage), nicht synchronisiert.
 - **Benutzername zusätzlich zur E-Mail** (entschieden am 23.10.): E-Mail bleibt Pflicht, damit „Passwort vergessen“ immer funktioniert. In Kauf genommen: Wer einen Benutzernamen kennt, kann die zugehörige E-Mail abfragen (öffentlicher Lookup vor dem Login, ohne Cloud Functions nicht vermeidbar).
 - **XP abgeleitet statt pro Aktion vergeben:** Trainingstage sind bearbeitbar, also wird alles aus der Historie neu berechnet (nicht farmbar, geräteübergreifend gleich). Ein „abgeschlossenes Workout“ ist ein Trainingstag mit mindestens einem Satz. Den 3-Tage-Streak-Bonus gibt es an jedem 3. Tag einer Serie. Erfolge bleiben auch nach dem Löschen von Tagen freigeschaltet, XP nicht.
+- **XP erst für abgeschlossene Tage** (entschieden am 25.10.): Der heutige Tag zählt erst ab morgen, damit Fehleingaben keine XP und keine dauerhaften Erfolge auslösen. Nachträge an vergangenen Tagen zählen sofort.
 - **Design „Eisen“ statt Neongrün mit Glas** (entschieden am 25.10.): Das alte Design war sauber gebaut, sah aber aus wie viele generierte Apps. Die neue Identität kommt aus der Welt der Hantelscheiben. Verworfen: Lime behalten und nur entrümpeln („Evolution“), und ein Papier-Trainingsheft (zu weit weg vom Studio).
 
 ## Design-Regeln

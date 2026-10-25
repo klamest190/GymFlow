@@ -151,3 +151,33 @@ describe('state and events', () => {
     expect(isSameState(after, { ...again, totalXP: again.totalXP + 1 })).toBe(false)
   })
 })
+
+describe('only finished days pay out', () => {
+  const history = [day('2026-10-01'), day('2026-10-02')]
+
+  it('keeps today out of XP, level and achievements and reports it as pending', () => {
+    const evaluation = evaluateProgress(history, null, '2026-10-02')
+    expect(evaluation.summary.metrics.workouts).toBe(1)
+    expect(evaluation.state.totalXP).toBe(summarizeProgress([day('2026-10-01')]).totalXP)
+    expect(evaluation.pendingXP).toBe(summarizeProgress(history).totalXP - evaluation.state.totalXP)
+  })
+
+  it('pays nothing for a day that was emptied again before it ended', () => {
+    const before = evaluateProgress([day('2026-10-01')], null, '2026-10-02').state
+    const mistake = evaluateProgress([day('2026-10-01'), day('2026-10-02', 20)], before, '2026-10-02')
+    const undone = evaluateProgress([day('2026-10-01'), day('2026-10-02', 0)], mistake.state, '2026-10-02')
+    expect(mistake.state).toEqual(before)
+    expect(detectProgressEvents(before, mistake.state)).toEqual([])
+    expect(undone.state).toEqual(before)
+    expect(undone.pendingXP).toBe(0)
+  })
+
+  it('credits the day once it is over, with its streak bonus', () => {
+    const streak = [day('2026-10-01'), day('2026-10-02'), day('2026-10-03')]
+    const during = evaluateProgress(streak, null, '2026-10-03')
+    const after = evaluateProgress(streak, during.state, '2026-10-04')
+    expect(after.pendingXP).toBe(0)
+    expect(after.state.totalXP).toBe(during.state.totalXP + during.pendingXP)
+    expect(after.summary.xp.streaks).toBe(XP_REWARDS.streakBonus)
+  })
+})

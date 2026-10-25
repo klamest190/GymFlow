@@ -61,7 +61,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     },
     {
       title: 'Level aufsteigen',
-      text: 'Jedes Training bringt XP. Mit jedem Level steigst du durch die Ränge, und Erfolge schaltest du dauerhaft frei.',
+      text: 'Jedes Training bringt XP, gutgeschrieben am nächsten Tag, wenn der Trainingstag abgeschlossen ist. Mit jedem Level steigst du durch die Ränge, und Erfolge schaltest du dauerhaft frei.',
       points: [
         { icon: Layers, text: `+${XP_REWARDS.set} XP pro Satz` },
         { icon: Dumbbell, text: `+1 XP je ${XP_REWARDS.volumeKgPerXP} kg bewegtes Gewicht` },

@@ -7,6 +7,7 @@ import { muscleDistribution } from '../../lib/stats'
 import type { WorkoutLog } from '../../types/models'
 import { ChartCard, ChartEmpty } from './ChartCard'
 import { useChartTheme } from './chartTheme'
+import { settle } from '../../lib/motion'
 
 type Range = '7' | '30' | '90'
 type Scope = 'primary' | 'all'
@@ -27,7 +28,7 @@ export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; cl
   return (
     <ChartCard
       title="Muskelgruppen"
-      subtitle={scope === 'all' ? 'Sätze pro Muskelgruppe · Hilfsmuskeln zählen ½' : 'Sätze pro Muskelgruppe · nur Hauptmuskel'}
+      subtitle={scope === 'all' ? 'Sätze pro Muskelgruppe, Hilfsmuskeln zählen halb' : 'Sätze pro Muskelgruppe, nur der Hauptmuskel'}
       className={className}
       actions={<SegmentedControl label="Zeitraum" size="sm" value={range} onChange={setRange} options={RANGE_OPTIONS} />}
     >
@@ -35,7 +36,7 @@ export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; cl
         <ChartEmpty>Keine Trainings in den letzten {range} Tagen.</ChartEmpty>
       ) : (
         <ul className="flex-1 space-y-2.5">
-          {rows.map((row, index) => (
+          {rows.map((row) => (
             <li key={row.muscle} className="grid grid-cols-[96px_1fr_auto] items-center gap-3 text-[13px]">
               <span className="flex min-w-0 items-center gap-1.5 font-medium">
                 <span className={`size-2 shrink-0 rounded-full ${MUSCLE_GROUP_TINTS[row.muscle]}`} />
@@ -47,11 +48,11 @@ export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; cl
                   style={{ backgroundColor: theme.accent }}
                   initial={{ width: 0 }}
                   animate={{ width: `${(row.sets / max) * 100}%` }}
-                  transition={{ type: 'spring', stiffness: 120, damping: 20, delay: index * 0.03 }}
+                  transition={settle}
                 />
               </span>
               <span className="w-[76px] text-right tabular-nums text-muted">
-                <span className="font-semibold text-fg">{decimal.format(row.sets)}</span> · {Math.round(row.share * 100)} %
+                <span className="font-semibold text-fg">{decimal.format(row.sets)}</span> ({Math.round(row.share * 100)} %)
               </span>
             </li>
           ))}

@@ -9,6 +9,7 @@ import { useLogsInRange } from '../../hooks/useData'
 import { useDayDraft, type SyncState } from '../../hooks/useDayDraft'
 import { useSession } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
+import { settle } from '../../lib/motion'
 import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
 import { createEntry, createSet, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
@@ -81,15 +82,15 @@ export function DailyTracker() {
       <div className="mt-4 grid gap-4 lg:mt-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6">
         <div className="space-y-4 lg:col-start-1 lg:row-start-1">
           <div className="flex items-center justify-between px-1 pt-2">
-            <h2 className="text-[22px] font-bold tracking-tight">
+            <h2 className="headline text-[31px]">
               Übungen
-              <span className="ml-2 text-[17px] font-semibold text-muted tabular-nums">{entries.length}</span>
+              <span className="numeral ml-2 text-[20px] text-muted">{entries.length}</span>
             </h2>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setTemplatesOpen(true)}
-                className="flex items-center gap-2 rounded-full bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-surface-solid active:scale-95"
+                className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-surface-solid active:scale-95"
               >
                 <LayoutList className="size-4" strokeWidth={2.5} />
                 Vorlagen
@@ -97,7 +98,7 @@ export function DailyTracker() {
               <button
                 type="button"
                 onClick={() => setPickerOpen(true)}
-                className="hidden items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[14px] font-semibold text-accent-ink shadow-accent transition hover:brightness-105 active:scale-95 lg:flex"
+                className="hidden items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[14px] font-semibold text-accent-ink transition hover:brightness-105 active:scale-95 lg:flex"
               >
                 <Plus className="size-4" strokeWidth={3} />
                 Übung hinzufügen
@@ -109,16 +110,16 @@ export function DailyTracker() {
             {entries.length === 0 ? (
               <EmptyState isToday={date === todayKey()} onAdd={() => setPickerOpen(true)} onTemplates={() => setTemplatesOpen(true)} />
             ) : (
-              <m.ul layout className="space-y-3">
+              <ul className="space-y-3">
                 <AnimatePresence initial={false} mode="popLayout">
                   {entries.map((entry) => (
                     <m.li
                       key={entry.id}
-                      layout
-                      initial={{ opacity: 0, y: 24, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, x: -60, scale: 0.95, transition: { duration: 0.2 } }}
-                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                      layout="position"
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -60, transition: { duration: 0.18 } }}
+                      transition={settle}
                     >
                       <ExerciseEntryCard
                         entry={entry}
@@ -129,7 +130,7 @@ export function DailyTracker() {
                     </m.li>
                   ))}
                 </AnimatePresence>
-              </m.ul>
+              </ul>
             )}
           </Loadable>
         </div>
@@ -139,15 +140,15 @@ export function DailyTracker() {
           <div className="space-y-4 lg:sticky lg:top-10">
             <DaySummary entries={entries} />
             {suggestions.length > 0 && (
-              <section className="glass hidden rounded-3xl p-5 lg:block">
-                <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">Schnell hinzufügen</h2>
-                <ul className="mt-3 space-y-1">
+              <section className="hidden border-t border-line px-1 pt-5 lg:block">
+                <h2 className="text-[14px] font-semibold text-muted">Schnell hinzufügen</h2>
+                <ul className="-mx-3 mt-2">
                   {suggestions.map((exercise) => (
                     <li key={exercise.id}>
                       <button
                         type="button"
                         onClick={() => addExercise(exercise)}
-                        className="group flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left transition hover:bg-sunken"
+                        className="group flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-sunken"
                       >
                         <span className="min-w-0">
                           <span className="block truncate text-[15px] font-semibold tracking-tight">{exercise.name}</span>
@@ -155,7 +156,7 @@ export function DailyTracker() {
                             {exercise.defaultSets} × {exercise.defaultReps}
                           </span>
                         </span>
-                        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sunken transition group-hover:bg-accent group-hover:text-accent-ink">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken transition group-hover:bg-fg group-hover:text-bg">
                           <Plus className="size-4" strokeWidth={2.75} />
                         </span>
                       </button>
@@ -165,7 +166,7 @@ export function DailyTracker() {
                 <button
                   type="button"
                   onClick={() => setPickerOpen(true)}
-                  className="mt-2 w-full rounded-2xl py-2.5 text-[14px] font-semibold text-accent-fg transition hover:bg-accent/10"
+                  className="mt-2 text-[14px] font-semibold text-muted underline-offset-4 transition hover:text-fg hover:underline"
                 >
                   Gesamten Katalog öffnen
                 </button>
@@ -175,17 +176,14 @@ export function DailyTracker() {
         </aside>
       </div>
 
-      {/* Mobile floating action button above the tab bar. Portaled because the page
-          transition's transform/filter would otherwise become its containing block. */}
+      {/* Mobile floating action button above the tab bar. Portaled so it stays outside the
+          page transition's fading wrapper and sits still while tabs change. */}
       {createPortal(
       <m.button
         type="button"
         onClick={() => setPickerOpen(true)}
         whileTap={{ scale: 0.92 }}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 22, delay: 0.15 }}
-        className="fixed bottom-[calc(env(safe-area-inset-bottom)+100px)] right-5 z-30 flex items-center gap-2 rounded-full bg-accent py-4 pl-5 pr-6 text-[15px] font-semibold text-accent-ink shadow-[var(--shadow-accent),var(--shadow-float)] lg:hidden"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+84px)] right-4 z-30 flex items-center gap-2 rounded-xl bg-accent py-4 pl-5 pr-6 text-[15px] font-semibold text-accent-ink shadow-float lg:hidden"
         aria-label="Übung hinzufügen"
       >
         <Plus className="size-5" strokeWidth={3} />
@@ -213,7 +211,6 @@ function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDat
   return (
     <header className="flex items-end justify-between gap-4">
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">{formatFullDate(date)}</p>
         <AnimatePresence mode="wait" initial={false}>
           <m.h1
             key={date}
@@ -221,18 +218,19 @@ function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDat
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="mt-1 truncate text-[34px] font-bold leading-none tracking-tight lg:text-[44px]"
+            className="headline text-[39px] lg:text-[49px] truncate"
           >
             {relativeDayLabel(date)}
           </m.h1>
         </AnimatePresence>
+        <p className="mt-2 text-[15px] text-muted">{formatFullDate(date)}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <SyncBadge state={syncState} />
         <button
           type="button"
           onClick={toggle}
-          className="glass grid size-10 place-items-center rounded-full text-muted transition hover:text-fg active:scale-90 lg:hidden"
+          className="grid size-10 place-items-center rounded-xl bg-sunken text-muted transition hover:text-fg active:scale-90 lg:hidden"
           aria-label="Farbschema wechseln"
         >
           {isDark ? <Moon className="size-4.5" /> : <Sun className="size-4.5" />}
@@ -240,7 +238,7 @@ function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDat
         <button
           type="button"
           onClick={() => dateInput.current?.showPicker()}
-          className="glass relative grid size-10 place-items-center rounded-full text-muted transition hover:text-fg active:scale-90"
+          className="relative grid size-10 place-items-center rounded-xl bg-sunken text-muted transition hover:text-fg active:scale-90"
           aria-label="Datum wählen"
         >
           <CalendarDays className="size-4.5" />
@@ -274,7 +272,7 @@ function SyncBadge({ state }: { state: SyncState }) {
       key={config.label}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`glass hidden h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium sm:flex ${
+      className={`hidden h-10 items-center gap-1.5 px-1 text-[13px] font-medium sm:flex ${
         state === 'error' ? 'text-danger' : 'text-muted'
       }`}
       role="status"
@@ -287,18 +285,11 @@ function SyncBadge({ state }: { state: SyncState }) {
 
 function EmptyState({ isToday, onAdd, onTemplates }: { isToday: boolean; onAdd: () => void; onTemplates: () => void }) {
   return (
-    <m.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="glass flex flex-col items-center rounded-3xl px-6 py-12 text-center"
-    >
-      <div className="relative">
-        <div className="absolute inset-0 rounded-full bg-accent/40 blur-2xl" />
-        <div className="relative grid size-16 place-items-center rounded-full bg-accent text-accent-ink shadow-accent">
-          <Dumbbell className="size-7" strokeWidth={2.25} />
-        </div>
+    <div className="glass flex flex-col items-center rounded-3xl px-6 py-12 text-center">
+      <div className="grid size-16 place-items-center rounded-full bg-accent text-accent-ink">
+        <Dumbbell className="size-7" strokeWidth={2.25} />
       </div>
-      <h3 className="mt-5 text-[20px] font-bold tracking-tight">
+      <h3 className="headline mt-5 text-[25px]">
         {isToday ? 'Bereit fürs Training?' : 'An diesem Tag ist nichts eingetragen'}
       </h3>
       <p className="mt-1.5 max-w-xs text-[15px] text-muted">
@@ -308,7 +299,7 @@ function EmptyState({ isToday, onAdd, onTemplates }: { isToday: boolean; onAdd: 
         <button
           type="button"
           onClick={onAdd}
-          className="flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink shadow-accent transition active:scale-95"
+          className="flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink transition active:scale-95"
         >
           <Plus className="size-4.5" strokeWidth={3} />
           Übung hinzufügen
@@ -316,13 +307,13 @@ function EmptyState({ isToday, onAdd, onTemplates }: { isToday: boolean; onAdd: 
         <button
           type="button"
           onClick={onTemplates}
-          className="flex items-center gap-2 rounded-full bg-sunken px-5 py-3 text-[15px] font-semibold transition hover:bg-surface-solid active:scale-95"
+          className="flex items-center gap-2 rounded-xl bg-sunken px-5 py-3 text-[15px] font-semibold transition hover:bg-surface-solid active:scale-95"
         >
           <LayoutList className="size-4.5" strokeWidth={2.5} />
           Vorlage verwenden
         </button>
       </div>
-    </m.div>
+    </div>
   )
 }
 

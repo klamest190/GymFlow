@@ -55,7 +55,7 @@ export function ExerciseProgress({ logs, className = '' }: { logs: WorkoutLog[];
       ) : (
         <>
           <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-[26px] font-bold leading-none tracking-tight tabular-nums">{format(latest.value)}</span>
+            <span className="numeral text-[31px] leading-none">{format(latest.value)}</span>
             <span className="text-[13px] text-muted">Letztes Training: {formatDaysAgo(latest.date)}</span>
             {change !== null && change !== 0 && (
               <span

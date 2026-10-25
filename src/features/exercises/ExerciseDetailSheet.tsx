@@ -43,13 +43,13 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
       open={exercise !== null}
       onClose={onClose}
       title={shown.name}
-      subtitle={meta.join(' · ')}
+      subtitle={meta.join(', ')}
       footer={
         <button
           type="button"
           disabled={addedToday}
           onClick={() => onAddToToday(shown)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
         >
           {addedToday ? <Check className="size-4.5" strokeWidth={3} /> : <Plus className="size-4.5" strokeWidth={3} />}
           {addedToday ? 'Heute eingetragen' : 'Zu heute hinzufügen'}
@@ -158,7 +158,6 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-sunken">
-      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,var(--glow-a),transparent_60%)]" />
       <div className="relative flex justify-center px-4 pt-3">
         <div role="group" aria-label="Blickwinkel" className="flex rounded-full bg-surface-solid/70 p-0.5 text-[12px] font-semibold shadow-soft">
           {views.map((view) => {
@@ -180,7 +179,7 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
       <div
         tabIndex={0}
         aria-label="Figur drehen: ziehen oder Pfeiltasten"
-        className="relative mx-auto aspect-square w-full max-w-72 cursor-grab touch-pan-y rounded-3xl outline-none select-none focus-visible:ring-2 focus-visible:ring-accent/70 active:cursor-grabbing"
+        className="relative mx-auto aspect-square w-full max-w-72 cursor-grab touch-pan-y rounded-3xl outline-none select-none focus-visible:ring-2 focus-visible:ring-fg/40 active:cursor-grabbing"
         onPointerDown={(event) => {
           glide.current?.stop()
           drag.current = { x: event.clientX, yaw }
@@ -240,7 +239,7 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="min-w-0 rounded-2xl bg-sunken p-3">
-      <div className="truncate text-[20px] font-bold tracking-tight tabular-nums">{value}</div>
+      <div className="numeral truncate text-[25px] leading-none">{value}</div>
       <div className="mt-0.5 truncate text-[12px] font-medium text-muted">{label}</div>
     </div>
   )
@@ -249,7 +248,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">{title}</h3>
+      <h3 className="mb-2 px-1 text-[13px] font-semibold text-muted">{title}</h3>
       {children}
     </section>
   )

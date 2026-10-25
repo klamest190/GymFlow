@@ -1,6 +1,7 @@
 import { AnimatePresence, m } from 'framer-motion'
 import { Check, ChevronDown } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { snap } from '../../lib/motion'
 
 export interface SelectOption<T extends string> {
   value: T
@@ -104,13 +105,13 @@ export function Select<T extends string>({ value, onChange, options, label, clas
         aria-activedescendant={open ? `${listId}-${activeIndex}` : undefined}
         onClick={() => (open ? close() : openList())}
         onKeyDown={onKeyDown}
-        className={`flex w-full items-center gap-2 rounded-2xl bg-sunken px-3.5 py-2.5 text-left text-[14px] font-semibold transition-shadow ${
-          open ? 'ring-2 ring-accent' : 'hover:ring-1 hover:ring-line'
+        className={`flex w-full items-center gap-2 rounded-xl bg-sunken px-3.5 py-2.5 text-left text-[14px] font-semibold transition-shadow ${
+          open ? 'ring-2 ring-fg/40' : 'hover:ring-1 hover:ring-line'
         }`}
       >
         {selected?.leading}
         <span className="min-w-0 flex-1 truncate">{selected?.label}</span>
-        <m.span animate={{ rotate: open ? 180 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 30 }}>
+        <m.span animate={{ rotate: open ? 180 : 0 }} transition={snap}>
           <ChevronDown className="size-4 text-muted" strokeWidth={2.5} />
         </m.span>
       </button>
@@ -121,11 +122,11 @@ export function Select<T extends string>({ value, onChange, options, label, clas
             id={listId}
             role="listbox"
             aria-label={label}
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.12 } }}
-            transition={{ type: 'spring', stiffness: 520, damping: 34 }}
-            className="absolute right-0 top-full z-40 mt-2 max-h-72 w-full min-w-56 origin-top overflow-y-auto rounded-2xl border border-line bg-surface-solid p-1.5 shadow-float"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.12 } }}
+            transition={snap}
+            className="absolute right-0 top-full z-40 mt-2 max-h-72 w-full min-w-56 origin-top overflow-y-auto rounded-xl border border-line bg-surface-solid p-1.5 shadow-float"
           >
             {options.map((option, index) => {
               const isSelected = option.value === value

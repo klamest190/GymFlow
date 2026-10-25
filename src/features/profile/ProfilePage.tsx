@@ -1,6 +1,7 @@
 import { m } from 'framer-motion'
 import { Check, Download, KeyRound, LoaderCircle, LogOut, PlayCircle, Share, Smartphone } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { snap } from '../../lib/motion'
 import { useBodyWeights } from '../../hooks/useData'
 import { useAuth, useSession } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
@@ -38,8 +39,7 @@ export function ProfilePage() {
   return (
     <div className="mx-auto max-w-3xl">
       <header>
-        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">Einstellungen</p>
-        <h1 className="mt-1 text-[34px] font-bold leading-none tracking-tight lg:text-[44px]">Profil</h1>
+        <h1 className="headline text-[39px] lg:text-[49px]">Profil</h1>
       </header>
 
       <div className="mt-6 space-y-4 lg:mt-8">
@@ -49,7 +49,7 @@ export function ProfilePage() {
 
         <BodyWeightCard entries={bodyWeights} />
 
-        <Card title="Wochenziel" description="An wie vielen Tagen pro Woche willst du trainieren? Der Fortschritt erscheint als Ring in der Statistik.">
+        <Card title="Wochenziel" description="An wie vielen Tagen pro Woche willst du trainieren? Dein Fortschritt erscheint in der Statistik unter „Diese Woche“.">
           <div className="grid grid-cols-7 gap-1.5 rounded-2xl bg-sunken p-1.5" role="radiogroup" aria-label="Trainingstage pro Woche">
             {GOAL_OPTIONS.map((days) => {
               const active = profile.weeklyGoalDays === days
@@ -61,14 +61,14 @@ export function ProfilePage() {
                   aria-checked={active}
                   onClick={() => setGoal(days)}
                   className={`relative rounded-xl py-2.5 text-[16px] font-bold tabular-nums transition-colors ${
-                    active ? 'text-accent-ink' : 'text-muted hover:text-fg'
+                    active ? 'text-bg' : 'text-muted hover:text-fg'
                   }`}
                 >
                   {active && (
                     <m.span
                       layoutId="goal-active"
-                      className="absolute inset-0 rounded-xl bg-accent shadow-accent"
-                      transition={{ type: 'spring', stiffness: 520, damping: 38 }}
+                      className="absolute inset-0 rounded-xl bg-fg"
+                      transition={snap}
                     />
                   )}
                   <span className="relative">{days}</span>
@@ -104,7 +104,7 @@ export function ProfilePage() {
           <button
             type="button"
             onClick={replayOnboarding}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sunken py-3 text-[15px] font-semibold transition hover:bg-surface-solid"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-sunken py-3 text-[15px] font-semibold transition hover:bg-surface-solid"
           >
             <PlayCircle className="size-4.5" />
             Einführung ansehen
@@ -112,7 +112,7 @@ export function ProfilePage() {
         </Card>
 
         <p className="px-1 pt-2 text-center text-[12px] text-muted">
-          GymFlow · {EXERCISES.length} Übungen im Katalog ·{' '}
+          GymFlow mit {EXERCISES.length} Übungen im Katalog.{' '}
           {repository.mode === 'firebase' ? 'Cloud-Sync aktiv' : 'Demo-Modus (lokal)'}
         </p>
       </div>
@@ -190,7 +190,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className={`flex items-center justify-center gap-2 rounded-2xl bg-sunken py-3 text-[15px] font-semibold transition hover:bg-surface-solid disabled:opacity-60 ${
+      className={`flex items-center justify-center gap-2 rounded-xl bg-sunken py-3 text-[15px] font-semibold transition hover:bg-surface-solid disabled:opacity-60 ${
         danger ? 'text-danger' : ''
       }`}
     >
@@ -214,7 +214,7 @@ function DumbbellCard() {
 
   return (
     <Card title="Meine Kurzhanteln" description="Mit diesem Gewicht je Hantel starten neue Übungen. Im Tracker kannst du es für jeden Satz anpassen.">
-      <div className="flex items-center justify-between gap-4 rounded-2xl bg-sunken px-4 py-3">
+      <div className="flex items-center justify-between gap-4 rounded-xl bg-sunken px-4 py-3">
         <span className="text-[15px] font-medium">kg je Hantel</span>
         <NumberStepper label="Gewicht je Hantel" value={profile.dumbbellKg} step={1} min={0.5} max={50} onChange={save} />
       </div>
@@ -243,7 +243,7 @@ function InstallCard() {
             await install.install()
             setInstalling(false)
           }}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-3 text-[15px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-[15px] font-semibold text-accent-ink transition active:scale-[0.98]"
         >
           <Download className="size-4.5" strokeWidth={2.5} />
           Als App installieren

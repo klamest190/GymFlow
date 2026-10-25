@@ -10,8 +10,9 @@ import { getExercise } from '../../data/exercises'
 import { DIFFICULTY_LABELS, EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { EXERCISE_HISTORY_DAYS, FILTERABLE_MUSCLES, useExercises, type MuscleFilter } from '../../hooks/useExercises'
 import { formatDaysAgo } from '../../lib/dates'
+import { fade } from '../../lib/motion'
 import type { ExerciseSession } from '../../lib/exerciseHistory'
-import type { Exercise } from '../../types/models'
+import type { DateKey, Exercise } from '../../types/models'
 import { ExerciseAnimation } from './animation/ExerciseAnimation'
 import { EXERCISE_ANIMATIONS } from './animation/poses'
 import { ExerciseDetailSheet } from './ExerciseDetailSheet'
@@ -41,14 +42,14 @@ export function ExerciseCatalog() {
   return (
     <div className="mx-auto max-w-6xl">
       <header>
-        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">
-          {catalog.isFiltered ? `${catalog.exercises.length} von ${catalog.totalCount}` : catalog.totalCount} Übungen
+        <h1 className="headline text-[39px] lg:text-[49px]">Übungen</h1>
+        <p className="mt-2 text-[15px] text-muted">
+          {catalog.isFiltered ? `${catalog.exercises.length} von ${catalog.totalCount}` : catalog.totalCount} Übungen im Katalog
         </p>
-        <h1 className="mt-1 text-[34px] font-bold leading-none tracking-tight lg:text-[44px]">Übungen</h1>
       </header>
 
       <div className="glass mt-5 space-y-3 rounded-3xl p-3 lg:mt-8 lg:p-4">
-        <label className="flex items-center gap-2.5 rounded-2xl bg-sunken px-3.5 py-3 transition-shadow focus-within:ring-2 focus-within:ring-accent">
+        <label className="flex items-center gap-2.5 rounded-xl bg-sunken px-3.5 py-3 transition-shadow focus-within:ring-2 focus-within:ring-fg/40">
           <Search className="size-4.5 shrink-0 text-muted" />
           <input
             value={catalog.search}
@@ -96,18 +97,15 @@ export function ExerciseCatalog() {
       >
         <AnimatePresence mode="wait" initial={false}>
           {catalog.exercises.length > 0 ? (
-            <m.ul key="list" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <AnimatePresence>
-                {catalog.exercises.map((exercise, index) => (
-                  <ExerciseCard
-                    key={exercise.id}
-                    index={index}
-                    exercise={exercise}
-                    sessions={catalog.sessionsOf(exercise.id)}
-                    onClick={() => setSelectedId(exercise.id)}
-                  />
-                ))}
-              </AnimatePresence>
+            <m.ul key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fade} className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {catalog.exercises.map((exercise) => (
+                <ExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  sessions={catalog.sessionsOf(exercise.id)}
+                  onClick={() => setSelectedId(exercise.id)}
+                />
+              ))}
             </m.ul>
           ) : (
             <EmptyState key="empty" hasSearch={catalog.search.trim() !== ''} onReset={catalog.resetFilters} />
@@ -127,93 +125,65 @@ export function ExerciseCatalog() {
   )
 }
 
-const cardMotion = {
-  rest: { scale: 1, y: 0 },
-  hover: { scale: 1.02, y: -2 },
-  tap: { scale: 0.98, y: 0 },
+/** "heute", "gestern", "vor 3 Tagen", "12. Okt.": reads after "Zuletzt". */
+const lastLabel = (date: DateKey) => {
+  const label = formatDaysAgo(date)
+  return label === 'Heute' || label === 'Gestern' ? label.toLowerCase() : label
 }
-/** The bigger hover shadow fades in on its own layer: animating opacity is smoother than box-shadow. */
-const shadowMotion = { rest: { opacity: 0 }, hover: { opacity: 1 }, tap: { opacity: 0.4 } }
-const spring = { type: 'spring', stiffness: 400, damping: 28 } as const
 
-function ExerciseCard({
-  exercise,
-  sessions,
-  index,
-  onClick,
-}: {
-  exercise: Exercise
-  sessions: ExerciseSession[]
-  index: number
-  onClick: () => void
-}) {
+/**
+ * Catalog card. No layout animation and no hover lift: cards stay where they are, and the figure
+ * demonstrating the movement on hover/focus is the only thing that moves.
+ */
+function ExerciseCard({ exercise, sessions, onClick }: { exercise: Exercise; sessions: ExerciseSession[]; onClick: () => void }) {
   const last = sessions[0]
   // The figure stands still in the list (calm) and only demonstrates the movement on hover/focus.
   const [active, setActive] = useState(false)
   return (
-    <m.li
-      layout
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0, transition: { delay: Math.min(index, 8) * 0.04, ...spring } }}
-      exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
-      transition={spring}
-    >
-      <m.button
+    <m.li initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={fade}>
+      <button
         type="button"
         onClick={onClick}
-        onHoverStart={() => setActive(true)}
-        onHoverEnd={() => setActive(false)}
+        onPointerEnter={(event) => event.pointerType === 'mouse' && setActive(true)}
+        onPointerLeave={() => setActive(false)}
         onFocus={() => setActive(true)}
         onBlur={() => setActive(false)}
-        variants={cardMotion}
-        initial="rest"
-        animate="rest"
-        whileHover="hover"
-        whileTap="tap"
-        transition={spring}
-        className="glass relative flex h-full w-full flex-col rounded-3xl p-5 text-left"
+        className="glass flex h-full w-full flex-col rounded-3xl p-5 text-left transition-colors duration-150 hover:border-fg/25 active:bg-sunken"
       >
-        <m.span
-          aria-hidden
-          variants={shadowMotion}
-          transition={{ duration: 0.25 }}
-          className="pointer-events-none absolute inset-0 rounded-3xl shadow-float"
-        />
         <div className="flex w-full gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex w-full items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">
+              <span className="flex items-center gap-1.5 text-[13px] font-medium text-muted">
                 <span className={`size-2 rounded-full ${MUSCLE_GROUP_TINTS[exercise.primaryMuscle]}`} />
                 {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]}
               </span>
-              <span className="rounded-full bg-sunken px-2.5 py-1 text-[11px] font-semibold text-muted">
+              <span className="rounded-md bg-sunken px-2 py-0.5 text-[12px] font-medium text-muted">
                 {DIFFICULTY_LABELS[exercise.difficulty]}
               </span>
             </div>
-            <h3 className="mt-2 text-[18px] font-semibold leading-snug tracking-tight">{exercise.name}</h3>
-            <p className="mt-1 line-clamp-2 min-h-[2lh] text-[14px] leading-snug text-muted">{exercise.description}</p>
+            <h3 className="headline mt-2.5 text-[25px]">{exercise.name}</h3>
+            <p className="mt-1.5 line-clamp-2 min-h-[2lh] text-[14px] leading-snug text-muted">{exercise.description}</p>
           </div>
           {exercise.id in EXERCISE_ANIMATIONS && (
-            <span className="relative size-22 shrink-0 self-center overflow-hidden rounded-2xl bg-sunken">
+            <span className="relative size-22 shrink-0 self-center overflow-hidden rounded-xl bg-sunken">
               <ExerciseAnimation exerciseId={exercise.id} playing={active} compact label={`Ausführung: ${exercise.name}`} />
             </span>
           )}
         </div>
-        <div className="mt-4 flex w-full items-center justify-between gap-2 border-t border-line pt-3 text-[13px]">
-          <span className="font-semibold tabular-nums">
-            {exercise.defaultSets} × {exercise.defaultReps}
-            <span className="font-normal text-muted"> · {EQUIPMENT_LABELS[exercise.equipment]}</span>
+        <div className="mt-4 flex w-full items-baseline justify-between gap-2 border-t border-line pt-3 text-[13px]">
+          <span className="flex items-baseline gap-2">
+            <span className="numeral text-[17px]">
+              {exercise.defaultSets} × {exercise.defaultReps}
+            </span>
+            <span className="text-muted">{EQUIPMENT_LABELS[exercise.equipment]}</span>
           </span>
           {last ? (
-            <span className="flex items-center gap-1.5 font-medium text-accent-fg">
-              <span className="size-1.5 rounded-full bg-accent-fg" />
-              {formatDaysAgo(last.date)}
-            </span>
+            <span className="font-medium">Zuletzt {lastLabel(last.date)}</span>
           ) : (
             <span className="text-muted">Noch nicht trainiert</span>
           )}
         </div>
-      </m.button>
+      </button>
     </m.li>
   )
 }
@@ -245,21 +215,16 @@ function ExerciseCardSkeleton() {
 function EmptyState({ hasSearch, onReset }: { hasSearch: boolean; onReset: () => void }) {
   return (
     <m.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.15 } }}
-      transition={spring}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={fade}
       className="glass mt-6 flex flex-col items-center rounded-3xl px-6 py-14 text-center"
     >
-      <m.span
-        initial={{ scale: 0.6, rotate: -12 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 14, delay: 0.05 }}
-        className="grid size-16 place-items-center rounded-full bg-sunken"
-      >
+      <span className="grid size-16 place-items-center rounded-full bg-sunken">
         <SearchX className="size-7 text-muted" />
-      </m.span>
-      <h2 className="mt-4 text-[18px] font-bold tracking-tight">Keine Übung gefunden</h2>
+      </span>
+      <h2 className="headline mt-4 text-[25px]">Keine Übung gefunden</h2>
       <p className="mt-1 max-w-xs text-[15px] text-muted">
         {hasSearch ? 'Versuche einen anderen Suchbegriff oder eine andere Muskelgruppe.' : 'Für diese Muskelgruppe gibt es keine Übung.'}
       </p>
@@ -267,7 +232,7 @@ function EmptyState({ hasSearch, onReset }: { hasSearch: boolean; onReset: () =>
         type="button"
         onClick={onReset}
         whileTap={{ scale: 0.96 }}
-        className="mt-5 flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[14px] font-semibold text-accent-ink shadow-accent"
+        className="mt-5 flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[14px] font-semibold text-accent-ink"
       >
         <RotateCcw className="size-4" strokeWidth={2.5} />
         Filter zurücksetzen

@@ -32,9 +32,9 @@ export function NoAccessScreen({ email, reason }: { email: string | null; reason
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-danger/12 text-danger">
           <Icon className="size-7" />
         </span>
-        <h1 className="mt-5 text-[24px] font-bold tracking-tight">{title}</h1>
+        <h1 className="headline mt-5 text-[31px]">{title}</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted">{text}</p>
-        {email && <p className="mt-4 rounded-2xl bg-sunken px-4 py-2.5 text-[14px] font-medium">{email}</p>}
+        {email && <p className="mt-4 rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-medium">{email}</p>}
         <button
           type="button"
           disabled={busy}

@@ -2,6 +2,7 @@ import { AnimatePresence, m } from 'framer-motion'
 import { CircleAlert, CircleCheck, Info, Sparkles, X } from 'lucide-react'
 import { useCallback, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { easeOut, settle, snap } from '../../lib/motion'
 import { ToastContext, type Toast, type ToastTone } from './toastContext'
 
 const DURATION_MS = 4500
@@ -9,13 +10,13 @@ const REWARD_DURATION_MS = 6500
 const MAX_VISIBLE = 3
 
 const TONES: Record<ToastTone, { icon: typeof Info; className: string }> = {
-  success: { icon: CircleCheck, className: 'bg-accent text-accent-ink' },
+  success: { icon: CircleCheck, className: 'bg-fg text-bg' },
   error: { icon: CircleAlert, className: 'bg-danger text-white' },
   info: { icon: Info, className: 'bg-sunken text-fg' },
-  reward: { icon: Sparkles, className: 'bg-accent text-accent-ink shadow-accent' },
+  reward: { icon: Sparkles, className: 'bg-accent text-accent-ink' },
 }
 
-/** Glass toasts: top of the screen on phones (clear of the tab bar), bottom right on desktop. */
+/** Toasts on a steel surface (rewards on graphite): top of the screen on phones (clear of the tab bar), bottom right on desktop. */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -46,39 +47,42 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               return (
                 <m.div
                   key={toast.id}
-                  layout
-                  initial={{ opacity: 0, y: -16, scale: reward ? 0.9 : 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
-                  transition={{ type: 'spring', stiffness: reward ? 320 : 420, damping: reward ? 22 : 32 }}
+                  layout="position"
+                  initial={{ opacity: 0, y: -12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, transition: { duration: 0.14 } }}
+                  transition={settle}
                   role={toast.tone === 'error' ? 'alert' : 'status'}
-                  className={`glass pointer-events-auto relative flex w-full max-w-sm items-start gap-3 overflow-hidden rounded-2xl p-3.5 pr-2.5 shadow-float ${
-                    reward ? 'ring-1 ring-accent/50' : ''
+                  className={`pointer-events-auto relative flex w-full max-w-sm items-start gap-3 overflow-hidden rounded-2xl border p-3.5 pr-2.5 shadow-float ${
+                    reward ? 'border-white/10 bg-accent-ink text-white' : 'border-line bg-surface-solid'
                   }`}
                 >
-                  {reward && <RewardSweep />}
                   <span className={`relative grid size-8 shrink-0 place-items-center rounded-full ${tone.className}`}>
                     {reward && <RewardPulse />}
                     <m.span
                       className="relative"
-                      initial={reward ? { scale: 0.3, rotate: -30 } : false}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 380, damping: 14, delay: 0.1 }}
+                      initial={reward ? { scale: 0.4 } : false}
+                      animate={{ scale: 1 }}
+                      transition={{ ...snap, delay: 0.08 }}
                     >
                       <Icon className="size-4.5" strokeWidth={2.5} />
                     </m.span>
                   </span>
                   <div className="relative min-w-0 flex-1 pt-0.5">
                     {toast.eyebrow && (
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-accent-fg">{toast.eyebrow}</p>
+                      <p className={`text-[12px] font-semibold ${reward ? 'text-accent' : 'text-muted'}`}>{toast.eyebrow}</p>
                     )}
-                    <p className="text-[14px] font-semibold leading-snug">{toast.title}</p>
-                    {toast.description && <p className="mt-0.5 text-[13px] leading-snug text-muted">{toast.description}</p>}
+                    <p className="text-[15px] font-semibold leading-snug">{toast.title}</p>
+                    {toast.description && (
+                      <p className={`mt-0.5 text-[13px] leading-snug ${reward ? 'text-white/65' : 'text-muted'}`}>{toast.description}</p>
+                    )}
                   </div>
                   <button
                     type="button"
                     onClick={() => dismiss(toast.id)}
-                    className="relative grid size-7 shrink-0 place-items-center rounded-full text-muted transition hover:bg-sunken hover:text-fg"
+                    className={`relative grid size-7 shrink-0 place-items-center rounded-lg transition ${
+                      reward ? 'text-white/60 hover:bg-white/10 hover:text-white' : 'text-muted hover:bg-sunken hover:text-fg'
+                    }`}
                     aria-label="Hinweis schließen"
                   >
                     <X className="size-3.5" strokeWidth={2.5} />
@@ -94,20 +98,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 }
 
-/** One band of light sweeping across the card. */
-function RewardSweep() {
-  return (
-    <m.span
-      aria-hidden
-      className="pointer-events-none absolute inset-y-0 left-0 w-1/2 -skew-x-12 bg-linear-to-r from-transparent via-accent/30 to-transparent"
-      initial={{ x: '-120%' }}
-      animate={{ x: '260%' }}
-      transition={{ duration: 1.2, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-    />
-  )
-}
-
-/** Accent ring expanding out of the icon, twice. */
+/** Accent ring expanding out of the icon once: the single celebratory moment. */
 function RewardPulse() {
   return (
     <m.span
@@ -115,7 +106,7 @@ function RewardPulse() {
       className="absolute inset-0 rounded-full bg-accent"
       initial={{ scale: 1, opacity: 0.6 }}
       animate={{ scale: 2.2, opacity: 0 }}
-      transition={{ duration: 1.1, repeat: 1, ease: 'easeOut' }}
+      transition={{ duration: 0.9, ease: easeOut }}
     />
   )
 }

@@ -109,7 +109,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
         <div className="flex items-center gap-4">
           <UserAvatar user={shown} size="lg" />
           <div className="min-w-0">
-            <p className="truncate text-[20px] font-bold tracking-tight">{shown.displayName}</p>
+            <p className="headline truncate text-[25px]">{shown.displayName}</p>
             <p className="truncate text-[14px] text-muted">
               {shown.username && <span className="font-medium text-fg/80">@{shown.username} · </span>}
               {shown.email}
@@ -129,7 +129,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && void saveName()}
               maxLength={60}
-              className="min-w-0 flex-1 rounded-2xl bg-sunken px-4 py-3 text-[16px] outline-none ring-accent/70 focus:ring-2"
+              className="min-w-0 flex-1 rounded-xl bg-sunken px-4 py-3 text-[16px] outline-none ring-fg/40 focus:ring-2"
             />
             <AnimatePresence>
               {nameChanged && (
@@ -140,7 +140,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                   exit={{ opacity: 0, scale: 0.9 }}
                   onClick={saveName}
                   disabled={busy === 'name'}
-                  className="flex items-center gap-2 rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-ink"
+                  className="flex items-center gap-2 rounded-xl bg-accent px-4 text-[15px] font-semibold text-accent-ink"
                 >
                   {busy === 'name' && <LoaderCircle className="size-4 animate-spin" />}
                   Speichern
@@ -171,7 +171,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="min-w-0 flex-1 rounded-2xl bg-sunken px-4 py-3 text-[16px] outline-none ring-accent/70 focus:ring-2"
+              className="min-w-0 flex-1 rounded-xl bg-sunken px-4 py-3 text-[16px] outline-none ring-fg/40 focus:ring-2"
             />
             <AnimatePresence>
               {usernameChanged && (
@@ -182,7 +182,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                   exit={{ opacity: 0, scale: 0.9 }}
                   onClick={saveUsername}
                   disabled={busy === 'username'}
-                  className="flex items-center gap-2 rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-ink"
+                  className="flex items-center gap-2 rounded-xl bg-accent px-4 text-[15px] font-semibold text-accent-ink"
                 >
                   {busy === 'username' && <LoaderCircle className="size-4 animate-spin" />}
                   Speichern
@@ -258,7 +258,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
               type="button"
               onClick={sendReset}
               disabled={busy === 'reset'}
-              className="flex w-full items-center gap-3 rounded-2xl bg-sunken px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-surface-solid disabled:opacity-60"
+              className="flex w-full items-center gap-3 rounded-xl bg-sunken px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-surface-solid disabled:opacity-60"
             >
               {busy === 'reset' ? <LoaderCircle className="size-4.5 animate-spin text-muted" /> : <KeyRound className="size-4.5 text-muted" />}
               Link zum Zurücksetzen des Passworts senden
@@ -307,7 +307,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">{title}</h3>
+      <h3 className="mb-2 px-1 text-[13px] font-semibold text-muted">{title}</h3>
       {children}
       {hint && <p className="mt-2 px-1 text-[13px] leading-relaxed text-muted">{hint}</p>}
     </section>

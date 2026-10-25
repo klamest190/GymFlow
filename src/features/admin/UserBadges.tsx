@@ -9,14 +9,14 @@ const initials = (user: Pick<UserProfile, 'displayName' | 'email'>) =>
     .map((part) => part[0]?.toUpperCase())
     .join('')
 
-/** Initials avatar; admins get the accent fill. */
+/** Initials avatar; admins get the graphite fill. */
 export function UserAvatar({ user, size = 'md' }: { user: UserProfile; size?: 'md' | 'lg' }) {
   const admin = user.role === 'admin'
   return (
     <span
-      className={`grid shrink-0 place-items-center rounded-full font-bold tracking-tight ${
-        size === 'lg' ? 'size-16 text-[22px]' : 'size-10 text-[14px]'
-      } ${admin ? 'bg-accent text-accent-ink' : 'bg-sunken text-fg'} ${user.status === 'disabled' ? 'opacity-50' : ''}`}
+      className={`grid shrink-0 place-items-center headline rounded-full ${
+        size === 'lg' ? 'size-16 text-[25px]' : 'size-10 text-[16px]'
+      } ${admin ? 'bg-fg text-bg' : 'bg-sunken text-fg'} ${user.status === 'disabled' ? 'opacity-50' : ''}`}
       aria-hidden
     >
       {initials(user)}
@@ -27,7 +27,7 @@ export function UserAvatar({ user, size = 'md' }: { user: UserProfile; size?: 'm
 export function RoleBadge({ role }: { role: UserProfile['role'] }) {
   if (role === 'admin') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-[12px] font-semibold text-accent-fg">
+      <span className="inline-flex items-center gap-1 rounded-full bg-fg px-2.5 py-1 text-[12px] font-semibold text-bg">
         <Crown className="size-3" strokeWidth={2.5} />
         Admin
       </span>

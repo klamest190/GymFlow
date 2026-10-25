@@ -55,13 +55,12 @@ export function WeeklyRecapCard() {
           aria-label="Wochenrückblick"
         >
           <div className="glass relative mt-5 overflow-hidden rounded-3xl p-4 sm:p-5 lg:mt-6">
-            <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-(--glow-a) blur-3xl" />
             <div className="relative flex items-start justify-between gap-3">
               <div>
-                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">
-                  Wochenrückblick · KW {isoWeek(recap.weekStart)} · {formatDayMonth(recap.weekStart)}–{formatDayMonth(addDays(recap.weekStart, 6))}
+                <p className="text-[13px] font-semibold text-muted">
+                  Rückblick auf KW {isoWeek(recap.weekStart)}, {formatDayMonth(recap.weekStart)}–{formatDayMonth(addDays(recap.weekStart, 6))}
                 </p>
-                <h2 className="mt-1 text-[20px] font-bold leading-tight tracking-tight">
+                <h2 className="headline mt-1.5 text-[25px]">
                   {recap.goalReached
                     ? `Wochenziel geschafft: ${recap.week.days} von ${recap.goalDays} Tagen`
                     : recap.week.days === 0

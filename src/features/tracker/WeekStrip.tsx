@@ -1,7 +1,8 @@
 import { AnimatePresence, m } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { addDays, dayOfMonth, formatMonth, formatWeekday, todayKey, weekDays } from '../../lib/dates'
+import { addDays, dayOfMonth, formatFullDate, formatMonth, formatWeekday, todayKey, weekDays } from '../../lib/dates'
+import { settle, snap } from '../../lib/motion'
 import type { DateKey } from '../../types/models'
 
 interface WeekStripProps {
@@ -28,8 +29,8 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
   }
 
   return (
-    <section className="glass rounded-3xl p-3 sm:p-4" aria-label="Woche auswählen">
-      <div className="mb-2 flex items-center justify-between px-1.5">
+    <section className="border-y border-line py-3" aria-label="Woche auswählen">
+      <div className="mb-1 flex items-center justify-between px-1.5">
         <span className="text-[15px] font-semibold capitalize tracking-tight">{formatMonth(days[0])}</span>
         <div className="flex gap-1">
           <ChevronButton label="Vorherige Woche" onClick={() => shiftWeek(-1)}>
@@ -64,7 +65,7 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+            transition={settle}
             className="grid grid-cols-7 gap-1"
           >
             {days.map((day) => {
@@ -78,36 +79,23 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
                   type="button"
                   disabled={isFuture}
                   onClick={() => onSelect(day)}
-                  className="relative flex flex-col items-center gap-1 rounded-2xl py-2.5 transition-opacity disabled:opacity-30"
+                  className={`relative flex flex-col items-center gap-1 rounded-xl pb-2.5 pt-2 transition-[opacity,color] disabled:opacity-30 ${
+                    isSelected ? 'text-bg' : 'hover:bg-sunken'
+                  }`}
                   aria-pressed={isSelected}
-                  aria-label={day}
+                  aria-label={`${formatFullDate(day)}${isToday ? ', heute' : ''}${hasWorkout ? ', Training eingetragen' : ''}`}
                 >
                   {isSelected && (
-                    <m.span
-                      layoutId="week-selected"
-                      className="absolute inset-0 rounded-2xl bg-accent shadow-accent"
-                      transition={{ type: 'spring', stiffness: 520, damping: 38 }}
-                    />
+                    <m.span layoutId="week-selected" className="absolute inset-0 rounded-xl bg-fg" transition={snap} />
                   )}
                   <span
-                    className={`relative text-[11px] font-semibold uppercase tracking-wider ${
-                      isSelected ? 'text-accent-ink/70' : 'text-muted'
-                    }`}
+                    className={`relative text-[12px] ${isSelected ? 'font-medium text-bg/70' : isToday ? 'font-semibold text-fg' : 'font-medium text-muted'}`}
                   >
-                    {formatWeekday(day)}
+                    {isToday ? 'Heute' : formatWeekday(day)}
                   </span>
-                  <span
-                    className={`relative text-[19px] font-semibold tabular-nums leading-none tracking-tight ${
-                      isSelected ? 'text-accent-ink' : isToday ? 'text-accent-fg' : ''
-                    }`}
-                  >
-                    {dayOfMonth(day)}
-                  </span>
-                  <span
-                    className={`relative size-1.5 rounded-full transition-colors ${
-                      hasWorkout ? (isSelected ? 'bg-accent-ink' : 'bg-accent-fg') : 'bg-transparent'
-                    }`}
-                  />
+                  <span className="numeral relative text-[25px] leading-none">{dayOfMonth(day)}</span>
+                  {/* Training days: a plate-yellow bar, like a collar on the bar. */}
+                  <span className={`relative h-[3px] w-5 rounded-full ${hasWorkout ? 'bg-accent' : 'bg-transparent'}`} />
                 </button>
               )
             })}
@@ -125,7 +113,7 @@ function ChevronButton({ label, onClick, disabled, children }: { label: string; 
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-sunken hover:text-fg active:scale-90 disabled:opacity-30 disabled:hover:bg-transparent"
+      className="grid size-9 place-items-center rounded-xl text-muted transition hover:bg-sunken hover:text-fg active:scale-90 disabled:opacity-30 disabled:hover:bg-transparent"
     >
       {children}
     </button>

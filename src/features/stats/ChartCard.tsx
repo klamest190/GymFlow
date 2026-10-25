@@ -1,6 +1,7 @@
 import { m } from 'framer-motion'
 import { ChartNoAxesColumn } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { snap } from '../../lib/motion'
 
 interface ChartCardProps {
   title: string
@@ -11,13 +12,13 @@ interface ChartCardProps {
   children: ReactNode
 }
 
-/** Glass card that frames every dashboard chart with a consistent header. */
+/** Card that frames every dashboard chart with a consistent header. */
 export function ChartCard({ title, subtitle, actions, className = '', children }: ChartCardProps) {
   return (
     <section className={`glass flex min-w-0 flex-col rounded-3xl p-4 sm:p-5 ${className}`}>
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-[17px] font-semibold tracking-tight">{title}</h2>
+          <h2 className="headline text-[25px]">{title}</h2>
           {subtitle && <p className="mt-0.5 text-[13px] text-muted">{subtitle}</p>}
         </div>
         {actions}
@@ -37,14 +38,14 @@ export function ChartEmpty({ children }: { children: ReactNode }) {
   )
 }
 
-/** Frosted-glass tooltip used by all Recharts charts; pops in with a small spring. */
+/** Tooltip used by all Recharts charts; slides in a few pixels. */
 export function TooltipCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
     <m.div
-      initial={{ opacity: 0, scale: 0.92, y: 4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 520, damping: 32 }}
-      className="min-w-44 rounded-2xl border border-line bg-surface px-3.5 py-3 text-[13px] shadow-float backdrop-blur-2xl backdrop-saturate-[1.8]"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={snap}
+      className="min-w-44 rounded-xl border border-line bg-surface-solid px-3.5 py-3 text-[13px] shadow-float"
     >
       <div className="font-semibold tracking-tight">{title}</div>
       {subtitle && <div className="text-[12px] text-muted">{subtitle}</div>}

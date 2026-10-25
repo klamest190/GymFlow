@@ -1,6 +1,7 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Check, CloudCheck, Dumbbell, Flame, Layers, ListPlus, Sparkles, Trophy, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CloudCheck, Dumbbell, Flame, Layers, ListPlus, Trophy, type LucideIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { settle, snap } from '../../lib/motion'
 import { useSession } from '../../auth/authContext'
 import { haptic } from '../../hooks/useUi'
 import { RANKS } from '../../data/ranks'
@@ -130,12 +131,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             transition={{ duration: 0.25, ease: EASE }}
           >
             <div className="relative mt-5 grid h-48 place-items-center overflow-hidden rounded-3xl bg-sunken">
-              <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,var(--glow-a),transparent_65%)]" />
               <div className="relative">{step.visual}</div>
             </div>
             {/* Fixed minimum height: the buttons below stay in place from step to step. */}
             <div className="min-h-62">
-              <h2 id="onboarding-title" className="mt-5 text-[24px] font-bold leading-tight tracking-tight">
+              <h2 id="onboarding-title" className="headline mt-5 text-[31px]">
                 {step.title}
               </h2>
               <p className="mt-1.5 text-[15px] leading-relaxed text-muted">{step.text}</p>
@@ -170,7 +170,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             type="button"
             autoFocus
             onClick={() => (last ? onDone() : go(index + 1))}
-            className="flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl bg-accent text-[16px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98]"
+            className="flex h-13 flex-1 items-center justify-center gap-2 rounded-xl bg-accent text-[16px] font-semibold text-accent-ink transition active:scale-[0.98]"
           >
             {last ? (
               <>
@@ -192,22 +192,20 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
 function WelcomeVisual() {
   return (
-    <m.div
-      initial={{ scale: 0.6, rotate: -12, opacity: 0 }}
-      animate={{ scale: 1, rotate: 0, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.1 }}
-      className="relative grid size-24 place-items-center rounded-[28px] bg-accent text-accent-ink shadow-accent"
+    // The plate from the app icon rolls in: the one welcome moment.
+    <m.svg
+      viewBox="0 0 32 32"
+      className="size-28"
+      aria-hidden
+      initial={{ x: -40, rotate: -120, opacity: 0 }}
+      animate={{ x: 0, rotate: 0, opacity: 1 }}
+      transition={{ ...settle, delay: 0.1 }}
     >
-      <Dumbbell className="size-11" strokeWidth={2.4} />
-      <m.span
-        className="absolute -right-3 -top-3 grid size-9 place-items-center rounded-full bg-surface-solid text-accent-fg shadow-soft"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 14, delay: 0.45 }}
-      >
-        <Sparkles className="size-4.5" strokeWidth={2.5} />
-      </m.span>
-    </m.div>
+      <circle cx="16" cy="16" r="15" fill="var(--accent)" />
+      <circle cx="16" cy="16" r="12.4" fill="none" stroke="var(--accent-ink)" strokeOpacity={0.28} strokeWidth={0.8} />
+      <circle cx="16" cy="16" r="4.8" fill="var(--accent-ink)" />
+      <circle cx="16" cy="16" r="2" fill="var(--surface-solid)" />
+    </m.svg>
   )
 }
 
@@ -226,7 +224,7 @@ function TrackerVisual() {
               className="grid size-5 place-items-center rounded-full bg-accent text-accent-ink"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 16, delay: 0.3 + setIndex * 0.35 }}
+              transition={{ ...snap, delay: 0.3 + setIndex * 0.35 }}
             >
               <Check className="size-3" strokeWidth={3.5} />
             </m.span>
@@ -247,14 +245,13 @@ function RanksVisual() {
             key={rank.id}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 22, delay: 0.1 + rankIndex * 0.08 }}
-            className="grid place-items-center rounded-2xl"
+            transition={{ ...settle, delay: 0.1 + rankIndex * 0.06 }}
+            className="grid place-items-center rounded-full"
             style={{
               background: rank.gradient,
               color: rank.ink,
               width: 36 + rankIndex * 6,
               height: 36 + rankIndex * 6,
-              boxShadow: `0 10px 24px -10px ${rank.glow}`,
             }}
             title={rank.label}
           >
@@ -283,13 +280,13 @@ function GoalPicker({ value, onChange }: { value: number; onChange: (days: numbe
               role="radio"
               aria-checked={active}
               onClick={() => onChange(days)}
-              className={`relative size-9 rounded-xl text-[15px] font-bold tabular-nums transition-colors ${active ? 'text-accent-ink' : 'text-muted hover:text-fg'}`}
+              className={`relative size-9 rounded-xl text-[15px] font-bold tabular-nums transition-colors ${active ? 'text-bg' : 'text-muted hover:text-fg'}`}
             >
               {active && (
                 <m.span
                   layoutId="onboarding-goal"
-                  className="absolute inset-0 rounded-xl bg-accent shadow-accent"
-                  transition={{ type: 'spring', stiffness: 520, damping: 38 }}
+                  className="absolute inset-0 rounded-xl bg-fg"
+                  transition={snap}
                 />
               )}
               <span className="relative">{days}</span>

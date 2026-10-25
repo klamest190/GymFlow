@@ -1,17 +1,18 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowLeft, ChartNoAxesColumn, CircleUser, Dumbbell, Eye, EyeOff, LoaderCircle, Lock, Mail, MailCheck, ShieldCheck, Sparkles } from 'lucide-react'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { ArrowLeft, CircleUser, Eye, EyeOff, LoaderCircle, Lock, Mail, MailCheck } from 'lucide-react'
+import { lazy, Suspense, useState, type FormEvent, type ReactNode } from 'react'
 import { useAuth } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
+import { Wordmark } from '../../components/ui/Wordmark'
+import { fade } from '../../lib/motion'
 import { repository } from '../../services/repository'
 
 type Mode = 'login' | 'reset' | 'reset-sent'
 
-const FEATURES = [
-  { icon: Dumbbell, title: 'Training in Sekunden erfasst', text: 'Sätze, Wiederholungen und Gewicht mit einem Tipp.' },
-  { icon: ChartNoAxesColumn, title: 'Fortschritt, der motiviert', text: 'Wochenziele, Heatmap und Bestleistungen auf einen Blick.' },
-  { icon: ShieldCheck, title: 'Privat & geschützt', text: 'Zugang nur auf Einladung, deine Daten gehören dir.' },
-]
+// Loaded on desktop only, and after the form: the login screen stays light.
+const ExerciseAnimation = lazy(() =>
+  import('../exercises/animation/ExerciseAnimation').then((module) => ({ default: module.ExerciseAnimation })),
+)
 
 export function LoginScreen() {
   const [mode, setMode] = useState<Mode>('login')
@@ -20,26 +21,17 @@ export function LoginScreen() {
 
   return (
     <div className="relative min-h-dvh overflow-hidden">
-      <div aria-hidden className="pointer-events-none fixed inset-0">
-        <div className="absolute -left-40 -top-40 size-[620px] rounded-full bg-(--glow-a) blur-[130px]" />
-        <div className="absolute -bottom-48 -right-40 size-[620px] rounded-full bg-(--glow-b) blur-[140px]" />
-      </div>
-
       <div className="relative mx-auto grid min-h-dvh max-w-6xl lg:grid-cols-[1.1fr_1fr] lg:gap-12 lg:px-10">
         <BrandPanel />
 
         <main className="flex items-center justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:px-0 lg:py-12">
           <div className="w-full max-w-[420px]">
             <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-              <Logo size="lg" />
+              <Wordmark size="lg" />
               <p className="mt-3 text-[15px] text-muted">Dein Training. Präzise erfasst.</p>
             </div>
 
-            <m.div
-              layout
-              transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-              className="glass overflow-hidden rounded-4xl p-6 shadow-float sm:p-8"
-            >
+            <div className="glass overflow-hidden rounded-4xl p-6 sm:p-8">
               <AnimatePresence mode="wait" initial={false}>
                 {mode === 'login' && (
                   <Panel key="login">
@@ -57,13 +49,13 @@ export function LoginScreen() {
                   </Panel>
                 )}
               </AnimatePresence>
-            </m.div>
+            </div>
 
             <p className="mt-6 text-center text-[13px] text-muted">
               Noch keinen Zugang? GymFlow ist ein geschlossenes System. Zugänge vergibt dein Admin.
             </p>
             {repository.mode === 'local' && (
-              <p className="mt-3 rounded-2xl bg-sunken px-4 py-3 text-center text-[12px] text-muted">
+              <p className="mt-3 rounded-xl bg-sunken px-4 py-3 text-center text-[12px] text-muted">
                 Demo-Modus: Die erste Anmeldung mit beliebigem Benutzernamen oder E-Mail wird Admin. Passwörter werden nicht geprüft.
               </p>
             )}
@@ -76,7 +68,7 @@ export function LoginScreen() {
 
 function Panel({ children }: { children: ReactNode }) {
   return (
-    <m.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
+    <m.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={fade}>
       {children}
     </m.div>
   )
@@ -105,7 +97,7 @@ function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginC
 
   return (
     <form onSubmit={submit} noValidate>
-      <h1 className="text-[28px] font-bold leading-tight tracking-tight">Willkommen zurück</h1>
+      <h1 className="headline text-[39px]">Willkommen zurück</h1>
       <p className="mt-1 text-[15px] text-muted">Melde dich mit deinem GymFlow-Zugang an.</p>
 
       <div className="mt-7 space-y-3">
@@ -142,7 +134,7 @@ function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginC
       <button
         type="submit"
         disabled={busy || !login.trim() || !password}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-[16px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-4 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
       >
         {busy && <LoaderCircle className="size-5 animate-spin" />}
         {busy ? 'Anmelden …' : 'Anmelden'}
@@ -185,7 +177,7 @@ function ResetForm({
   return (
     <form onSubmit={submit} noValidate>
       <BackButton onClick={onBack} />
-      <h1 className="mt-4 text-[28px] font-bold leading-tight tracking-tight">Passwort zurücksetzen</h1>
+      <h1 className="headline mt-4 text-[39px]">Passwort zurücksetzen</h1>
       <p className="mt-1 text-[15px] text-muted">
         Wir schicken einen Link an die hinterlegte E-Mail-Adresse, mit dem du ein neues Passwort festlegst.
       </p>
@@ -196,7 +188,7 @@ function ResetForm({
       <button
         type="submit"
         disabled={busy || !login.trim()}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-[16px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-4 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
       >
         {busy && <LoaderCircle className="size-5 animate-spin" />}
         Link senden
@@ -208,10 +200,10 @@ function ResetForm({
 function ResetSent({ login, onBack }: { login: string; onBack: () => void }) {
   return (
     <div className="text-center">
-      <span className="mx-auto grid size-16 place-items-center rounded-full bg-accent text-accent-ink shadow-accent">
+      <span className="mx-auto grid size-16 place-items-center rounded-full bg-accent text-accent-ink">
         <MailCheck className="size-7" strokeWidth={2.25} />
       </span>
-      <h1 className="mt-5 text-[24px] font-bold tracking-tight">Prüfe dein Postfach</h1>
+      <h1 className="headline mt-5 text-[31px]">Prüfe dein Postfach</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
         Falls für <span className="font-semibold text-fg">{login.trim()}</span> ein Zugang existiert, ist der Link an die
         hinterlegte E-Mail-Adresse unterwegs. Schau auch im Spam-Ordner nach.
@@ -219,7 +211,7 @@ function ResetSent({ login, onBack }: { login: string; onBack: () => void }) {
       <button
         type="button"
         onClick={onBack}
-        className="mt-6 w-full rounded-2xl bg-sunken py-3.5 text-[15px] font-semibold transition hover:bg-surface-solid"
+        className="mt-6 w-full rounded-xl bg-sunken py-3.5 text-[15px] font-semibold transition hover:bg-surface-solid"
       >
         Zurück zur Anmeldung
       </button>
@@ -250,7 +242,7 @@ function LoginField({ value, onChange }: { value: string; onChange: (value: stri
 
 function Field({ icon: Icon, label, children }: { icon: typeof Mail; label: string; children: ReactNode }) {
   return (
-    <label className="flex items-center gap-3 rounded-2xl bg-sunken px-4 ring-accent/70 transition focus-within:bg-surface-solid focus-within:ring-2">
+    <label className="flex items-center gap-3 rounded-xl bg-sunken px-4 ring-fg/40 transition focus-within:bg-surface-solid focus-within:ring-2">
       <Icon className="size-4.5 shrink-0 text-muted" aria-hidden />
       <span className="sr-only">{label}</span>
       {children}
@@ -285,63 +277,26 @@ function BackButton({ onClick }: { onClick: () => void }) {
   )
 }
 
-function Logo({ size = 'md' }: { size?: 'md' | 'lg' }) {
-  const large = size === 'lg'
-  return (
-    <div className="flex items-center gap-3">
-      <div className={`grid place-items-center rounded-2xl bg-accent text-accent-ink shadow-accent ${large ? 'size-14' : 'size-11'}`}>
-        <Dumbbell className={large ? 'size-7' : 'size-6'} strokeWidth={2.5} />
-      </div>
-      <span className={`font-bold tracking-tight ${large ? 'text-[30px]' : 'text-[24px]'}`}>
-        Gym<span className="text-accent-fg">Flow</span>
-      </span>
-    </div>
-  )
-}
-
-/** Desktop-only brand side: headline, feature list and a floating glass preview. */
+/** Desktop-only brand side: the dumbbell figure pressing overhead, and what the app is for. */
 function BrandPanel() {
   return (
     <aside className="hidden flex-col justify-center py-12 lg:flex">
-      <Logo />
-      <h2 className="mt-10 text-[52px] font-bold leading-[1.04] tracking-tight">
+      <Wordmark />
+      <div className="glass mt-10 aspect-[4/3] w-full max-w-[460px] overflow-hidden rounded-3xl">
+        <div className="size-full bg-sunken">
+          <Suspense fallback={null}>
+            <ExerciseAnimation exerciseId="military-press" label="Schulterdrücken mit zwei Kurzhanteln" />
+          </Suspense>
+        </div>
+      </div>
+      <h2 className="headline mt-10 text-[61px]">
         Dein Training.
         <br />
-        <span className="bg-gradient-to-r from-accent-fg to-accent-fg/60 bg-clip-text text-transparent">Präzise erfasst.</span>
+        Präzise erfasst.
       </h2>
-      <ul className="mt-10 space-y-5">
-        {FEATURES.map(({ icon: Icon, title, text }, index) => (
-          <m.li
-            key={title}
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15 + index * 0.08, type: 'spring', stiffness: 260, damping: 28 }}
-            className="flex items-start gap-4"
-          >
-            <span className="glass grid size-11 shrink-0 place-items-center rounded-2xl">
-              <Icon className="size-5 text-accent-fg" />
-            </span>
-            <span>
-              <span className="block text-[16px] font-semibold tracking-tight">{title}</span>
-              <span className="block text-[14px] text-muted">{text}</span>
-            </span>
-          </m.li>
-        ))}
-      </ul>
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.45, type: 'spring', stiffness: 200, damping: 26 }}
-        className="glass mt-12 flex w-fit items-center gap-4 rounded-3xl p-4 pr-6 shadow-float"
-      >
-        <span className="grid size-12 place-items-center rounded-2xl bg-accent text-accent-ink">
-          <Sparkles className="size-6" />
-        </span>
-        <span>
-          <span className="block text-[13px] font-medium text-muted">Premium-Erlebnis</span>
-          <span className="block text-[17px] font-semibold tracking-tight">Offline-fähig, auf jedem Gerät</span>
-        </span>
-      </m.div>
+      <p className="mt-4 max-w-sm text-[17px] leading-relaxed text-muted">
+        Sätze, Wiederholungen und Gewicht je Hantel festhalten und sehen, wie du stärker wirst. Zugang nur auf Einladung.
+      </p>
     </aside>
   )
 }

@@ -11,6 +11,7 @@ import { LevelBadge } from '../gamification/RankBadge'
 import { CreateUserSheet } from './CreateUserSheet'
 import { RoleBadge, StatusBadge, UserAvatar } from './UserBadges'
 import { UserDetailSheet } from './UserDetailSheet'
+import { fade } from '../../lib/motion'
 
 type Filter = 'all' | 'active' | 'disabled'
 
@@ -59,13 +60,12 @@ export function AdminDashboard() {
     <div className="mx-auto max-w-6xl">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">Admin</p>
-          <h1 className="mt-1 text-[34px] font-bold leading-none tracking-tight lg:text-[44px]">Nutzerverwaltung</h1>
+          <h1 className="headline text-[39px] lg:text-[49px]">Nutzerverwaltung</h1>
         </div>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 rounded-full bg-accent p-3 text-[14px] font-semibold text-accent-ink shadow-accent transition hover:brightness-105 active:scale-95 sm:px-4 sm:py-2.5"
+          className="flex items-center gap-2 rounded-xl bg-accent p-3 text-[14px] font-semibold text-accent-ink transition hover:brightness-105 active:scale-95 sm:px-4 sm:py-2.5"
           aria-label="Nutzer anlegen"
         >
           <UserPlus className="size-5 sm:size-4" strokeWidth={2.5} />
@@ -76,7 +76,7 @@ export function AdminDashboard() {
       {error ? (
         <div className="glass mt-8 flex flex-col items-center rounded-3xl px-6 py-14 text-center">
           <ShieldAlert className="size-8 text-danger" />
-          <h2 className="mt-4 text-[18px] font-bold tracking-tight">Nutzerliste nicht verfügbar</h2>
+          <h2 className="headline mt-4 text-[25px]">Nutzerliste nicht verfügbar</h2>
           <p className="mt-1 max-w-sm text-[15px] text-muted">
             Die Sicherheitsregeln haben den Zugriff abgelehnt. Sind die aktuellen Firestore-Rules deployt und ist dein Konto als
             Admin hinterlegt?
@@ -85,19 +85,19 @@ export function AdminDashboard() {
       ) : (
         <>
           <div className="mt-6 grid grid-cols-2 gap-3 lg:mt-8 lg:grid-cols-4 lg:gap-4">
-            {stats.map(({ label, value, icon: Icon }, index) => (
-              <div key={label} className={`glass rounded-3xl p-4 lg:p-5 ${index === 0 ? 'ring-1 ring-accent/40' : ''}`}>
+            {stats.map(({ label, value, icon: Icon }) => (
+              <div key={label} className="glass rounded-3xl p-4 lg:p-5">
                 <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted">
                   <Icon className="size-3.5" strokeWidth={2.5} />
                   {label}
                 </div>
-                <AnimatedNumber value={value} className="mt-2 block text-[30px] font-bold leading-none tracking-tight" />
+                <AnimatedNumber value={value} className="numeral mt-2 block text-[39px] leading-none" />
               </div>
             ))}
           </div>
 
           <div className="glass mt-4 flex flex-col gap-3 rounded-3xl p-3 lg:mt-5 lg:flex-row lg:items-center lg:p-4">
-            <label className="flex flex-1 items-center gap-2.5 rounded-2xl bg-sunken px-3.5 py-3">
+            <label className="flex flex-1 items-center gap-2.5 rounded-xl bg-sunken px-3.5 py-3">
               <Search className="size-4.5 text-muted" />
               <input
                 value={search}
@@ -127,7 +127,7 @@ export function AdminDashboard() {
             ) : (
               <section className="glass mt-4 overflow-hidden rounded-3xl" aria-label="Nutzerliste">
                 {/* Desktop column headers */}
-                <div className="hidden grid-cols-[minmax(0,2.4fr)_1fr_1fr_0.8fr_1.2fr_1.2fr_24px] gap-4 border-b border-line px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted lg:grid">
+                <div className="hidden grid-cols-[minmax(0,2.4fr)_1fr_1fr_0.8fr_1.2fr_1.2fr_24px] gap-4 border-b border-line px-5 py-3 text-[13px] font-semibold text-muted lg:grid">
                   <span>Nutzer</span>
                   <span>Rolle</span>
                   <span>Status</span>
@@ -137,12 +137,11 @@ export function AdminDashboard() {
                   <span />
                 </div>
                 <ul className="divide-y divide-line">
-                  {visible.map((user, index) => (
+                  {visible.map((user) => (
                     <UserRow
                       key={user.id}
                       user={user}
                       isSelf={user.id === me.uid}
-                      index={index}
                       onOpen={() => setSelectedId(user.id)}
                     />
                   ))}
@@ -175,12 +174,13 @@ function UserListSkeleton() {
   )
 }
 
-function UserRow({ user, isSelf, index, onOpen }: { user: UserProfile; isSelf: boolean; index: number; onOpen: () => void }) {
+function UserRow({ user, isSelf, onOpen }: { user: UserProfile; isSelf: boolean; onOpen: () => void }) {
   return (
     <m.li
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0, transition: { delay: Math.min(index, 10) * 0.025 } }}
+      layout="position"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={fade}
     >
       <button
         type="button"

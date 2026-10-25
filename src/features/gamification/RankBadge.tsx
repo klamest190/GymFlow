@@ -1,12 +1,12 @@
 import { RANK_BY_ID, type RankDefinition } from '../../data/ranks'
 import type { GamificationState } from '../../types/models'
 
-/** Rank name on the rank's gradient ("EISEN", "GOLD", …). */
+/** Rank name on the rank's gradient ("Eisen", "Gold", …). */
 export function RankBadge({ rank }: { rank: RankDefinition }) {
   const Icon = rank.icon
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider"
+      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold"
       style={{ background: rank.gradient, color: rank.ink }}
     >
       <Icon className="size-3.5" strokeWidth={2.5} />

@@ -101,11 +101,11 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
       footer={
         created ? (
           <div className="flex gap-2">
-            <button type="button" onClick={copyCredentials} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-sunken py-3.5 text-[15px] font-semibold">
+            <button type="button" onClick={copyCredentials} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-sunken py-3.5 text-[15px] font-semibold">
               {copied ? <Check className="size-4.5" strokeWidth={3} /> : <Copy className="size-4.5" />}
               Zugangsdaten kopieren
             </button>
-            <button type="button" onClick={onClose} className="flex-1 rounded-2xl bg-accent py-3.5 text-[15px] font-semibold text-accent-ink shadow-accent">
+            <button type="button" onClick={onClose} className="flex-1 rounded-xl bg-accent py-3.5 text-[15px] font-semibold text-accent-ink">
               Fertig
             </button>
           </div>
@@ -114,7 +114,7 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98] disabled:opacity-40 disabled:shadow-none"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98] disabled:opacity-40 disabled:shadow-none"
           >
             {busy && <LoaderCircle className="size-4.5 animate-spin" />}
             Nutzer anlegen
@@ -202,7 +202,7 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
             )}
           </Field>
           <Field label="Startpasswort" hint={draft.password.length < MIN_PASSWORD_LENGTH ? `Mindestens ${MIN_PASSWORD_LENGTH} Zeichen.` : undefined}>
-            <div className="flex items-center gap-1 rounded-2xl bg-sunken pr-1.5 ring-accent/70 focus-within:ring-2">
+            <div className="flex items-center gap-1 rounded-2xl bg-sunken pr-1.5 ring-fg/40 focus-within:ring-2">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={draft.password}
@@ -238,13 +238,13 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
 }
 
 const inputClass =
-  'w-full rounded-2xl bg-sunken px-4 py-3.5 text-[16px] outline-none ring-accent/70 placeholder:text-muted/70 focus:ring-2'
+  'w-full rounded-xl bg-sunken px-4 py-3.5 text-[16px] outline-none ring-fg/40 placeholder:text-muted/70 focus:ring-2'
 
 /** `hint` is a validation error (red), `note` neutral help text. */
 function Field({ label, hint, note, children }: { label: string; hint?: string; note?: string; children: ReactNode }) {
   return (
     <div>
-      <div className="mb-2 px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">{label}</div>
+      <div className="mb-2 px-1 text-[13px] font-semibold text-muted">{label}</div>
       {children}
       {hint && <p className="mt-1.5 px-1 text-[13px] font-medium text-danger">{hint}</p>}
       {note && <p className="mt-1.5 px-1 text-[13px] text-muted">{note}</p>}

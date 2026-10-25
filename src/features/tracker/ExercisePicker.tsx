@@ -49,14 +49,14 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-2xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink shadow-accent transition active:scale-[0.98]"
+          className="w-full rounded-xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98]"
         >
           Fertig
         </button>
       }
     >
       <div className="sticky top-0 z-10 -mx-5 bg-surface-solid/95 px-5 pb-3 backdrop-blur-xl lg:-mx-7 lg:px-7">
-        <label className="flex items-center gap-2.5 rounded-2xl bg-sunken px-3.5 py-3">
+        <label className="flex items-center gap-2.5 rounded-xl bg-sunken px-3.5 py-3">
           <Search className="size-4.5 text-muted" />
           <input
             value={search}
@@ -96,7 +96,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[16px] font-semibold tracking-tight">{exercise.name}</span>
                     <span className="block truncate text-[13px] text-muted">
-                      {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]} · {EQUIPMENT_LABELS[exercise.equipment]}
+                      {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]}, {EQUIPMENT_LABELS[exercise.equipment]}
                     </span>
                   </span>
                   <ChevronDown className={`size-4 shrink-0 text-muted transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -138,7 +138,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                     <div className="px-2 pb-3 pl-[30px] text-[14px] leading-relaxed text-muted">
                       <p className="text-fg/85">{exercise.description}</p>
                       {exercise.instructions && <p className="mt-2">{exercise.instructions}</p>}
-                      <p className="mt-2 text-[12px] font-semibold uppercase tracking-wider">
+                      <p className="mt-2 text-[13px] font-medium">
                         Standard: {exercise.defaultSets} × {exercise.defaultReps}
                       </p>
                     </div>

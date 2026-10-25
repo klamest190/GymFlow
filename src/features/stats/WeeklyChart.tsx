@@ -24,7 +24,7 @@ export function WeeklyChart({ weeks, metric, className }: WeeklyChartProps) {
   return (
     <ChartCard
       title={`${METRIC_LABELS[metric]} pro Woche`}
-      subtitle={`Letzte ${weeks.length} Wochen · aktuelle Woche hell, da noch nicht abgeschlossen`}
+      subtitle={`Die letzten ${weeks.length} Wochen. Die laufende Woche ist heller, weil sie noch nicht vorbei ist.`}
       className={className}
     >
       {hasData ? (
@@ -93,7 +93,7 @@ function WeekTooltip({
   return (
     <TooltipCard
       title={week.label}
-      subtitle={`${formatDayMonth(week.weekStart)}–${formatDayMonth(addDays(week.weekStart, 6))}${week.isCurrent ? ' · läuft noch' : ''}`}
+      subtitle={`${formatDayMonth(week.weekStart)}–${formatDayMonth(addDays(week.weekStart, 6))}${week.isCurrent ? ', läuft noch' : ''}`}
     >
       {TOOLTIP_METRICS.map((item) => (
         <TooltipRow

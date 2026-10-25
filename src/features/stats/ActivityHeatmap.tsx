@@ -14,7 +14,7 @@ interface ActivityHeatmapProps {
 const WEEKDAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So']
 const monthFormatter = new Intl.DateTimeFormat('de-DE', { month: 'short' })
 
-/** "Mi., 22. Okt.: 120 Wdh. · 12 Sätze · 1.250 kg" – used for the native tooltip and screen readers. */
+/** "Mi., 22. Okt.: 120 Wdh., 12 Sätze, 1.250 kg" – used for the native tooltip and screen readers. */
 function describeDay(day: HeatmapDay): string {
   return `${formatWeekdayDate(day.date)}: ${dayDetails(day)}`
 }
@@ -24,7 +24,7 @@ function dayDetails(day: HeatmapDay): string {
   const { reps, sets, volumeKg } = day.totals
   const parts = [`${formatMetric(reps, 'reps')} Wdh.`, `${formatMetric(sets, 'sets')} ${sets === 1 ? 'Satz' : 'Sätze'}`]
   if (volumeKg > 0) parts.push(formatMetric(volumeKg, 'volumeKg'))
-  return parts.join(' · ')
+  return parts.join(', ')
 }
 
 /**
@@ -58,7 +58,7 @@ export function ActivityHeatmap({ logs, metric, weeks }: ActivityHeatmapProps) {
   return (
     <ChartCard
       title="Aktivität"
-      subtitle={`${trainingDays} Trainingstage in den letzten ${Math.round(weeks / 4.35)} Monaten · Farbe nach ${METRIC_LABELS[metric]}`}
+      subtitle={`${trainingDays} ${trainingDays === 1 ? 'Trainingstag' : 'Trainingstage'} in den letzten ${Math.round(weeks / 4.35)} Monaten, eingefärbt nach ${METRIC_LABELS[metric]}`}
     >
       <div ref={scroller} className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:-mx-5 sm:px-5">
         <div className="flex min-w-max gap-2 lg:min-w-0">
@@ -113,7 +113,7 @@ export function ActivityHeatmap({ logs, metric, weeks }: ActivityHeatmapProps) {
           {focused ? (
             <>
               <span className="text-fg">{formatWeekdayDate(focused.date)}</span>
-              {' · '}
+              {': '}
               {dayDetails(focused)}
             </>
           ) : (

@@ -15,21 +15,48 @@ export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
   calves: 'Waden',
 }
 
-/** Tailwind classes for the small colored dot / chip per muscle group. */
-export const MUSCLE_GROUP_TINTS: Record<MuscleGroup, string> = {
-  chest: 'bg-rose-400',
-  back: 'bg-sky-400',
-  shoulders: 'bg-amber-400',
-  biceps: 'bg-violet-400',
-  triceps: 'bg-fuchsia-400',
-  forearms: 'bg-purple-300',
-  core: 'bg-emerald-400',
-  obliques: 'bg-teal-400',
-  quads: 'bg-orange-400',
-  hamstrings: 'bg-red-400',
-  glutes: 'bg-pink-400',
-  calves: 'bg-yellow-300',
+/**
+ * Twelve muscle groups are too many for a categorical palette, so colors name the body region
+ * in competition-plate colors (validated set in index.css → --region-*), in this fixed order.
+ */
+export type BodyRegion = 'push' | 'pull' | 'core' | 'legs'
+
+export const BODY_REGIONS: BodyRegion[] = ['push', 'pull', 'core', 'legs']
+
+export const REGION_LABELS: Record<BodyRegion, string> = {
+  push: 'Drücken',
+  pull: 'Ziehen',
+  core: 'Rumpf',
+  legs: 'Beine',
 }
+
+/** Tailwind background class per region. */
+export const REGION_TINTS: Record<BodyRegion, string> = {
+  push: 'bg-region-push',
+  pull: 'bg-region-pull',
+  core: 'bg-region-core',
+  legs: 'bg-region-legs',
+}
+
+export const MUSCLE_REGION: Record<MuscleGroup, BodyRegion> = {
+  chest: 'push',
+  shoulders: 'push',
+  triceps: 'push',
+  back: 'pull',
+  biceps: 'pull',
+  forearms: 'pull',
+  core: 'core',
+  obliques: 'core',
+  quads: 'legs',
+  hamstrings: 'legs',
+  glutes: 'legs',
+  calves: 'legs',
+}
+
+/** Small colored dot / chip per muscle group: the region's color, with the muscle's label beside it. */
+export const MUSCLE_GROUP_TINTS = Object.fromEntries(
+  Object.entries(MUSCLE_REGION).map(([muscle, region]) => [muscle, REGION_TINTS[region]]),
+) as Record<MuscleGroup, string>
 
 export const EQUIPMENT_LABELS: Record<Equipment, string> = {
   barbell: 'Langhantel',

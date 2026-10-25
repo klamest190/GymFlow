@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useIsDesktop } from '../../hooks/useUi'
+import { easeOut, fade, settle } from '../../lib/motion'
 
 interface SheetProps {
   open: boolean
@@ -13,7 +14,6 @@ interface SheetProps {
   footer?: ReactNode
 }
 
-const spring = { type: 'spring', stiffness: 420, damping: 38, mass: 0.9 } as const
 
 /** Bottom sheet on mobile (drag the header down to dismiss), centered modal on desktop. */
 export function Sheet({ open, onClose, title, subtitle, children, footer }: SheetProps) {
@@ -37,18 +37,19 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: Shee
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center lg:p-8" role="dialog" aria-modal="true" aria-label={title}>
           <m.div
-            className="absolute inset-0 bg-black/40 backdrop-blur-[6px]"
+            className="absolute inset-0 bg-black/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={fade}
             onClick={onClose}
           />
           <m.div
-            className="relative flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[30px] border border-line bg-surface-solid/95 shadow-float backdrop-blur-2xl lg:max-h-[78vh] lg:max-w-2xl lg:rounded-4xl"
-            initial={isDesktop ? { opacity: 0, scale: 0.94, y: 12 } : { y: '100%' }}
-            animate={isDesktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
-            exit={isDesktop ? { opacity: 0, scale: 0.96, y: 8 } : { y: '100%' }}
-            transition={spring}
+            className="relative flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-line bg-surface-solid shadow-float lg:max-h-[78vh] lg:max-w-2xl lg:rounded-4xl"
+            initial={isDesktop ? { opacity: 0, y: 16 } : { y: '100%' }}
+            animate={isDesktop ? { opacity: 1, y: 0 } : { y: 0 }}
+            exit={isDesktop ? { opacity: 0, y: 12, transition: fade } : { y: '100%', transition: { duration: 0.22, ease: easeOut } }}
+            transition={settle}
             drag={isDesktop ? false : 'y'}
             dragControls={dragControls}
             dragListener={false}
@@ -65,13 +66,13 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: Shee
               <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-sunken lg:hidden" />
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold tracking-tight lg:text-2xl">{title}</h2>
-                  {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
+                  <h2 className="headline text-[31px]">{title}</h2>
+                  {subtitle && <p className="mt-1.5 text-[14px] text-muted">{subtitle}</p>}
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="grid size-9 shrink-0 place-items-center rounded-full bg-sunken text-muted transition hover:text-fg active:scale-90"
+                  className="grid size-9 shrink-0 place-items-center rounded-xl bg-sunken text-muted transition hover:text-fg active:scale-90"
                   aria-label="Schließen"
                 >
                   <X className="size-4.5" strokeWidth={2.5} />

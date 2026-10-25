@@ -1,10 +1,8 @@
-import { m, type Variants } from 'framer-motion'
-import { Dumbbell, Flame, Layers, Minus, Repeat, TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react'
+import { Flame, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
 import type { Trend, WeekComparison } from '../../hooks/useWorkoutStats'
 import { formatWeekday, todayKey } from '../../lib/dates'
 import { formatMetric, type Metric } from '../../lib/stats'
-import { useChartTheme } from './chartTheme'
 
 interface KpiTilesProps {
   week: WeekComparison
@@ -12,108 +10,67 @@ interface KpiTilesProps {
   weekStreak: number
 }
 
-const METRIC_TILES: {
-  metric: Metric
-  label: string
-  icon: LucideIcon
-  unit?: string
-}[] = [
-  { metric: 'reps', label: 'Wiederholungen', icon: Repeat },
-  { metric: 'sets', label: 'Sätze', icon: Layers },
-  { metric: 'volumeKg', label: 'Volumen', icon: Dumbbell, unit: 'kg' },
+const METRICS: { metric: Metric; label: string; unit?: string }[] = [
+  { metric: 'reps', label: 'Wiederholungen' },
+  { metric: 'sets', label: 'Sätze' },
+  { metric: 'volumeKg', label: 'Volumen', unit: 'kg' },
 ]
 
-const tileMotion: Variants = {
-  hidden: { opacity: 0, y: 14 },
-  shown: (index: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: 'spring' as const,
-      stiffness: 360,
-      damping: 30,
-      delay: index * 0.05,
-    },
-  }),
-}
-
+/** This week at a glance: progress towards the training-day goal, then the totals as stamped figures. */
 export function KpiTiles({ week, weeklyGoalDays, weekStreak }: KpiTilesProps) {
-  const today = todayKey()
-  const weekday = formatWeekday(today)
+  const weekday = formatWeekday(todayKey())
   // "Mo–Mi": the comparison window, shown in the badge tooltip.
   const comparisonWindow = weekday === 'Mo' ? 'Mo' : `Mo–${weekday}`
   return (
-    <section aria-label="Diese Woche">
-      <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">Diese Woche</h2>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <m.div variants={tileMotion} initial="hidden" animate="shown" custom={0}>
-          <GoalTile days={week.thisWeek.days} goal={weeklyGoalDays} weekStreak={weekStreak} />
-        </m.div>
-        {METRIC_TILES.map((tile, index) => (
-          <m.div key={tile.metric} variants={tileMotion} initial="hidden" animate="shown" custom={index + 1}>
-            <MetricTile {...tile} trend={week.trends[tile.metric]} comparisonWindow={comparisonWindow} />
-          </m.div>
-        ))}
+    <section aria-label="Diese Woche" className="glass rounded-3xl p-4 sm:p-5">
+      <h2 className="text-[14px] font-semibold text-muted">Diese Woche</h2>
+      <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-end lg:gap-10">
+        <GoalMeter days={week.thisWeek.days} goal={weeklyGoalDays} weekStreak={weekStreak} />
+        <div className="grid grid-cols-3 gap-4">
+          {METRICS.map((item) => (
+            <MetricFigure key={item.metric} {...item} trend={week.trends[item.metric]} comparisonWindow={comparisonWindow} />
+          ))}
+        </div>
       </div>
     </section>
   )
 }
 
-/** Activity-ring style progress towards the weekly training-day goal, plus the week streak. */
-function GoalTile({ days, goal, weekStreak }: { days: number; goal: number; weekStreak: number }) {
-  const theme = useChartTheme()
-  const radius = 26
-  const circumference = 2 * Math.PI * radius
-  const progress = Math.min(1, days / goal)
+/** One plate per goal day: filled plates are training days this week. */
+function GoalMeter({ days, goal, weekStreak }: { days: number; goal: number; weekStreak: number }) {
   const reached = days >= goal
   return (
-    <div className="glass flex h-full flex-col justify-center rounded-3xl p-4 lg:p-5">
-      <div className="flex items-center gap-3">
-        <svg viewBox="0 0 64 64" className="size-14 shrink-0 -rotate-90 lg:size-16" aria-hidden>
-          {/* Meter: the unfilled track is a lighter step of the same ramp. */}
-          <circle cx="32" cy="32" r={radius} fill="none" strokeWidth="8" stroke={theme.accentSoft} opacity={0.6} />
-          <m.circle
-            cx="32"
-            cy="32"
-            r={radius}
-            fill="none"
-            strokeWidth="8"
-            strokeLinecap="round"
-            stroke={theme.accent}
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: circumference * (1 - progress) }}
-            transition={{ type: 'spring', stiffness: 60, damping: 16 }}
+    <div>
+      <p className="flex items-baseline gap-2">
+        <span className="numeral text-[61px] leading-[0.85]">{days}</span>
+        <span className="numeral text-[25px] text-muted">/ {goal}</span>
+        <span className="ml-1 text-[14px] font-medium text-muted">{reached ? 'Wochenziel erreicht' : 'Trainingstage'}</span>
+      </p>
+      <div className="mt-3 flex gap-1" role="meter" aria-valuemin={0} aria-valuemax={goal} aria-valuenow={Math.min(days, goal)} aria-label="Wochenziel">
+        {Array.from({ length: goal }, (_, index) => (
+          <span
+            key={index}
+            className={`h-3 flex-1 rounded-[3px] transition-colors duration-300 ${index < days ? 'bg-accent' : 'knurl bg-sunken'}`}
           />
-        </svg>
-        <div className="min-w-0">
-          <div className="text-[26px] font-bold leading-none tracking-tight lg:text-[30px]">
-            {days}
-            <span className="text-[17px] font-semibold text-muted"> / {goal}</span>
-          </div>
-          <div className="mt-1 text-[12px] font-medium leading-tight text-muted">{reached ? 'Wochenziel erreicht' : 'Trainingstage'}</div>
-        </div>
+        ))}
       </div>
-      {/* Own full-width row: next to the ring it would wrap word by word on phones. */}
       {weekStreak > 0 && (
-        <div className="mt-2.5 flex items-center gap-1 whitespace-nowrap text-[12px] font-semibold text-accent-fg">
-          <Flame className="size-3.5 shrink-0" strokeWidth={2.5} />
+        <p className="mt-2.5 flex items-center gap-1 text-[13px] font-medium">
+          <Flame className="size-3.5 shrink-0 text-accent-fg" strokeWidth={2.5} />
           {weekStreak} {weekStreak === 1 ? 'Woche' : 'Wochen'} in Folge
-        </div>
+        </p>
       )}
     </div>
   )
 }
 
-function MetricTile({
-  icon: Icon,
+function MetricFigure({
   label,
   metric,
   unit,
   trend,
   comparisonWindow,
 }: {
-  icon: LucideIcon
   label: string
   metric: Metric
   unit?: string
@@ -121,45 +78,35 @@ function MetricTile({
   comparisonWindow: string
 }) {
   return (
-    <div className="glass flex h-full min-w-0 flex-col rounded-3xl p-4 lg:p-5">
-      <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted">
-        <Icon className="size-3.5 shrink-0" strokeWidth={2.5} />
-        <span className="truncate">{label}</span>
-      </div>
-      <div className="mt-2 flex items-baseline gap-1">
-        <AnimatedNumber value={trend.current} compact className="text-[26px] font-bold leading-none tracking-tight lg:text-[30px]" />
-        {unit && <span className="text-[14px] font-semibold text-muted">{unit}</span>}
-      </div>
-      <div className="mt-2 flex min-h-5.5 flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-medium">
+    <div className="min-w-0">
+      <p className="flex items-baseline gap-1">
+        <AnimatedNumber value={trend.current} compact className="numeral text-[39px] leading-none" />
+        {unit && <span className="numeral text-[17px] text-muted">{unit}</span>}
+      </p>
+      <p className="mt-1 truncate text-[13px] font-medium text-muted">{label}</p>
+      <p className="mt-1">
         <TrendBadge change={trend.change} title={`Vorwoche (${comparisonWindow}): ${formatMetric(trend.previous, metric)}`} />
-        {trend.change !== null && <span className="text-muted">vs. Vorwoche</span>}
-      </div>
+      </p>
     </div>
   )
 }
 
-/** Signed change vs. last week as a tinted pill; the arrow keeps the direction readable without color. */
+/** Signed change vs. last week; the arrow keeps the direction readable without color. */
 function TrendBadge({ change, title }: { change: number | null; title: string }) {
   if (change === null) {
     return (
-      <span title={title} className="text-muted">
+      <span title={title} className="text-[12px] text-muted">
         Vorwoche: –
       </span>
     )
   }
   const Icon = change > 0 ? TrendingUp : change < 0 ? TrendingDown : Minus
-  const tone = change > 0 ? 'bg-accent/25 text-accent-fg' : change < 0 ? 'bg-danger/12 text-danger' : 'bg-sunken text-muted'
+  const tone = change > 0 ? 'text-accent-fg' : change < 0 ? 'text-danger' : 'text-muted'
   return (
-    <m.span
-      title={title}
-      initial={{ opacity: 0, scale: 0.7 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 420, damping: 22, delay: 0.25 }}
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold tabular-nums ${tone}`}
-    >
+    <span title={title} className={`inline-flex items-center gap-1 text-[12px] font-semibold tabular-nums ${tone}`}>
       <Icon className="size-3.5" strokeWidth={2.5} />
       {change > 0 ? '+' : ''}
-      {change} %
-    </m.span>
+      {change} %<span className="sr-only"> zur Vorwoche</span>
+    </span>
   )
 }

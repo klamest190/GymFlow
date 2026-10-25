@@ -127,7 +127,7 @@ function TabSkeleton() {
 function SplashScreen() {
   return (
     <div className="grid min-h-dvh place-items-center p-6" aria-busy>
-      <div className="grid size-16 animate-pulse place-items-center rounded-2xl bg-accent text-accent-ink shadow-accent">
+      <div className="grid size-16 animate-pulse place-items-center rounded-xl bg-accent text-accent-ink">
         <Dumbbell className="size-7" strokeWidth={2.5} />
       </div>
     </div>

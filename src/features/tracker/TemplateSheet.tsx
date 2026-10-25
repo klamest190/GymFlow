@@ -85,12 +85,12 @@ export function TemplateSheet({ open, onClose, entries, onApply }: TemplateSheet
                   placeholder="Name, z. B. „Push Montag“"
                   maxLength={MAX_NAME_LENGTH}
                   autoFocus
-                  className="min-w-0 flex-1 rounded-2xl bg-sunken px-4 py-3 text-[16px] outline-none ring-accent/70 focus:ring-2"
+                  className="min-w-0 flex-1 rounded-xl bg-sunken px-4 py-3 text-[16px] outline-none ring-fg/40 focus:ring-2"
                 />
                 <button
                   type="submit"
                   disabled={!name.trim() || saving}
-                  className="flex items-center gap-2 rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-ink disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-accent px-4 text-[15px] font-semibold text-accent-ink disabled:opacity-50"
                 >
                   {saving && <LoaderCircle className="size-4 animate-spin" />}
                   Speichern
@@ -104,7 +104,7 @@ export function TemplateSheet({ open, onClose, entries, onApply }: TemplateSheet
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setNaming(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sunken py-3.5 text-[15px] font-semibold transition hover:bg-surface"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-sunken py-3.5 text-[15px] font-semibold transition hover:bg-surface"
               >
                 <BookmarkPlus className="size-4.5" />
                 Diesen Tag als Vorlage speichern
@@ -119,7 +119,7 @@ export function TemplateSheet({ open, onClose, entries, onApply }: TemplateSheet
           {own === null ? (
             <div className="skeleton h-16 rounded-2xl" />
           ) : own.length === 0 ? (
-            <p className="rounded-2xl bg-sunken px-4 py-3.5 text-[14px] text-muted">
+            <p className="rounded-xl bg-sunken px-4 py-3.5 text-[14px] text-muted">
               Noch keine eigenen Vorlagen. Trag ein Training ein und speichere es unten als Vorlage.
             </p>
           ) : (
@@ -151,7 +151,7 @@ function TemplateRow({ template, onApply, onDelete }: { template: WorkoutTemplat
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] font-semibold tracking-tight">{template.name}</span>
           <span className="block truncate text-[13px] text-muted">
-            {names.length} Übungen · {sets} Sätze · {names.join(', ')}
+            {names.length} Übungen, {sets} Sätze: {names.join(', ')}
           </span>
         </span>
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-solid transition group-hover:bg-accent group-hover:text-accent-ink">
@@ -175,7 +175,7 @@ function TemplateRow({ template, onApply, onDelete }: { template: WorkoutTemplat
 function Section({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">
+      <h3 className="mb-2 flex items-center gap-1.5 px-1 text-[13px] font-semibold text-muted">
         {icon}
         {title}
       </h3>

@@ -1,5 +1,6 @@
 import { m } from 'framer-motion'
 import { useEffect, useId, useRef } from 'react'
+import { snap } from '../../lib/motion'
 
 export interface FilterOption<T extends string> {
   value: T
@@ -46,18 +47,18 @@ export function FilterPills<T extends string>({ value, onChange, options, label,
             onClick={() => onChange(option.value)}
             whileTap={{ scale: 0.94 }}
             className={`relative flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
-              active ? 'text-accent-ink' : 'bg-sunken text-muted hover:text-fg'
+              active ? 'text-bg' : 'bg-sunken text-muted hover:text-fg'
             }`}
           >
             {active && (
               <m.span
                 layoutId={layoutId}
-                className="absolute inset-0 rounded-full bg-accent shadow-accent"
-                transition={{ type: 'spring', stiffness: 480, damping: 36 }}
+                className="absolute inset-0 rounded-full bg-fg"
+                transition={snap}
               />
             )}
             {option.dot && (
-              <span className={`relative size-2 rounded-full ${option.dot} ${active ? 'ring-2 ring-accent-ink/25' : ''}`} />
+              <span className={`relative size-2 rounded-full ${option.dot} ${active ? 'ring-2 ring-bg/40' : ''}`} />
             )}
             <span className="relative whitespace-nowrap">{option.label}</span>
           </m.button>

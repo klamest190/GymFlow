@@ -70,7 +70,7 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
             <label htmlFor={inputId} className="sr-only">
               Gewicht heute in kg
             </label>
-            <div className="flex min-w-0 flex-1 items-center rounded-2xl bg-sunken pr-4 ring-accent/70 focus-within:ring-2">
+            <div className="flex min-w-0 flex-1 items-center rounded-2xl bg-sunken pr-4 ring-fg/40 focus-within:ring-2">
               <input
                 id={inputId}
                 value={input}
@@ -84,7 +84,7 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
             <button
               type="submit"
               disabled={parsed === null || saving}
-              className="flex items-center gap-2 rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-ink shadow-accent transition active:scale-95 disabled:opacity-40 disabled:shadow-none"
+              className="flex items-center gap-2 rounded-xl bg-accent px-4 text-[15px] font-semibold text-accent-ink transition active:scale-95 disabled:opacity-40 disabled:shadow-none"
             >
               {saving ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" strokeWidth={3} />}
               {todayEntry ? 'Ersetzen' : 'Speichern'}
@@ -119,7 +119,7 @@ function WeightChart({ entries, today }: { entries: BodyWeightEntry[]; today: st
   const gradientId = useId()
   if (points.length === 0) {
     return (
-      <p className="mt-4 rounded-2xl bg-sunken px-4 py-3.5 text-[13px] text-muted">
+      <p className="mt-4 rounded-xl bg-sunken px-4 py-3.5 text-[13px] text-muted">
         {entries.length === 0 ? 'Noch keine Einträge. Trag dein Gewicht unten ein.' : 'Ab zwei Einträgen erscheint hier dein Verlauf der letzten 90 Tage.'}
       </p>
     )

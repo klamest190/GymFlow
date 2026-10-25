@@ -46,14 +46,14 @@ function ExportButton({ onClick, disabled, label, detail }: { onClick: () => voi
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-3 rounded-2xl bg-sunken px-4 py-3 text-left transition hover:bg-surface-solid disabled:opacity-50"
+      className="flex items-center gap-3 rounded-xl bg-sunken px-4 py-3 text-left transition hover:bg-surface-solid disabled:opacity-50"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent-fg">
         <FileSpreadsheet className="size-4.5" />
       </span>
       <span className="min-w-0">
         <span className="block text-[15px] font-semibold">{label}</span>
-        <span className="block text-[12px] text-muted">CSV · {detail}</span>
+        <span className="block text-[12px] text-muted">CSV-Datei, {detail}</span>
       </span>
     </button>
   )

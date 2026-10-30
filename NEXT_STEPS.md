@@ -1,6 +1,19 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 25.10.2026. Neues Design „Eisen“ umgesetzt und in `main`. Onboarding, Tests/CI, kleineres Bundle, Bestleistungen, Vorlagen, Wochenrückblick, Körpergewicht und CSV-Export umgesetzt, **Rules dafür noch nicht deployt**. Einrichtung in der Firebase Console steht noch aus.
+Stand: 30.10.2026. Firebase Hosting ist eingerichtet (`firebase.json`), **der erste Deploy von Rules und Hosting steht noch aus** (siehe „Offen: Auf das Handy bringen“). Einrichtung in der Firebase Console steht ebenfalls noch aus.
+
+## Ziel und Roadmap (festgelegt am 30.10.)
+
+**Ziel:** GymFlow wird zur App, die Karsten selbst beim Training nutzt, **zu Hause, nur mit Kurzhanteln**. 9/10 heißt: im Training selbstverständlich zur App greifen statt zu Notizen, ein Satz ist in Sekunden mit einer Hand eingetragen. Admin und Nutzerverwaltung bleiben, wie sie sind.
+
+Einschätzung am 30.10.: als Code etwa 7,5/10, als Produkt etwa 5/10, weil die App noch nie im echten Training benutzt wurde.
+
+| # | Teilprojekt | Status |
+|---|---|---|
+| 1 | **Auf das Handy bringen:** Rules, Console, Hosting, PWA installieren, Live-Test | 🔄 Hosting konfiguriert, Deploy und Console offen |
+| 2 | **Kernablauf im Training:** Werte vom letzten Mal je Übung, Satz-Timer, Satz mit einem Tipp übernehmen, Vorschlag für die nächste Steigerung (bei festem Hantelpaar meist über Wiederholungen) | offen, braucht eigenen Entwurf (Brainstorming) |
+| 3 | **Katalog für Kurzhanteln ergänzen:** einarmiges Rudern, vorgebeugtes Rudern, Reverse Flys, rumänisches Kreuzheben, Trizeps-Überkopfdrücken, Hammer-Curls, optional Wadenheben (je eine 3D-Pose) | offen |
+| 4 | **Nachschärfen nach zwei Wochen echter Nutzung** | offen |
 
 ## Weitermachen
 
@@ -53,9 +66,14 @@ npm run dev
 
 Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten, weil `signIn()` doppelt lief (React StrictMode). Danach merkte sie sich das falsche, und Firestore lehnte alle Lese- und Schreibzugriffe ab, bis die Seite neu geladen wurde. `signIn()` war danach idempotent. Das Gast-Login wurde inzwischen durch E-Mail/Passwort ersetzt; der `AuthProvider` legt keine Konten mehr selbst an, damit kann der Fehler nicht wieder auftreten.
 
-## Offen: Benutzername-Login & Einführung
+## Offen: Auf das Handy bringen (Teilprojekt 1)
 
-- [ ] **Rules deployen:** `firebase deploy --only firestore:rules --project gymflow-917db`. Bis dahin klappen Login per Benutzername und das Anlegen neuer Nutzer nicht, die Einführung kann ihren Abschluss nicht speichern (sie käme bei jedem Start wieder), eigene Vorlagen, Körpergewicht und das Hantelgewicht im Profil lassen sich nicht speichern.
+- [ ] **Rules und App deployen** (selbst ausführen, Claude darf nicht in Produktion deployen):
+  ```bash
+  npm run build
+  npx firebase-tools deploy --only firestore:rules,hosting --project gymflow-917db
+  ```
+  Bis dahin klappen Login per Benutzername und das Anlegen neuer Nutzer nicht, die Einführung kann ihren Abschluss nicht speichern (sie käme bei jedem Start wieder), eigene Vorlagen, Körpergewicht und das Hantelgewicht im Profil lassen sich nicht speichern.
 - [ ] **CI prüfen:** nach dem ersten Push unter GitHub → Actions nachsehen, ob beide Jobs grün sind.
 - [ ] **Eigenen Benutzernamen setzen:** Admin → eigenes Konto öffnen → „Benutzername“. Bestehende Konten haben noch keinen.
 
@@ -66,7 +84,8 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 - [ ] **Ersten Admin anlegen.** Anleitung mit Feldtabelle in `README.md` → „Einmalig in der Firebase Console“, Punkt 4:
   1. Authentication → Nutzer hinzufügen
   2. Firestore → `users/{UID}` mit `role: admin`, `status: active`
-- [ ] Danach: **Live-Test** mit dem Admin. Einen Testnutzer anlegen, mit ihm anmelden, sperren und prüfen, dass er sofort ausgesperrt ist.
+- [ ] Danach: **Live-Test** auf https://gymflow-917db.web.app mit dem Admin. Einen Testnutzer anlegen, mit ihm anmelden, sperren und prüfen, dass er sofort ausgesperrt ist.
+- [ ] **Auf dem Handy:** die Adresse öffnen, anmelden, „Zum Startbildschirm hinzufügen“ bzw. „App installieren“, einen Satz eintragen, im Flugmodus erneut öffnen (App und Daten müssen da sein).
 - [ ] Optional: alte anonyme Test-Gastkonten unter Authentication → Nutzer löschen. Sie haben keinen Zugriff mehr.
 
 ## Offen: lokal
@@ -81,9 +100,7 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 
 ## Ideen für danach (optional)
 
-- **Hosting:** Für die Nutzung auf dem Handy und die PWA-Installation braucht GymFlow eine HTTPS-Adresse. Naheliegend ist Firebase Hosting im selben Projekt: `firebase.json` um `hosting` mit `dist` und SPA-Rewrite ergänzen, dann `npm run build && npx firebase-tools deploy --only hosting`. Die Domain anschließend bei den autorisierten Domains eintragen.
-- **Katalog erweitern:** Bisher gibt es keine reine Rückenübung (z. B. Rudern, Klimmzüge, Latzug). Neue Einträge kommen in `DEFINITIONS` in `src/data/exercises.ts`, bestehende IDs nie ändern. Für die Animation zusätzlich eine Pose in `src/features/exercises/animation/poses.ts` anlegen.
-- Satz-Timer (Pausenzeit zwischen Sätzen) im Tracker
+- **Katalog erweitern** (siehe Teilprojekt 3): Neue Einträge kommen in `DEFINITIONS` in `src/data/exercises.ts`, bestehende IDs nie ändern. Für die Animation zusätzlich eine Pose in `src/features/exercises/animation/poses.ts` anlegen.
 
 ## Getroffene Entscheidungen
 

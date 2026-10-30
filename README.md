@@ -15,7 +15,7 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 
 1. **Firestore Database** anlegen (Production Mode).
 2. **Authentication → Anmeldemethoden → E-Mail/Passwort** aktivieren. Die Option „Anonym“ und gegebenenfalls „Google“ deaktivieren, beide werden nicht mehr genutzt.
-3. Security Rules und App deployen (siehe „Hosting“): `npx firebase-tools deploy --only firestore:rules,hosting --project gymflow-917db`
+3. Security Rules deployen: `npx firebase-tools deploy --only firestore:rules --project gymflow-917db`
 4. **Ersten Admin anlegen.** Danach legt der Admin alle weiteren Nutzer im Admin-Bereich der App an.
    1. *Authentication → Nutzer → Nutzer hinzufügen*: E-Mail und Passwort eingeben und die angezeigte **Nutzer-UID** kopieren.
    2. *Firestore Database → Sammlung `users`* (bei Bedarf „Sammlung starten“) → Dokument mit **Dokument-ID = UID** und diesen Feldern:
@@ -186,18 +186,17 @@ Beim Start lädt GymFlow rund 344 KB (gzip). Den Großteil machen Firestore (171
 
 ## PWA
 
-GymFlow lässt sich als App installieren: über `public/manifest.webmanifest` mit Icons und einen Service Worker (`public/sw.js`, nur im Production-Build registriert), der die App-Hülle offline bereithält. Die Trainingsdaten selbst puffert Firestore offline. Die Installation setzt HTTPS voraus, deshalb läuft GymFlow auf Firebase Hosting.
+GymFlow lässt sich als App installieren: über `public/manifest.webmanifest` mit Icons und einen Service Worker (`public/sw.js`, nur im Production-Build registriert), der die App-Hülle offline bereithält. Die Trainingsdaten selbst puffert Firestore offline. Die Installation setzt HTTPS voraus, deshalb läuft GymFlow auf Vercel.
 
 ## Hosting
 
-GymFlow liegt unter **https://gymflow-917db.web.app** (Firebase Hosting im selben Projekt, kostenlos im Spark-Tarif). Diese Domain ist bei Firebase Auth automatisch zugelassen.
+GymFlow liegt auf **Vercel** unter **https://gym-flow-alpha-six.vercel.app**. Das Vercel-Projekt ist mit dem GitHub-Repo verbunden: Jeder Push auf `main` wird automatisch gebaut und veröffentlicht. Die Firebase-Config steht dort als Umgebungsvariablen (`VITE_FIREBASE_*`, wie in `.env.example`); fehlen sie, läuft online der Demo-Modus. Die Domain muss in der Firebase Console unter Authentication → Einstellungen → Autorisierte Domains stehen.
+
+Nicht über Vercel laufen die **Security Rules**. Nach jeder Änderung an `firestore.rules`:
 
 ```bash
-npm run build
-npx firebase-tools deploy --only firestore:rules,hosting --project gymflow-917db
+npx firebase-tools deploy --only firestore:rules --project gymflow-917db
 ```
-
-Der Build braucht `.env.local`, sonst landet der Demo-Modus online. Die Cache-Header in `firebase.json` sorgen dafür, dass Updates ankommen: `index.html`, `sw.js` und das Manifest werden immer neu geprüft, die gehashten Dateien unter `assets/` ein Jahr lang gecacht. Auf dem Handy zeigt die installierte App eine neue Version nach dem nächsten Öffnen.
 
 ## Struktur
 

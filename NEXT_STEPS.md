@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 30.10.2026. Firebase Hosting ist eingerichtet (`firebase.json`), **der erste Deploy von Rules und Hosting steht noch aus** (siehe „Offen: Auf das Handy bringen“). Einrichtung in der Firebase Console steht ebenfalls noch aus.
+Stand: 30.10.2026. GymFlow läuft auf **Vercel** unter https://gym-flow-alpha-six.vercel.app (automatischer Deploy bei jedem Push auf `main`, echte Firebase-Config, am 30.10. geprüft). **Die Rules seit dem 23.10. sind noch nicht deployt** (siehe „Offen: Auf das Handy bringen“).
 
 ## Ziel und Roadmap (festgelegt am 30.10.)
 
@@ -10,7 +10,7 @@ Einschätzung am 30.10.: als Code etwa 7,5/10, als Produkt etwa 5/10, weil die A
 
 | # | Teilprojekt | Status |
 |---|---|---|
-| 1 | **Auf das Handy bringen:** Rules, Console, Hosting, PWA installieren, Live-Test | 🔄 Hosting konfiguriert, Deploy und Console offen |
+| 1 | **Auf das Handy bringen:** Rules, Console, PWA installieren, Live-Test | 🔄 Hosting läuft (Vercel), Rules-Deploy und Live-Test offen |
 | 2 | **Kernablauf im Training:** Werte vom letzten Mal je Übung, Satz-Timer, Satz mit einem Tipp übernehmen, Vorschlag für die nächste Steigerung (bei festem Hantelpaar meist über Wiederholungen) | offen, braucht eigenen Entwurf (Brainstorming) |
 | 3 | **Katalog für Kurzhanteln ergänzen:** einarmiges Rudern, vorgebeugtes Rudern, Reverse Flys, rumänisches Kreuzheben, Trizeps-Überkopfdrücken, Hammer-Curls, optional Wadenheben (je eine 3D-Pose) | offen |
 | 4 | **Nachschärfen nach zwei Wochen echter Nutzung** | offen |
@@ -68,10 +68,9 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 
 ## Offen: Auf das Handy bringen (Teilprojekt 1)
 
-- [ ] **Rules und App deployen** (selbst ausführen, Claude darf nicht in Produktion deployen):
+- [ ] **Rules deployen** (selbst ausführen, Claude darf nicht in Produktion deployen; die App selbst deployt Vercel automatisch):
   ```bash
-  npm run build
-  npx firebase-tools deploy --only firestore:rules,hosting --project gymflow-917db
+  npx firebase-tools deploy --only firestore:rules --project gymflow-917db
   ```
   Bis dahin klappen Login per Benutzername und das Anlegen neuer Nutzer nicht, die Einführung kann ihren Abschluss nicht speichern (sie käme bei jedem Start wieder), eigene Vorlagen, Körpergewicht und das Hantelgewicht im Profil lassen sich nicht speichern.
 - [ ] **CI prüfen:** nach dem ersten Push unter GitHub → Actions nachsehen, ob beide Jobs grün sind.
@@ -84,7 +83,7 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 - [ ] **Ersten Admin anlegen.** Anleitung mit Feldtabelle in `README.md` → „Einmalig in der Firebase Console“, Punkt 4:
   1. Authentication → Nutzer hinzufügen
   2. Firestore → `users/{UID}` mit `role: admin`, `status: active`
-- [ ] Danach: **Live-Test** auf https://gymflow-917db.web.app mit dem Admin. Einen Testnutzer anlegen, mit ihm anmelden, sperren und prüfen, dass er sofort ausgesperrt ist.
+- [ ] Danach: **Live-Test** auf https://gym-flow-alpha-six.vercel.app mit dem Admin. Einen Testnutzer anlegen, mit ihm anmelden, sperren und prüfen, dass er sofort ausgesperrt ist.
 - [ ] **Auf dem Handy:** die Adresse öffnen, anmelden, „Zum Startbildschirm hinzufügen“ bzw. „App installieren“, einen Satz eintragen, im Flugmodus erneut öffnen (App und Daten müssen da sein).
 - [ ] Optional: alte anonyme Test-Gastkonten unter Authentication → Nutzer löschen. Sie haben keinen Zugriff mehr.
 

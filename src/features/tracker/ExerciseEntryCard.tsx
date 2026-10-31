@@ -1,11 +1,11 @@
 import { AnimatePresence, m, useMotionValue, useTransform } from 'framer-motion'
-import { Check, History, Info, Plus, Trash2, X } from 'lucide-react'
+import { Check, ChevronUp, History, Info, Plus, Trash2, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { NumberStepper } from '../../components/ui/NumberStepper'
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { haptic, useIsTouch } from '../../hooks/useUi'
 import { formatLastTime } from '../../lib/exerciseHistory'
-import { reveal, settle, snap } from '../../lib/motion'
+import { fade, reveal, settle, snap } from '../../lib/motion'
 import { nextPlannedSet } from '../../lib/plannedSet'
 import { createSet } from '../../lib/workoutMath'
 import { useSetDraft } from './useSetDraft'
@@ -43,6 +43,8 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
   // survives a tab switch during the rest). Both can be open at once.
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useSetDraft(entry.id)
+  // A logged set whose row asks "Satz n löschen?" before it is deleted.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const dragX = useMotionValue(0)
   const deleteOpacity = useTransform(dragX, [-140, -40, 0], [1, 0.4, 0])
   const deleteScale = useTransform(dragX, [-140, -40], [1, 0.6])
@@ -52,8 +54,15 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
   const updateSet = (setId: string, patch: Partial<WorkoutSet>) =>
     onChange({ ...entry, sets: entry.sets.map((set) => (set.id === setId ? { ...set, ...patch } : set)) })
 
-  const removeSet = (setId: string) => {
+  const askToDelete = (setId: string) => {
+    haptic()
     setSelectedId(null)
+    setConfirmingId(setId)
+  }
+
+  const removeSet = (setId: string) => {
+    haptic(20)
+    setConfirmingId(null)
     onChange({ ...entry, sets: entry.sets.filter((set) => set.id !== setId) })
   }
 
@@ -151,33 +160,27 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                 transition={settle}
                 className="border-t border-line first:border-t-0"
               >
-                {set.id === selectedId ? (
+                {set.id === confirmingId ? (
+                  <ConfirmDelete number={index + 1} onCancel={() => setConfirmingId(null)} onConfirm={() => removeSet(set.id)} />
+                ) : set.id === selectedId ? (
                   <EditSet
                     entry={entry}
                     values={set}
                     number={index + 1}
                     onChange={(patch) => updateSet(set.id, patch)}
-                    action={
-                      <SmallButton label={`Satz ${index + 1} entfernen`} onClick={() => removeSet(set.id)} danger>
-                        <Trash2 className="size-4" />
-                      </SmallButton>
-                    }
-                    footer={
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(null)}
-                        className="mt-3 w-full rounded-xl bg-sunken py-2.5 text-[14px] font-semibold transition hover:bg-fg hover:text-bg"
-                      >
-                        Fertig
-                      </button>
-                    }
+                    onCollapse={() => setSelectedId(null)}
+                    action={<DeleteButton number={index + 1} onClick={() => askToDelete(set.id)} />}
                   />
                 ) : (
                   <LoggedSet
                     entry={entry}
                     set={set}
                     number={index + 1}
-                    onSelect={() => setSelectedId(set.id)}
+                    onSelect={() => {
+                      setConfirmingId(null)
+                      setSelectedId(set.id)
+                    }}
+                    onDelete={() => askToDelete(set.id)}
                   />
                 )}
               </m.li>
@@ -236,18 +239,64 @@ const describeSet = (entry: WorkoutEntry, values: SetValues) =>
     ? `${values.reps} Wiederholungen, ${values.weightKg === null ? 'kein Gewicht' : `${weightFormatter.format(values.weightKg)} kg`}`
     : `${values.reps} Wiederholungen`
 
-/** A logged set as stamped figures; the whole row opens it for correcting. */
-function LoggedSet({ entry, set, number, onSelect }: { entry: WorkoutEntry; set: WorkoutSet; number: number; onSelect: () => void }) {
+/** A logged set as stamped figures: the row opens it for correcting, the bin asks to delete it. */
+function LoggedSet({
+  entry,
+  set,
+  number,
+  onSelect,
+  onDelete,
+}: {
+  entry: WorkoutEntry
+  set: WorkoutSet
+  number: number
+  onSelect: () => void
+  onDelete: () => void
+}) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-label={`Satz ${number} bearbeiten: ${describeSet(entry, set)}`}
-      className="-mx-2 flex w-[calc(100%+1rem)] items-baseline gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-sunken"
-    >
-      <span className="numeral w-6 text-[16px] text-muted">{number}</span>
-      <SetFigures entry={entry} values={set} />
-    </button>
+    <div className="-mx-2 flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-label={`Satz ${number} bearbeiten: ${describeSet(entry, set)}`}
+        className="flex min-w-0 flex-1 items-baseline gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-sunken"
+      >
+        <span className="numeral w-6 text-[16px] text-muted">{number}</span>
+        <SetFigures entry={entry} values={set} />
+      </button>
+      <DeleteButton number={number} onClick={onDelete} />
+    </div>
+  )
+}
+
+function DeleteButton({ number, onClick }: { number: number; onClick: () => void }) {
+  return (
+    <SmallButton label={`Satz ${number} löschen`} onClick={onClick} danger>
+      <Trash2 className="size-4" />
+    </SmallButton>
+  )
+}
+
+/** Takes the place of a logged set's row until the deletion is confirmed or cancelled. */
+function ConfirmDelete({ number, onCancel, onConfirm }: { number: number; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={fade} role="alertdialog" aria-label={`Satz ${number} löschen?`} className="flex items-center gap-2 py-2">
+      <p className="min-w-0 flex-1 text-[15px] font-semibold">Satz {number} löschen?</p>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-fg hover:text-bg"
+      >
+        Abbrechen
+      </button>
+      <button
+        type="button"
+        onClick={onConfirm}
+        className="rounded-xl bg-danger-fill px-4 py-2.5 text-[14px] font-semibold text-white transition hover:brightness-110"
+      >
+        Löschen
+      </button>
+    </m.div>
   )
 }
 
@@ -273,6 +322,7 @@ function EditSet({
   values,
   number,
   onChange,
+  onCollapse,
   action,
   footer,
 }: {
@@ -280,15 +330,30 @@ function EditSet({
   values: SetValues
   number: number
   onChange: (patch: Partial<SetValues>) => void
+  /** A logged set: its title row closes the editor again (changes are already saved). */
+  onCollapse?: () => void
   action: ReactNode
-  footer: ReactNode
+  footer?: ReactNode
 }) {
   const weightLabel = entry.perDumbbell ? 'kg je Hantel' : 'kg'
   return (
     <m.div {...reveal} className="overflow-hidden">
       <div className="knurl my-2 rounded-xl border border-line p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[13px] font-semibold">Satz {number}</span>
+        <div className="flex items-center justify-between gap-2">
+          {onCollapse ? (
+            <button
+              type="button"
+              onClick={onCollapse}
+              aria-label={`Satz ${number} zuklappen`}
+              aria-expanded
+              className="-m-1.5 flex min-w-0 flex-1 items-center gap-1.5 rounded-lg p-1.5 text-left text-[13px] font-semibold transition-colors hover:bg-sunken"
+            >
+              Satz {number}
+              <ChevronUp className="size-4 text-muted" strokeWidth={2.5} />
+            </button>
+          ) : (
+            <span className="text-[13px] font-semibold">Satz {number}</span>
+          )}
           {action}
         </div>
         <div className={`mt-2 grid gap-3 sm:flex sm:gap-12 ${entry.usesWeight ? 'grid-cols-2' : 'grid-cols-1'}`}>

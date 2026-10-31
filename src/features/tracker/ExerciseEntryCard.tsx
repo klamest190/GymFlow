@@ -1,5 +1,5 @@
 import { AnimatePresence, m, useMotionValue, useTransform } from 'framer-motion'
-import { Check, History, Info, Trash2, X } from 'lucide-react'
+import { Check, History, Info, Plus, Trash2, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { NumberStepper } from '../../components/ui/NumberStepper'
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
@@ -32,20 +32,19 @@ const weightFormatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 
 
 /**
  * One exercise of the day as a set log. Logged sets read as stamped numbers ("12 × 5 kg"); below
- * them waits a preview of the next set with last time's values. Its check logs it in one tap, or
- * the values are adjusted first. The preview is never stored, so only sets actually done count.
+ * them "Satz hinzufügen" opens the next set, prefilled with last time's values, and "Satz abhaken"
+ * logs it. The open set is only a draft, so only sets actually done are stored.
  */
 export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChange, onRemove, onSetLogged }: ExerciseEntryCardProps) {
   const isTouch = useIsTouch()
   const [showInfo, setShowInfo] = useState(false)
-  // At most one thing is open for editing: a logged set, or the preview (with its draft values).
+  // At most one thing is open for editing: a logged set, or the next set (its draft values).
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<SetValues | null>(null)
   const dragX = useMotionValue(0)
   const deleteOpacity = useTransform(dragX, [-140, -40, 0], [1, 0.4, 0])
   const deleteScale = useTransform(dragX, [-140, -40], [1, 0.6])
 
-  const planned = nextPlannedSet(entry, previous, fallback)
   const nextNumber = entry.sets.length + 1
 
   const updateSet = (setId: string, patch: Partial<WorkoutSet>) =>
@@ -56,8 +55,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
     onChange({ ...entry, sets: entry.sets.filter((set) => set.id !== setId) })
   }
 
-  const logSet = () => {
-    const values = draft ?? planned
+  const logSet = (values: SetValues) => {
     haptic(12)
     setDraft(null)
     setSelectedId(null)
@@ -188,23 +186,18 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                   number={nextNumber}
                   onChange={(patch) => setDraft((current) => current && { ...current, ...patch })}
                   action={
-                    <SmallButton label="Änderung verwerfen" onClick={() => setDraft(null)}>
+                    <SmallButton label={`Satz ${nextNumber} verwerfen`} onClick={() => setDraft(null)}>
                       <X className="size-4" strokeWidth={2.5} />
                     </SmallButton>
                   }
-                  footer={<LogButton number={nextNumber} onClick={logSet} wide />}
+                  footer={<LogButton number={nextNumber} onClick={() => logSet(draft)} />}
                 />
               ) : (
-                <PlannedSet
-                  entry={entry}
-                  values={planned}
-                  number={nextNumber}
-                  extra={planned.extra}
-                  onEdit={() => {
+                <AddSetButton
+                  onClick={() => {
                     setSelectedId(null)
-                    setDraft({ reps: planned.reps, weightKg: planned.weightKg })
+                    setDraft(nextPlannedSet(entry, previous, fallback))
                   }}
-                  onLog={logSet}
                 />
               )}
             </m.li>
@@ -216,10 +209,10 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
 }
 
 /** "12 × 5 kg", "12 Wdh." */
-function SetFigures({ entry, values, quiet }: { entry: WorkoutEntry; values: SetValues; quiet?: boolean }) {
+function SetFigures({ entry, values }: { entry: WorkoutEntry; values: SetValues }) {
   const weight = values.weightKg === null ? '–' : weightFormatter.format(values.weightKg)
   return (
-    <span className={`numeral text-[39px] leading-none ${quiet ? 'text-muted' : ''}`}>
+    <span className="numeral text-[39px] leading-none">
       {values.reps}
       {entry.usesWeight ? (
         <>
@@ -254,42 +247,23 @@ function LoggedSet({ entry, set, number, onSelect }: { entry: WorkoutEntry; set:
   )
 }
 
-/** The next set, not yet done: muted figures (tap to adjust) and a check that logs it as shown. */
-function PlannedSet({
-  entry,
-  values,
-  number,
-  extra,
-  onEdit,
-  onLog,
-}: {
-  entry: WorkoutEntry
-  values: SetValues
-  number: number
-  extra: boolean
-  onEdit: () => void
-  onLog: () => void
-}) {
+/** Opens the next set for logging. */
+function AddSetButton({ onClick }: { onClick: () => void }) {
   return (
-    <div className={`flex items-center gap-2 py-2 ${extra ? 'opacity-70' : ''}`}>
-      <button
-        type="button"
-        onClick={onEdit}
-        aria-label={`Satz ${number} anpassen: ${describeSet(entry, values)}`}
-        className="-mx-2 flex min-w-0 flex-1 items-baseline gap-3 rounded-xl px-2 py-1 text-left transition-colors hover:bg-sunken"
-      >
-        <span className="numeral w-6 text-[16px] text-muted">{number}</span>
-        <span className="min-w-0">
-          <span className="block text-[12px] font-medium text-muted">{extra ? 'Weiterer Satz' : 'Nächster Satz'}</span>
-          <SetFigures entry={entry} values={values} quiet />
-        </span>
-      </button>
-      <LogButton number={number} onClick={onLog} />
-    </div>
+    <m.button
+      type="button"
+      whileTap={{ scale: 0.97 }}
+      transition={snap}
+      onClick={onClick}
+      className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-line py-3.5 text-[15px] font-semibold transition-colors hover:border-fg/40 hover:bg-sunken"
+    >
+      <Plus className="size-4.5" strokeWidth={2.75} />
+      Satz hinzufügen
+    </m.button>
   )
 }
 
-/** Big steppers on a knurled grip, for the preview's values or a logged set being corrected. */
+/** Big steppers on a knurled grip, for the next set or a logged set being corrected. */
 function EditSet({
   entry,
   values,
@@ -348,20 +322,18 @@ function EditSet({
 }
 
 /** Logs the next set. Graphite, not yellow: every card has one, and a screen gets one yellow surface. */
-function LogButton({ number, onClick, wide }: { number: number; onClick: () => void; wide?: boolean }) {
+function LogButton({ number, onClick }: { number: number; onClick: () => void }) {
   return (
     <m.button
       type="button"
-      whileTap={{ scale: 0.92 }}
+      whileTap={{ scale: 0.97 }}
       transition={snap}
       onClick={onClick}
       aria-label={`Satz ${number} abhaken`}
-      className={`flex shrink-0 items-center justify-center gap-2 rounded-xl bg-fg text-bg transition hover:bg-fg/85 ${
-        wide ? 'mt-3 w-full py-3 text-[15px] font-semibold' : 'size-14'
-      }`}
+      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-fg py-3.5 text-[15px] font-semibold text-bg transition hover:bg-fg/85"
     >
-      <Check className={wide ? 'size-4.5' : 'size-6'} strokeWidth={3} />
-      {wide && 'Satz abhaken'}
+      <Check className="size-4.5" strokeWidth={3} />
+      Satz abhaken
     </m.button>
   )
 }

@@ -37,26 +37,26 @@ describe('nextPlannedSet', () => {
       { id: 'b', reps: 10, weightKg: 8 },
     ]
     const today = curls(1, 12)
-    expect(nextPlannedSet(today, previous, FALLBACK)).toEqual({ reps: 10, weightKg: 8, extra: false })
+    expect(nextPlannedSet(today, previous, FALLBACK)).toEqual({ reps: 10, weightKg: 8 })
   })
 
   it('copies the last logged set once the last session is used up', () => {
     const today = curls(3, 11, 9)
-    expect(nextPlannedSet(today, curls(3, 10), FALLBACK)).toEqual({ reps: 11, weightKg: 9, extra: true })
+    expect(nextPlannedSet(today, curls(3, 10), FALLBACK)).toEqual({ reps: 11, weightKg: 9 })
   })
 
   it('starts a new exercise at the fallback values', () => {
-    expect(nextPlannedSet(curls(0, 0), null, FALLBACK)).toEqual({ reps: 10, weightKg: 5, extra: false })
+    expect(nextPlannedSet(curls(0, 0), null, FALLBACK)).toEqual({ reps: 10, weightKg: 5 })
   })
 
   it('uses the template plan only when there is no last session', () => {
     const fromTemplate = { ...curls(0, 0), plannedSets: [{ reps: 15, weightKg: 6 }] }
-    expect(nextPlannedSet(fromTemplate, null, FALLBACK)).toEqual({ reps: 15, weightKg: 6, extra: false })
-    expect(nextPlannedSet(fromTemplate, curls(3, 10), FALLBACK)).toEqual({ reps: 10, weightKg: 8, extra: false })
+    expect(nextPlannedSet(fromTemplate, null, FALLBACK)).toEqual({ reps: 15, weightKg: 6 })
+    expect(nextPlannedSet(fromTemplate, curls(3, 10), FALLBACK)).toEqual({ reps: 10, weightKg: 8 })
   })
 
   it('keeps only the reps of an old session whose weight was the total of both dumbbells', () => {
     const legacy = entry('curls', 3, 10, 16)
-    expect(nextPlannedSet(curls(0, 0), legacy, FALLBACK)).toEqual({ reps: 10, weightKg: 5, extra: false })
+    expect(nextPlannedSet(curls(0, 0), legacy, FALLBACK)).toEqual({ reps: 10, weightKg: 5 })
   })
 })

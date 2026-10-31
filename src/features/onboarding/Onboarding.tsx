@@ -44,8 +44,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       title: 'Training in Sekunden eintragen',
       text: 'Unter „Heute“ landet alles, was du an einem Tag trainierst.',
       points: [
-        { icon: ListPlus, text: 'Übung hinzufügen, der nächste Satz steht mit deinen Werten vom letzten Mal bereit' },
-        { icon: Layers, text: 'Satz mit einem Tipp abhaken, danach läuft die Pause' },
+        { icon: ListPlus, text: 'Übung hinzufügen, neue Sätze starten mit deinen Werten vom letzten Mal' },
+        { icon: Layers, text: 'Satz hinzufügen und abhaken, danach läuft die Pause' },
         { icon: CloudCheck, text: 'Speichert automatisch, auch ohne Empfang' },
       ],
       visual: <TrackerVisual />,

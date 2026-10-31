@@ -12,12 +12,16 @@ export const setLoadKg = (entry: Pick<WorkoutEntry, 'perDumbbell'>, set: Workout
 /** Weight a new set of the exercise starts with: the user's dumbbell weight, or none. */
 export const startWeightKg = (exercise: Exercise, dumbbellKg: number) => (exercise.usesWeight && exercise.equipment === 'dumbbell' ? dumbbellKg : null)
 
-/** A newly added exercise starts small; the user adds sets as they go. */
-export const NEW_ENTRY_SETS = 1
+/** The first set of an exercise never done before starts small: 10 reps with the user's dumbbells. */
 export const NEW_ENTRY_REPS = 10
 
-/** A new entry with one set of 10 reps, at `dumbbellKg` per dumbbell if it uses dumbbells. */
-export function createEntry(exercise: Exercise, position: number, dumbbellKg: number): WorkoutEntry {
+export const newSetValues = (exercise: Exercise, dumbbellKg: number) => ({ reps: NEW_ENTRY_REPS, weightKg: startWeightKg(exercise, dumbbellKg) })
+
+/**
+ * A new entry without sets: only sets the user has logged are stored, so an exercise added by
+ * mistake counts for nothing. The tracker previews the next set (see `lib/plannedSet.ts`).
+ */
+export function createEntry(exercise: Exercise, position: number): WorkoutEntry {
   return {
     id: createId(),
     exerciseId: exercise.id,
@@ -26,7 +30,7 @@ export function createEntry(exercise: Exercise, position: number, dumbbellKg: nu
     secondaryMuscles: exercise.secondaryMuscles,
     usesWeight: exercise.usesWeight,
     perDumbbell: exercise.equipment === 'dumbbell',
-    sets: Array.from({ length: NEW_ENTRY_SETS }, () => createSet(NEW_ENTRY_REPS,startWeightKg(exercise, dumbbellKg))),
+    sets: [],
     position,
   }
 }

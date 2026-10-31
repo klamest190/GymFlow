@@ -16,6 +16,12 @@ export const METRIC_SHORT_LABELS: Record<Metric, string> = {
   volumeKg: 'Volumen',
 }
 
+/**
+ * Days with at least one logged set. The tracker stores an exercise as soon as it is added, so a
+ * log can exist without any training in it.
+ */
+export const trainingDays = (logs: WorkoutLog[]) => logs.filter((log) => log.totals.sets > 0)
+
 const integer = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
 const compactOne = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 })
 
@@ -40,7 +46,7 @@ export interface PeriodSummary extends WorkoutTotals {
 export function summarize(logs: WorkoutLog[], from: DateKey, to: DateKey): PeriodSummary {
   const summary: PeriodSummary = { ...emptyTotals(), days: 0 }
   for (const log of logs) {
-    if (log.date < from || log.date > to) continue
+    if (log.date < from || log.date > to || log.totals.sets === 0) continue
     summary.days += 1
     summary.exercises += log.totals.exercises
     summary.sets += log.totals.sets
@@ -78,7 +84,7 @@ export function weeklySeries(logs: WorkoutLog[], today: DateKey, weeks: number):
  * An empty current week doesn't break the streak yet – it is still in progress.
  */
 export function activeWeekStreak(logs: WorkoutLog[], today: DateKey): number {
-  const activeWeeks = new Set(logs.map((log) => startOfWeek(log.date)))
+  const activeWeeks = new Set(trainingDays(logs).map((log) => startOfWeek(log.date)))
   let week = startOfWeek(today)
   if (!activeWeeks.has(week)) week = addDays(week, -7)
   let streak = 0
@@ -130,8 +136,9 @@ export interface HeatmapDay {
  * week. Levels are relative quartiles, so the map stays readable for beginners and pros alike.
  */
 export function heatmapGrid(logs: WorkoutLog[], today: DateKey, weeks: number, metric: Metric): HeatmapDay[][] {
-  const totalsByDate = new Map(logs.map((log) => [log.date, log.totals]))
-  const values = new Map(logs.map((log) => [log.date, log.totals[metric]]))
+  const days = trainingDays(logs)
+  const totalsByDate = new Map(days.map((log) => [log.date, log.totals]))
+  const values = new Map(days.map((log) => [log.date, log.totals[metric]]))
   const sorted = [...values.values()].filter((value) => value > 0).sort((a, b) => a - b)
   // Nearest-rank quantile: of [2, 4, 6, 8] the lower quarter is 2, so each value gets its own level.
   const quantile = (q: number) => sorted[Math.max(0, Math.ceil(q * sorted.length) - 1)] ?? 0
@@ -168,7 +175,7 @@ export function exerciseProgress(logs: WorkoutLog[], exerciseId: string): Progre
   const points: ProgressPoint[] = []
   for (const log of logs) {
     for (const entry of log.entries) {
-      if (entry.exerciseId !== exerciseId) continue
+      if (entry.exerciseId !== exerciseId || entry.sets.length === 0) continue
       const weights = entry.sets.map((set) => set.weightKg).filter((weight): weight is number => weight !== null)
       points.push({
         date: log.date,
@@ -188,12 +195,14 @@ export interface TrainedExercise {
 /** Trained exercises with their session count, most frequent first. */
 export function trainedExercises(logs: WorkoutLog[]): TrainedExercise[] {
   const counts = new Map<string, number>()
-  for (const log of logs) for (const entry of log.entries) counts.set(entry.exerciseId, (counts.get(entry.exerciseId) ?? 0) + 1)
+  for (const log of logs) {
+    for (const entry of log.entries) if (entry.sets.length > 0) counts.set(entry.exerciseId, (counts.get(entry.exerciseId) ?? 0) + 1)
+  }
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([exerciseId, sessions]) => ({ exerciseId, sessions }))
 }
 
 /** Days since the most recent training, or `null` if there is none. */
 export function daysSinceLastWorkout(logs: WorkoutLog[], today: DateKey): number | null {
-  const last = logs.reduce<DateKey | null>((latest, log) => (latest === null || log.date > latest ? log.date : latest), null)
+  const last = trainingDays(logs).reduce<DateKey | null>((latest, log) => (latest === null || log.date > latest ? log.date : latest), null)
   return last === null ? null : daysBetween(last, today)
 }

@@ -25,8 +25,8 @@ const SKELETON_CARDS = 6
 
 /** Read-only overview of the fixed exercise catalog with per-exercise history. */
 export function ExerciseCatalog() {
-  const { user, profile } = useSession()
-  const catalog = useExercises(user.uid, profile.dumbbellKg)
+  const { user } = useSession()
+  const catalog = useExercises(user.uid)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const toast = useToast()
   const selected = selectedId ? (getExercise(selectedId) ?? null) : null

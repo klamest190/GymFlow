@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { day, entry, log } from '../test/fixtures'
-import { activeWeekStreak, daysSinceLastWorkout, exerciseProgress, formatCompact, heatmapGrid, muscleDistribution, percentChange, summarize, weeklySeries } from './stats'
+import { activeWeekStreak, daysSinceLastWorkout, exerciseProgress, formatCompact, heatmapGrid, muscleDistribution, percentChange, summarize, trainedExercises, weeklySeries } from './stats'
 import { computeTotals } from './workoutMath'
 
 describe('computeTotals', () => {
@@ -91,6 +91,25 @@ describe('heatmapGrid', () => {
     const logs = [day('2026-10-13', 2), day('2026-10-14', 4), day('2026-10-15', 6), day('2026-10-16', 8)]
     const levels = heatmapGrid(logs, '2026-10-18', 1, 'sets')[0].slice(0, 5).map((cell) => cell.level)
     expect(levels).toEqual([0, 1, 2, 3, 4])
+  })
+})
+
+describe('exercises added without a set', () => {
+  // The tracker stores an exercise as soon as it is added; it only counts once a set is logged.
+  const logs = [day('2026-10-13'), log('2026-10-21', [entry('bench', 0, 0, 20)]), log('2026-10-22', [])]
+
+  it('do not make a training day', () => {
+    expect(summarize(logs, '2026-10-19', '2026-10-25').days).toBe(0)
+    expect(daysSinceLastWorkout(logs, '2026-10-24')).toBe(11)
+    // Only the week of the 13th counts; the running week (19–25) has no set yet.
+    expect(activeWeekStreak(logs, '2026-10-24')).toBe(1)
+    const levels = heatmapGrid(logs, '2026-10-24', 2, 'sets').flat()
+    expect(levels.filter((cell) => cell.level > 0).map((cell) => cell.date)).toEqual(['2026-10-13'])
+  })
+
+  it('do not make a session of the exercise', () => {
+    expect(exerciseProgress(logs, 'bench').map((point) => point.date)).toEqual(['2026-10-13'])
+    expect(trainedExercises([log('2026-10-21', [entry('bench', 0, 0, 20)])])).toEqual([])
   })
 })
 

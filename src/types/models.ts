@@ -93,7 +93,13 @@ export interface WorkoutEntry {
    * logged before, whose weight was the total.
    */
   perDumbbell?: boolean
+  /** Logged sets only; empty right after the exercise was added. */
   sets: WorkoutSet[]
+  /**
+   * Set values from the template that added the entry. They only fill the tracker's preview of
+   * the next set when the exercise has no earlier session; nothing counts them.
+   */
+  plannedSets?: { reps: number; weightKg: number | null }[]
   /** Order in the day's list. */
   position: number
 }

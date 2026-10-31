@@ -8,6 +8,7 @@ import { LoginScreen } from './features/auth/LoginScreen'
 import { NoAccessScreen } from './features/auth/NoAccessScreen'
 import { GamificationProvider } from './features/gamification/GamificationProvider'
 import { OnboardingContext } from './features/onboarding/onboardingContext'
+import { RestTimerProvider } from './features/rest/RestTimerProvider'
 import { DailyTracker } from './features/tracker/DailyTracker'
 import { useDelayedFlag } from './hooks/useDelayedFlag'
 import { repository } from './services/repository'
@@ -89,15 +90,17 @@ function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
     // Above the tabs, so a level-up is celebrated right where the set was logged.
     <GamificationProvider>
       <OnboardingContext.Provider value={replayOnboarding}>
-        <AppShell tab={activeTab} onTabChange={setTab}>
-          <Suspense fallback={<TabSkeleton />}>
-            {activeTab === 'today' && <DailyTracker />}
-            {activeTab === 'exercises' && <ExerciseCatalog />}
-            {activeTab === 'stats' && <StatsDashboard />}
-            {activeTab === 'admin' && <AdminDashboard />}
-            {activeTab === 'profile' && <ProfilePage />}
-          </Suspense>
-        </AppShell>
+        <RestTimerProvider>
+          <AppShell tab={activeTab} onTabChange={setTab}>
+            <Suspense fallback={<TabSkeleton />}>
+              {activeTab === 'today' && <DailyTracker />}
+              {activeTab === 'exercises' && <ExerciseCatalog />}
+              {activeTab === 'stats' && <StatsDashboard />}
+              {activeTab === 'admin' && <AdminDashboard />}
+              {activeTab === 'profile' && <ProfilePage />}
+            </Suspense>
+          </AppShell>
+        </RestTimerProvider>
         <Suspense fallback={null}>
           <AnimatePresence>{showOnboarding && <Onboarding key="onboarding" onDone={finishOnboarding} />}</AnimatePresence>
         </Suspense>

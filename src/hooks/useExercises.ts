@@ -21,7 +21,7 @@ export type MuscleFilter = MuscleGroup | 'all'
  * muscle filter state. Secondary muscles match too, so filtering by shoulders also lists the
  * pressing moves that work them.
  */
-export function useExercises(userId: string, dumbbellKg: number) {
+export function useExercises(userId: string) {
   const today = todayKey()
   const { logs, ready } = useLogsInRange(userId, addDays(today, -(EXERCISE_HISTORY_DAYS - 1)), today)
   const [search, setSearch] = useState('')
@@ -53,9 +53,9 @@ export function useExercises(userId: string, dumbbellKg: number) {
   const addToToday = useCallback(
     (exercise: Exercise) => {
       const entries = todayLog?.entries ?? []
-      return repository.saveLog(buildWorkoutLog(userId, today, [...entries, createEntry(exercise, entries.length, dumbbellKg)], todayLog))
+      return repository.saveLog(buildWorkoutLog(userId, today, [...entries, createEntry(exercise, entries.length)], todayLog))
     },
-    [userId, today, todayLog, dumbbellKg],
+    [userId, today, todayLog],
   )
 
   return {

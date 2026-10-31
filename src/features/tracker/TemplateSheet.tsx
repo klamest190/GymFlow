@@ -39,7 +39,8 @@ export function TemplateSheet({ open, onClose, entries, onApply }: TemplateSheet
         name: trimmed,
         exercises: entries.map((entry) => ({
           exerciseId: entry.exerciseId,
-          sets: entry.sets.map(({ reps, weightKg }) => ({ reps, weightKg })),
+          // An exercise without a logged set yet keeps the plan it came with.
+          sets: entry.sets.length > 0 ? entry.sets.map(({ reps, weightKg }) => ({ reps, weightKg })) : (entry.plannedSets ?? []),
         })),
       })
       toast({ tone: 'success', title: 'Vorlage gespeichert', description: `„${trimmed}“ steht ab jetzt unter Vorlagen bereit.` })

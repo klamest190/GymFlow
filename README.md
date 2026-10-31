@@ -164,10 +164,19 @@ Im Profil zeigt GymFlow Level, Rang (Liga) und Erfolge. Logik: [gamificationServ
 - **Sync:** Der `GamificationProvider` lädt alle Trainingstage (ein kleines Dokument pro Tag), berechnet den Stand und spiegelt ihn in `users/{uid}`. Bei einem Level-Up, neuen Rang oder Erfolg erscheint ein Toast. Der erste Sync eines Kontos mit bestehender Historie läuft still, damit nicht alles auf einmal gefeiert wird.
 - **Grenze ohne Server:** Die Rules prüfen nur Form und Plausibilität der XP-Felder. Da der Client sie berechnet, könnte ein manipulierter Client sich eigene XP schreiben, aber nie die eines anderen. Für eine Rangliste müsste die Berechnung in eine Cloud Function (Blaze-Tarif).
 
+## Training im Tracker
+
+Gebaut für den Ablauf „Satz machen, eintragen, Pause, nächster Satz“ mit einer Hand.
+
+- **Nur erledigte Sätze werden gespeichert.** Eine neue Übung hat 0 Sätze. Darunter steht immer ein blasser **Vorschau-Satz** („Nächster Satz“), der nie gespeichert wird. Sein ✓ trägt ihn mit einem Tipp ein; ein Tipp auf die Zahlen öffnet die Stepper, um ihn vorher anzupassen. Eine versehentlich hinzugefügte Übung zählt so für nichts: Statistik, Heatmap und Wochenstreifen beachten nur Tage mit mindestens einem Satz (`trainingDays` in [stats.ts](src/lib/stats.ts)).
+- **Woher die Vorschau kommt** ([plannedSet.ts](src/lib/plannedSet.ts)): Satz n der letzten Einheit dieser Übung vor dem gewählten Tag, sonst die Werte der Vorlage (`plannedSets` am Eintrag), sonst eine Kopie des letzten Satzes von heute („Weiterer Satz“), sonst 10 Wiederholungen mit dem eigenen Hantelgewicht. Ältere Einträge mit Gesamtgewicht statt Gewicht je Hantel liefern nur die Wiederholungen.
+- **„Letztes Mal“** steht unter dem Übungsnamen mit allen Wiederholungszahlen („12, 10, 8 Wdh. mit 8 kg“), weil man sich mit einem festen Hantelpaar vor allem über Wiederholungen steigert.
+- **Satz-Timer** ([restTimer.ts](src/lib/restTimer.ts), [features/rest/](src/features/rest/)): Jeder abgehakte Satz von heute startet die Pause (Einstellung im Profil, 30 s bis 5 min, Standard 90 s, pro Gerät). Die Leiste über der Tab-Leiste bleibt auf allen Tabs, mit ±15 s und Beenden; danach zählt sie die Überzeit. Gespeichert sind nur Startzeit und Dauer in `localStorage`, darum stimmt sie auch nach Neuladen oder gesperrtem Bildschirm. Während der Pause hält die Wake-Lock-API den Bildschirm an. Am Ende kommen drei Töne über Web Audio ([sound.ts](src/lib/sound.ts)), freigeschaltet beim Tipp auf ✓, wie iOS es verlangt. Vibration gibt es auf dem iPhone nicht.
+
 ## Motivation & Komfort
 
 - **Bestleistungen feiern:** Schlägt ein Satz den bisherigen Rekord einer Übung (schwerstes Gewicht, bei Körpergewichtsübungen die meisten Wiederholungen), erscheint ein Reward-Toast mit altem und neuem Wert. Die App wartet 1,5 Sekunden, bis das Gewicht nicht mehr verändert wird, und meldet jede Übung höchstens einmal pro Tag. Rekorde aus der Vergangenheit lösen beim Start nichts aus. Logik: [records.ts](src/lib/records.ts).
-- **Trainingsvorlagen:** Im Tracker unter „Vorlagen“: vier mitgelieferte Vorlagen (Push, Beine & Core, Arme & Schultern, Ganzkörper) und eigene, die man aus einem eingetragenen Tag speichert, mit allen Sätzen und Gewichten. Beim Anwenden kommen nur Übungen dazu, die an dem Tag noch fehlen. Eine reine „Pull“-Vorlage folgt, sobald der Katalog Rückenübungen hat.
+- **Trainingsvorlagen:** Im Tracker unter „Vorlagen“: vier mitgelieferte Vorlagen (Push, Beine & Core, Arme & Schultern, Ganzkörper) und eigene, die man aus einem eingetragenen Tag speichert, mit allen Sätzen und Gewichten. Beim Anwenden kommen nur Übungen dazu, die an dem Tag noch fehlen, und zwar ohne Sätze: Die Werte der Vorlage füllen nur die Vorschau von Übungen, die man noch nie gemacht hat. Sonst gilt das letzte Mal. Eine reine „Pull“-Vorlage folgt, sobald der Katalog Rückenübungen hat.
 - **Wochenrückblick:** Montag bis Mittwoch oben im Tab „Heute“: Trainingstage gegenüber dem Wochenziel, Sätze und Volumen im Vergleich zur Woche davor, neue Bestleistungen und freigeschaltete Erfolge der Woche. Wegklicken gilt pro Gerät für diese Woche. Logik: [weeklyRecap.ts](src/lib/weeklyRecap.ts).
 - **Körpergewicht:** Im Profil: Eintrag pro Tag, Veränderung über 30 Tage und Verlauf der letzten 90 Tage.
 - **CSV-Export:** Im Profil, für Trainingsdaten (eine Zeile pro Satz) und Körpergewicht. Format für deutsches Excel: Semikolon, Dezimalkomma, UTF-8 mit BOM. Die Datei entsteht im Browser, es wird nichts hochgeladen.
@@ -215,6 +224,10 @@ src/
   lib/weeklyRecap.ts         Wochenrückblick (letzte Woche vs. Woche davor)
   lib/bodyWeight.ts          Körpergewicht: Eingabe, Trend, Diagrammpunkte
   lib/csv.ts                 CSV-Export für Excel
+  lib/exerciseHistory.ts     Einheiten pro Übung, „Letztes Mal“
+  lib/plannedSet.ts          Vorschau des nächsten Satzes
+  lib/restTimer.ts           Satz-Timer: Restzeit, Anzeige, Einstellung
+  lib/sound.ts               Ton am Pausenende (Web Audio)
   lib/pwa.ts                 Service-Worker-Registrierung, Install-Prompt
   lib/passwords.ts           Sichere Startpasswörter für neue Konten
   lib/usernames.ts           Benutzernamen: Format, Normalisierung, Vorschlag aus dem Namen
@@ -222,6 +235,7 @@ src/
   hooks/                     useLogsInRange, useAllLogs, useAllUsers, useDayDraft, useTheme
   components/                AppShell (Sidebar/TabBar), Sheet, Toasts, SegmentedControl, NumberStepper, AnimatedNumber
   features/tracker/          Daily Tracker (WeekStrip, DaySummary, ExerciseEntryCard, ExercisePicker, TemplateSheet, WeeklyRecapCard)
+  features/rest/             Satz-Timer: Provider (Speicher, Ton, Wake Lock) und Pausenleiste
   features/exercises/        Übungskatalog und Detail-Sheet; animation/ mit 3D-Skelett, Posen, Kamera und SVG-Figur
   features/stats/            Statistik-Dashboard (Recharts, lazy geladen)
   features/auth/             Login-Screen (inkl. Passwort vergessen), Kein-Zugang-Screen

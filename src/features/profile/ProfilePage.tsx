@@ -11,6 +11,8 @@ import { useToast } from '../../components/ui/toastContext'
 import { EXERCISES } from '../../data/exercises'
 import { haptic, useTheme, type ThemePreference } from '../../hooks/useUi'
 import { useInstallState } from '../../lib/pwa'
+import { formatRestClock, MAX_REST_SECONDS, MIN_REST_SECONDS, REST_STEP_SECONDS } from '../../lib/restTimer'
+import { useRestTimer } from '../rest/restTimerContext'
 import { repository } from '../../services/repository'
 import { RoleBadge, UserAvatar } from '../admin/UserBadges'
 import { GamificationDashboard } from '../gamification/GamificationDashboard'
@@ -71,6 +73,7 @@ export function ProfilePage() {
               </div>
             </SettingRow>
             <DumbbellRow />
+            <RestRow />
           </SettingsList>
           <BodyWeightCard entries={bodyWeights} />
         </ProfileSection>
@@ -213,6 +216,26 @@ function DumbbellRow() {
       <div className="flex items-center gap-2">
         <NumberStepper label="Gewicht je Hantel" value={profile.dumbbellKg} step={1} min={0.5} max={50} onChange={save} />
         <span className="text-[14px] font-medium text-muted">kg</span>
+      </div>
+    </SettingRow>
+  )
+}
+
+/** Rest between sets; stored per device like the theme, so it needs no account field. */
+function RestRow() {
+  const { restSeconds, setRestSeconds } = useRestTimer()
+  return (
+    <SettingRow title="Pausenzeit" description="Startet nach jedem abgehakten Satz. Während der Pause änderst du sie mit ±15 Sekunden." inline>
+      <div className="flex items-center gap-2">
+        <NumberStepper
+          label="Pausenzeit in Sekunden"
+          value={restSeconds}
+          step={REST_STEP_SECONDS}
+          min={MIN_REST_SECONDS}
+          max={MAX_REST_SECONDS}
+          onChange={(seconds) => seconds !== null && setRestSeconds(seconds)}
+        />
+        <span className="w-14 text-[14px] font-medium text-muted tabular-nums">{formatRestClock(restSeconds * 1000)} min</span>
       </div>
     </SettingRow>
   )

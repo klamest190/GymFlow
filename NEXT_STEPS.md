@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 30.10.2026. GymFlow läuft auf **Vercel** unter https://gym-flow-alpha-six.vercel.app (automatischer Deploy bei jedem Push auf `main`, echte Firebase-Config, am 30.10. geprüft). **Die Rules seit dem 23.10. sind noch nicht deployt** (siehe „Offen: Auf das Handy bringen“).
+Stand: 31.10.2026. Teilprojekt 2 (Kernablauf im Training) umgesetzt: Vorschau-Satz mit Werten vom letzten Mal, Abhaken mit einem Tipp, Satz-Timer. Der Test auf dem iPhone steht noch aus (siehe „Offen: Kernablauf auf dem iPhone prüfen“). GymFlow läuft auf **Vercel** unter https://gym-flow-alpha-six.vercel.app (automatischer Deploy bei jedem Push auf `main`, echte Firebase-Config, am 30.10. geprüft). **Die Rules seit dem 23.10. sind noch nicht deployt** (siehe „Offen: Auf das Handy bringen“).
 
 ## Ziel und Roadmap (festgelegt am 30.10.)
 
@@ -11,7 +11,7 @@ Einschätzung am 30.10.: als Code etwa 7,5/10, als Produkt etwa 5/10, weil die A
 | # | Teilprojekt | Status |
 |---|---|---|
 | 1 | **Auf das Handy bringen:** Rules, Console, PWA installieren, Live-Test | 🔄 Hosting läuft (Vercel), Rules-Deploy und Live-Test offen |
-| 2 | **Kernablauf im Training:** Werte vom letzten Mal je Übung, Satz-Timer, Satz mit einem Tipp übernehmen, Vorschlag für die nächste Steigerung (bei festem Hantelpaar meist über Wiederholungen) | offen, braucht eigenen Entwurf (Brainstorming) |
+| 2 | **Kernablauf im Training:** Werte vom letzten Mal je Übung, Satz-Timer, Satz mit einem Tipp übernehmen. Steigerungsziele bewusst weggelassen (entschieden am 31.10.) | ✅ umgesetzt am 31.10., Test auf dem iPhone offen |
 | 3 | **Katalog für Kurzhanteln ergänzen:** einarmiges Rudern, vorgebeugtes Rudern, Reverse Flys, rumänisches Kreuzheben, Trizeps-Überkopfdrücken, Hammer-Curls, optional Wadenheben (je eine 3D-Pose) | offen |
 | 4 | **Nachschärfen nach zwei Wochen echter Nutzung** | offen |
 
@@ -61,10 +61,19 @@ npm run dev
 | **Motivation & Komfort** (24.10.) | ✅ Reward-Toast bei neuer Bestleistung; Vorlagen (4 mitgeliefert + eigene aus einem Tag speichern); Wochenrückblick Mo–Mi auf „Heute“; Körpergewicht mit 90-Tage-Verlauf im Profil; CSV-Export für Training und Körpergewicht. Jetzt 121 Unit-Tests und 109 Rules-Tests |
 | **Design „Eisen“** (25.10.) | ✅ Neue visuelle Identität statt Neon-Lime mit Glas (Regeln siehe „Design-Regeln“ unten). „Heute“ als Satz-Protokoll mit großen Zahlen und einem aufgeklappten Satz; Statistik mit Wochenziel als Scheiben-Balken; Profil in die Abschnitte Training und App gegliedert; Login mit 3D-Figur; neue App-Icons. Behoben: Übungskarten zuckten und glitten beim Hovern seitlich (volle Layout-Animation plus Hover-Lift). Kontraste aller Farbpaare geprüft, Tastatur-Fokus überall sichtbar |
 | **Kleinerer Start & XP am Folgetag** (25.10.) | ✅ Neue Übungen starten mit 1 Satz × 10 Wdh. (Katalogwerte heißen jetzt „Empfohlen“). XP, Level und Erfolge zählen nur abgeschlossene Tage; der laufende Tag zeigt „+X XP für heute“ im Tracker und im Profil und wird am nächsten Tag gutgeschrieben (mit Toast). Versehentlich angelegte und wieder gelöschte Übungen bringen so nichts mehr |
+| **Kernablauf im Training** (31.10.) | ✅ Neue Übungen haben 0 Sätze, darunter ein Vorschau-Satz (nie gespeichert) mit Satz n vom letzten Mal; ✓ trägt ihn mit einem Tipp ein, Tipp auf die Zahlen passt ihn vorher an. „Letztes Mal: 12, 10, 8 Wdh. mit 8 kg“ unter dem Namen. Satz-Timer nach jedem Satz von heute: Leiste auf allen Tabs, ±15 s, Überzeit, Ton, Bildschirm bleibt an; Pausenzeit im Profil (pro Gerät). Vorlagen setzen nur noch Übungen, ihre Werte füllen die Vorschau ohne Historie. Statistik, Heatmap und Wochenstreifen zählen nur Tage mit Sätzen. Keine Rules-Änderung nötig. 186 Unit-Tests |
 
 ### Behobener Fehler (19.10.)
 
 Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten, weil `signIn()` doppelt lief (React StrictMode). Danach merkte sie sich das falsche, und Firestore lehnte alle Lese- und Schreibzugriffe ab, bis die Seite neu geladen wurde. `signIn()` war danach idempotent. Das Gast-Login wurde inzwischen durch E-Mail/Passwort ersetzt; der `AuthProvider` legt keine Konten mehr selbst an, damit kann der Fehler nicht wieder auftreten.
+
+## Offen: Kernablauf auf dem iPhone prüfen (Teilprojekt 2)
+
+- [ ] Ein Training mit der installierten App machen und dabei prüfen:
+  - Ist der **Ton am Pausenende** zu hören, auch bei stummgeschaltetem iPhone und mit laufender Musik? (`navigator.audioSession.type = 'transient'` in `src/lib/sound.ts`; falls stumm, `'playback'` probieren, das stoppt aber Musik.)
+  - Bleibt der **Bildschirm während der Pause an** (Wake Lock; im Stromsparmodus verweigert iOS ihn)?
+  - Stimmt die Pause nach **Sperren und Entsperren** des Handys?
+- [ ] Alles notieren, was im echten Training stört: Grundlage für Teilprojekt 4.
 
 ## Offen: Auf das Handy bringen (Teilprojekt 1)
 
@@ -113,6 +122,9 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 - **Benutzername zusätzlich zur E-Mail** (entschieden am 23.10.): E-Mail bleibt Pflicht, damit „Passwort vergessen“ immer funktioniert. In Kauf genommen: Wer einen Benutzernamen kennt, kann die zugehörige E-Mail abfragen (öffentlicher Lookup vor dem Login, ohne Cloud Functions nicht vermeidbar).
 - **XP abgeleitet statt pro Aktion vergeben:** Trainingstage sind bearbeitbar, also wird alles aus der Historie neu berechnet (nicht farmbar, geräteübergreifend gleich). Ein „abgeschlossenes Workout“ ist ein Trainingstag mit mindestens einem Satz. Den 3-Tage-Streak-Bonus gibt es an jedem 3. Tag einer Serie. Erfolge bleiben auch nach dem Löschen von Tagen freigeschaltet, XP nicht.
 - **XP erst für abgeschlossene Tage** (entschieden am 25.10.): Der heutige Tag zählt erst ab morgen, damit Fehleingaben keine XP und keine dauerhaften Erfolge auslösen. Nachträge an vergangenen Tagen zählen sofort.
+- **Gespeichert wird nur, was gemacht wurde** (entschieden am 31.10.): Der nächste Satz ist eine berechnete Vorschau, kein gespeicherter „geplanter“ Satz. Verworfen: ein Feld `done` pro Satz (hätte alle ~14 Auswertungen betroffen, vergessene Haken fehlen in der Statistik) und „Satz fertig“ legt den nächsten an (übrig bleibender Geistersatz).
+- **Keine Steigerungsziele** (entschieden am 31.10.): Die App zeigt das letzte Mal und übernimmt dessen Werte, gibt aber kein „Ziel: +1“ vor.
+- **Pausenzeit eine für alles, pro Gerät** (entschieden am 31.10.): in `localStorage` wie das Farbschema, keine Rules-Änderung. Timer nur für heute, nicht beim Nachtragen.
 - **Design „Eisen“ statt Neongrün mit Glas** (entschieden am 25.10.): Das alte Design war sauber gebaut, sah aber aus wie viele generierte Apps. Die neue Identität kommt aus der Welt der Hantelscheiben. Verworfen: Lime behalten und nur entrümpeln („Evolution“), und ein Papier-Trainingsheft (zu weit weg vom Studio).
 
 ## Design-Regeln

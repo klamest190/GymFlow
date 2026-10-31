@@ -2,6 +2,8 @@ import { AnimatePresence, m } from 'framer-motion'
 import { LogOut, Moon, Sun } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useAuth, useSession } from '../../auth/authContext'
+import { REST_BAR_HEIGHT, RestTimerBar } from '../../features/rest/RestTimerBar'
+import { useRestTimer } from '../../features/rest/restTimerContext'
 import { Wordmark } from '../ui/Wordmark'
 import { useTheme } from '../../hooks/useUi'
 import { repository } from '../../services/repository'
@@ -15,11 +17,16 @@ interface AppShellProps {
 }
 
 export function AppShell({ tab, onTabChange, children }: AppShellProps) {
+  const { rest } = useRestTimer()
   return (
     <div className="relative min-h-dvh overflow-x-clip">
       <div className="relative mx-auto flex max-w-[1440px]">
         <Sidebar tab={tab} onTabChange={onTabChange} />
-        <main className="min-w-0 flex-1 px-4 pb-36 pt-[calc(env(safe-area-inset-top)+20px)] sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
+        <main
+          // The rest bar sits on top of the content's end on phones: make room for it.
+          style={rest ? { paddingBottom: `calc(9rem + ${REST_BAR_HEIGHT}px)` } : undefined}
+          className="min-w-0 flex-1 px-4 pb-36 pt-[calc(env(safe-area-inset-top)+20px)] sm:px-6 lg:px-10 lg:pb-12 lg:pt-10"
+        >
           {/* Each tab starts at the top, reset while the old one is already faded out (no visible jump). */}
           <AnimatePresence mode="wait" initial={false} onExitComplete={() => window.scrollTo({ top: 0 })}>
             <m.div
@@ -34,6 +41,7 @@ export function AppShell({ tab, onTabChange, children }: AppShellProps) {
           </AnimatePresence>
         </main>
       </div>
+      <RestTimerBar />
       <TabBar tab={tab} onTabChange={onTabChange} />
     </div>
   )

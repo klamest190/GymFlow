@@ -1,19 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { getExercise } from '../data/exercises'
-import { createEntry, NEW_ENTRY_REPS, NEW_ENTRY_SETS } from './workoutMath'
+import { createEntry, newSetValues } from './workoutMath'
 
 describe('createEntry', () => {
-  it("starts every set at the user's dumbbell weight, counted per dumbbell", () => {
+  it('starts without sets: only logged sets are stored, so nothing counts before the first one', () => {
     const curls = getExercise('bicep-curls')!
-    const entry = createEntry(curls, 0, 5)
+    const entry = createEntry(curls, 0)
     expect(entry.perDumbbell).toBe(true)
-    expect(entry.sets).toHaveLength(NEW_ENTRY_SETS)
-    expect(entry.sets.every((set) => set.weightKg === 5 && set.reps === NEW_ENTRY_REPS)).toBe(true)
+    expect(entry.sets).toEqual([])
   })
+})
 
-  it('starts with a single set of 10 reps, not the catalog recommendation', () => {
-    const squats = getExercise('squats')!
-    expect(squats.defaultSets).toBeGreaterThan(1)
-    expect(createEntry(squats, 0, 5).sets.map((set) => set.reps)).toEqual([10])
+describe('newSetValues', () => {
+  it("starts a new exercise at 10 reps with the user's dumbbell weight, not the catalog recommendation", () => {
+    expect(newSetValues(getExercise('bicep-curls')!, 5)).toEqual({ reps: 10, weightKg: 5 })
   })
 })

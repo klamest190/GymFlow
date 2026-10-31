@@ -11,9 +11,14 @@ import { useSession } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
 import { settle } from '../../lib/motion'
 import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
-import { createEntry, createSet, startWeightKg } from '../../lib/workoutMath'
+import { buildExerciseHistory } from '../../lib/exerciseHistory'
+import { lastSessionBefore } from '../../lib/plannedSet'
+import { trainingDays } from '../../lib/stats'
+import { createEntry, NEW_ENTRY_REPS, newSetValues, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
 import { useGamification } from '../gamification/gamificationContext'
+import { REST_BAR_HEIGHT } from '../rest/RestTimerBar'
+import { useRestTimer } from '../rest/restTimerContext'
 import { DaySummary } from './DaySummary'
 import { ExerciseEntryCard } from './ExerciseEntryCard'
 import { ExercisePicker } from './ExercisePicker'
@@ -39,26 +44,42 @@ export function DailyTracker() {
   const { logs, ready } = useLogsInRange(userId, week[0], week[6])
   const remote = logs.find((log) => log.date === date) ?? null
   const { entries, update, syncState } = useDayDraft(userId, date, remote, ready)
+  const restTimer = useRestTimer()
+  const isToday = date === todayKey()
 
-  const activeDates = useMemo(() => new Set(logs.map((log) => log.date)), [logs])
+  const activeDates = useMemo(() => new Set(trainingDays(logs).map((log) => log.date)), [logs])
   const addedIds = useMemo(() => new Set(entries.map((entry) => entry.exerciseId)), [entries])
+  // "Letztes Mal" per exercise; the whole history is loaded once by the gamification provider.
+  const history = useMemo(() => buildExerciseHistory(gamification?.logs ?? []), [gamification?.logs])
 
-  const addExercise = useCallback(
-    (exercise: Exercise) => update((current) => [...current, createEntry(exercise, current.length, profile.dumbbellKg)]),
-    [update, profile.dumbbellKg],
-  )
+  const addExercise = useCallback((exercise: Exercise) => update((current) => [...current, createEntry(exercise, current.length)]), [update])
   const changeEntry = (next: WorkoutEntry) => update((current) => current.map((entry) => (entry.id === next.id ? next : entry)))
   const removeEntry = (id: string) => update((current) => current.filter((entry) => entry.id !== id))
 
-  // Appends the template's exercises with their planned sets; exercises already on the day stay as they are.
+  const fallbackFor = (entry: WorkoutEntry) => {
+    const exercise = getExercise(entry.exerciseId)
+    return exercise ? newSetValues(exercise, profile.dumbbellKg) : { reps: NEW_ENTRY_REPS, weightKg: entry.usesWeight ? profile.dumbbellKg : null }
+  }
+
+  // Rest only between sets done right now, not while catching up on an earlier day.
+  const startRest = (entry: WorkoutEntry, setNumber: number) => {
+    if (isToday) restTimer.start(`Pause nach Satz ${setNumber}, ${entry.exerciseName}`)
+  }
+
+  // Appends the template's exercises without sets; exercises already on the day stay as they are.
+  // The template's values only fill the preview of exercises without an earlier session.
   const applyTemplate = (template: WorkoutTemplate) => {
     const added = template.exercises.flatMap((item) => {
       const exercise = getExercise(item.exerciseId)
       if (!exercise || addedIds.has(item.exerciseId)) return []
-      const entry = createEntry(exercise, 0, profile.dumbbellKg)
-      // Planned sets keep their weight; sets saved without one start at the user's dumbbell weight.
-      const sets = item.sets.map((set) => createSet(set.reps, exercise.usesWeight ? (set.weightKg ?? startWeightKg(exercise, profile.dumbbellKg)) : null))
-      return [{ ...entry, sets: sets.length > 0 ? sets : entry.sets }]
+      const entry = createEntry(exercise, 0)
+      if (item.sets.length === 0) return [entry]
+      // Sets saved without a weight start at the user's dumbbell weight.
+      const plannedSets = item.sets.map((set) => ({
+        reps: set.reps,
+        weightKg: exercise.usesWeight ? (set.weightKg ?? startWeightKg(exercise, profile.dumbbellKg)) : null,
+      }))
+      return [{ ...entry, plannedSets }]
     })
     setTemplatesOpen(false)
     if (added.length === 0) {
@@ -110,7 +131,7 @@ export function DailyTracker() {
 
           <Loadable ready={ready} skeleton={<EntriesSkeleton />}>
             {entries.length === 0 ? (
-              <EmptyState isToday={date === todayKey()} onAdd={() => setPickerOpen(true)} onTemplates={() => setTemplatesOpen(true)} />
+              <EmptyState isToday={isToday} onAdd={() => setPickerOpen(true)} onTemplates={() => setTemplatesOpen(true)} />
             ) : (
               <ul className="space-y-3">
                 <AnimatePresence initial={false} mode="popLayout">
@@ -126,8 +147,11 @@ export function DailyTracker() {
                       <ExerciseEntryCard
                         entry={entry}
                         exercise={getExercise(entry.exerciseId)}
+                        previous={lastSessionBefore(history, entry.exerciseId, date)?.entry ?? null}
+                        fallback={fallbackFor(entry)}
                         onChange={changeEntry}
                         onRemove={() => removeEntry(entry.id)}
+                        onSetLogged={(setNumber) => startRest(entry, setNumber)}
                       />
                     </m.li>
                   ))}
@@ -140,7 +164,7 @@ export function DailyTracker() {
         {/* Mobile: summary sits above the entries. Desktop: sticky right column. */}
         <aside className="order-first space-y-4 lg:order-none lg:col-start-2 lg:row-start-1">
           <div className="space-y-4 lg:sticky lg:top-10">
-            {entries.length > 0 && <DaySummary entries={entries} pendingXP={date === todayKey() ? (gamification?.pendingXP ?? 0) : 0} />}
+            {entries.length > 0 && <DaySummary entries={entries} pendingXP={isToday ? (gamification?.pendingXP ?? 0) : 0} />}
             {suggestions.length > 0 && (
               <section className="hidden border-t border-line px-1 pt-5 lg:block">
                 <h2 className="text-[14px] font-semibold text-muted">Schnell hinzufügen</h2>
@@ -178,13 +202,14 @@ export function DailyTracker() {
         </aside>
       </div>
 
-      {/* Mobile floating action button above the tab bar, once the day has entries (an empty day
-          has its own buttons). Portaled so it stays outside the page transition's fading wrapper. */}
+      {/* Mobile floating action button above the tab bar (and the rest bar), once the day has entries
+          (an empty day has its own buttons). Portaled so it stays outside the page transition's fading wrapper. */}
       {entries.length > 0 && createPortal(
       <m.button
         type="button"
         onClick={() => setPickerOpen(true)}
         whileTap={{ scale: 0.92 }}
+        style={restTimer.rest ? { bottom: `calc(env(safe-area-inset-bottom) + ${84 + REST_BAR_HEIGHT}px)` } : undefined}
         className="fixed bottom-[calc(env(safe-area-inset-bottom)+84px)] right-4 z-30 flex items-center gap-2 rounded-xl bg-accent py-4 pl-5 pr-6 text-[15px] font-semibold text-accent-ink shadow-float lg:hidden"
         aria-label="Übung hinzufügen"
       >

@@ -33,6 +33,9 @@ const subscribe = (onChange: () => void) => {
   return () => void listeners.delete(onChange)
 }
 
+/** Opens the first set of an exercise that was just added, so it can be logged right away. */
+export const openSetDraft = (entryId: string, values: SetValues) => save(withDraft(drafts, entryId, values, Date.now()))
+
 /** The next set of one entry while it is being entered; it outlives the card (tab switches, reloads). */
 export function useSetDraft(entryId: string) {
   const stored = useSyncExternalStore(subscribe, () => drafts[entryId])

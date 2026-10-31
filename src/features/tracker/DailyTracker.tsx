@@ -1,6 +1,6 @@
 import { AnimatePresence, m } from 'framer-motion'
 import { CalendarDays, CloudCheck, CloudOff, LayoutList, LoaderCircle, Moon, Plus, Sun } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { EXERCISES, getExercise } from '../../data/exercises'
 import { Loadable } from '../../components/ui/Loadable'
@@ -12,7 +12,7 @@ import { useTheme } from '../../hooks/useUi'
 import { settle } from '../../lib/motion'
 import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
 import { buildExerciseHistory } from '../../lib/exerciseHistory'
-import { lastSessionBefore } from '../../lib/plannedSet'
+import { lastSessionBefore, nextPlannedSet } from '../../lib/plannedSet'
 import { trainingDays } from '../../lib/stats'
 import { createEntry, NEW_ENTRY_REPS, newSetValues, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
@@ -21,6 +21,7 @@ import { REST_BAR_HEIGHT } from '../rest/RestTimerBar'
 import { useRestTimer } from '../rest/restTimerContext'
 import { DaySummary } from './DaySummary'
 import { ExerciseEntryCard } from './ExerciseEntryCard'
+import { openSetDraft } from './useSetDraft'
 import { ExercisePicker } from './ExercisePicker'
 import { TemplateSheet } from './TemplateSheet'
 import { WeekStrip } from './WeekStrip'
@@ -52,14 +53,22 @@ export function DailyTracker() {
   // "Letztes Mal" per exercise; the whole history is loaded once by the gamification provider.
   const history = useMemo(() => buildExerciseHistory(gamification?.logs ?? []), [gamification?.logs])
 
-  const addExercise = useCallback((exercise: Exercise) => update((current) => [...current, createEntry(exercise, current.length)]), [update])
-  const changeEntry = (next: WorkoutEntry) => update((current) => current.map((entry) => (entry.id === next.id ? next : entry)))
-  const removeEntry = (id: string) => update((current) => current.filter((entry) => entry.id !== id))
-
   const fallbackFor = (entry: WorkoutEntry) => {
     const exercise = getExercise(entry.exerciseId)
     return exercise ? newSetValues(exercise, profile.dumbbellKg) : { reps: NEW_ENTRY_REPS, weightKg: entry.usesWeight ? profile.dumbbellKg : null }
   }
+  const previousOf = (entry: WorkoutEntry) => lastSessionBefore(history, entry.exerciseId, date)?.entry ?? null
+
+  // A newly added exercise comes with set 1 already open, prefilled like any next set.
+  const openFirstSet = (entry: WorkoutEntry) => openSetDraft(entry.id, nextPlannedSet(entry, previousOf(entry), fallbackFor(entry)))
+
+  const addExercise = (exercise: Exercise) => {
+    const entry = createEntry(exercise, 0)
+    openFirstSet(entry)
+    update((current) => [...current, { ...entry, position: current.length }])
+  }
+  const changeEntry = (next: WorkoutEntry) => update((current) => current.map((entry) => (entry.id === next.id ? next : entry)))
+  const removeEntry = (id: string) => update((current) => current.filter((entry) => entry.id !== id))
 
   // Rest only between sets done right now, not while catching up on an earlier day.
   const startRest = (entry: WorkoutEntry, setNumber: number) => {
@@ -86,6 +95,8 @@ export function DailyTracker() {
       toast({ tone: 'info', title: 'Schon eingetragen', description: `Alle Übungen aus „${template.name}“ sind an diesem Tag bereits drin.` })
       return
     }
+    // Only the first exercise opens its set: that's where the workout starts, and several open cards would crowd the screen.
+    openFirstSet(added[0])
     update((current) => [...current, ...added])
     toast({ tone: 'success', title: `„${template.name}“ eingetragen`, description: `${added.length} ${added.length === 1 ? 'Übung' : 'Übungen'} hinzugefügt.` })
   }
@@ -147,7 +158,7 @@ export function DailyTracker() {
                       <ExerciseEntryCard
                         entry={entry}
                         exercise={getExercise(entry.exerciseId)}
-                        previous={lastSessionBefore(history, entry.exerciseId, date)?.entry ?? null}
+                        previous={previousOf(entry)}
                         fallback={fallbackFor(entry)}
                         onChange={changeEntry}
                         onRemove={() => removeEntry(entry.id)}

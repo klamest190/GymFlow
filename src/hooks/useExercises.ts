@@ -49,11 +49,15 @@ export function useExercises(userId: string) {
     setMuscle('all')
   }, [])
 
-  /** Appends the exercise to today's log. The write is optimistic (offline cache), so callers needn't wait. */
+  /**
+   * Appends the exercise to today's log and returns the new entry. The write is optimistic
+   * (offline cache), so callers needn't wait for `saved`.
+   */
   const addToToday = useCallback(
     (exercise: Exercise) => {
       const entries = todayLog?.entries ?? []
-      return repository.saveLog(buildWorkoutLog(userId, today, [...entries, createEntry(exercise, entries.length)], todayLog))
+      const entry = createEntry(exercise, entries.length)
+      return { entry, saved: repository.saveLog(buildWorkoutLog(userId, today, [...entries, entry], todayLog)) }
     },
     [userId, today, todayLog],
   )

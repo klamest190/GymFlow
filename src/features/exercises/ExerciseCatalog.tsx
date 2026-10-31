@@ -9,10 +9,13 @@ import { useToast } from '../../components/ui/toastContext'
 import { getExercise } from '../../data/exercises'
 import { DIFFICULTY_LABELS, EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { EXERCISE_HISTORY_DAYS, FILTERABLE_MUSCLES, useExercises, type MuscleFilter } from '../../hooks/useExercises'
-import { formatDaysAgo } from '../../lib/dates'
+import { formatDaysAgo, todayKey } from '../../lib/dates'
 import { fade } from '../../lib/motion'
 import type { ExerciseSession } from '../../lib/exerciseHistory'
+import { nextPlannedSet } from '../../lib/plannedSet'
+import { newSetValues } from '../../lib/workoutMath'
 import type { DateKey, Exercise } from '../../types/models'
+import { openSetDraft } from '../tracker/useSetDraft'
 import { ExerciseAnimation } from './animation/ExerciseAnimation'
 import { EXERCISE_ANIMATIONS } from './animation/poses'
 import { ExerciseDetailSheet } from './ExerciseDetailSheet'
@@ -25,7 +28,7 @@ const SKELETON_CARDS = 6
 
 /** Read-only overview of the fixed exercise catalog with per-exercise history. */
 export function ExerciseCatalog() {
-  const { user } = useSession()
+  const { user, profile } = useSession()
   const catalog = useExercises(user.uid)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const toast = useToast()
@@ -36,7 +39,11 @@ export function ExerciseCatalog() {
     // Close right away: the write is optimistic (offline cache), so the entry is already in "Heute".
     setSelectedId(null)
     toast({ tone: 'success', title: `${exercise.name} hinzugefügt`, description: 'Du findest die Übung im Tab „Heute“.' })
-    catalog.addToToday(exercise).catch((error) => toast({ tone: 'error', title: 'Nicht gespeichert', description: authErrorMessage(error) }))
+    const { entry, saved } = catalog.addToToday(exercise)
+    // Set 1 waits open in "Heute", prefilled like there (the catalog's history covers the last 90 days).
+    const previous = catalog.sessionsOf(exercise.id).find((session) => session.date < todayKey())?.entry ?? null
+    openSetDraft(entry.id, nextPlannedSet(entry, previous, newSetValues(exercise, profile.dumbbellKg)))
+    saved.catch((error) => toast({ tone: 'error', title: 'Nicht gespeichert', description: authErrorMessage(error) }))
   }
 
   return (

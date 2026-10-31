@@ -8,6 +8,7 @@ import { formatLastTime } from '../../lib/exerciseHistory'
 import { reveal, settle, snap } from '../../lib/motion'
 import { nextPlannedSet } from '../../lib/plannedSet'
 import { createSet } from '../../lib/workoutMath'
+import { useSetDraft } from './useSetDraft'
 import type { Exercise, WorkoutEntry, WorkoutSet } from '../../types/models'
 
 type SetValues = Pick<WorkoutSet, 'reps' | 'weightKg'>
@@ -38,9 +39,10 @@ const weightFormatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 
 export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChange, onRemove, onSetLogged }: ExerciseEntryCardProps) {
   const isTouch = useIsTouch()
   const [showInfo, setShowInfo] = useState(false)
-  // At most one thing is open for editing: a logged set, or the next set (its draft values).
+  // A logged set open for correcting, and the next set being entered (kept outside the card, so it
+  // survives a tab switch during the rest). Both can be open at once.
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [draft, setDraft] = useState<SetValues | null>(null)
+  const [draft, setDraft] = useSetDraft(entry.id)
   const dragX = useMotionValue(0)
   const deleteOpacity = useTransform(dragX, [-140, -40, 0], [1, 0.4, 0])
   const deleteScale = useTransform(dragX, [-140, -40], [1, 0.6])
@@ -61,6 +63,11 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
     setSelectedId(null)
     onChange({ ...entry, sets: [...entry.sets, createSet(values.reps, entry.usesWeight ? values.weightKg : null)] })
     onSetLogged(nextNumber)
+  }
+
+  const remove = () => {
+    setDraft(null)
+    onRemove()
   }
 
   return (
@@ -85,7 +92,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
         onDragEnd={(_, info) => {
           if (info.offset.x < DELETE_THRESHOLD) {
             haptic(20)
-            onRemove()
+            remove()
           }
         }}
         className="glass relative touch-pan-y rounded-3xl p-4 sm:p-5"
@@ -109,7 +116,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
               <Info className="size-4.5" />
             </IconButton>
           )}
-          <IconButton label="Übung entfernen" onClick={onRemove} danger>
+          <IconButton label="Übung entfernen" onClick={remove} danger>
             <Trash2 className="size-4.5" />
           </IconButton>
         </header>
@@ -170,10 +177,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                     entry={entry}
                     set={set}
                     number={index + 1}
-                    onSelect={() => {
-                      setDraft(null)
-                      setSelectedId(set.id)
-                    }}
+                    onSelect={() => setSelectedId(set.id)}
                   />
                 )}
               </m.li>
@@ -184,7 +188,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                   entry={entry}
                   values={draft}
                   number={nextNumber}
-                  onChange={(patch) => setDraft((current) => current && { ...current, ...patch })}
+                  onChange={(patch) => setDraft({ ...draft, ...patch })}
                   action={
                     <SmallButton label={`Satz ${nextNumber} verwerfen`} onClick={() => setDraft(null)}>
                       <X className="size-4" strokeWidth={2.5} />

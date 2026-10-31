@@ -170,6 +170,8 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                     onChange={(patch) => updateSet(set.id, patch)}
                     onCollapse={() => setSelectedId(null)}
                     action={<DeleteButton number={index + 1} onClick={() => askToDelete(set.id)} />}
+                    // Same button as for a new set, so every open set ends the same way; here it only closes.
+                    footer={<LogButton number={index + 1} onClick={() => setSelectedId(null)} />}
                   />
                 ) : (
                   <LoggedSet
@@ -333,7 +335,7 @@ function EditSet({
   /** A logged set: its title row closes the editor again (changes are already saved). */
   onCollapse?: () => void
   action: ReactNode
-  footer?: ReactNode
+  footer: ReactNode
 }) {
   const weightLabel = entry.perDumbbell ? 'kg je Hantel' : 'kg'
   return (
@@ -390,7 +392,10 @@ function EditSet({
   )
 }
 
-/** Logs the next set. Graphite, not yellow: every card has one, and a screen gets one yellow surface. */
+/**
+ * Ends an open set: logs the next set, or closes a corrected one. Graphite, not yellow: every
+ * card has one, and a screen gets one yellow surface.
+ */
 function LogButton({ number, onClick }: { number: number; onClick: () => void }) {
   return (
     <m.button

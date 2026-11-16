@@ -1,14 +1,17 @@
 import { AnimatePresence, m, useMotionValue, useTransform } from 'framer-motion'
 import { Check, ChevronUp, History, Info, Plus, Trash2, X } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { NumberStepper } from '../../components/ui/NumberStepper'
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { haptic, useIsTouch } from '../../hooks/useUi'
 import { formatLastTime } from '../../lib/exerciseHistory'
 import { fade, reveal, settle, snap } from '../../lib/motion'
 import { nextPlannedSet } from '../../lib/plannedSet'
+import type { WavePlan } from '../../lib/tempoWave'
 import { createSet } from '../../lib/workoutMath'
+import { WavePreview, WaveRun } from './TrainingWave'
 import { useSetDraft } from './useSetDraft'
+import { useWaveTempo } from './useWaveTempo'
 import type { Exercise, WorkoutEntry, WorkoutSet } from '../../types/models'
 
 type SetValues = Pick<WorkoutSet, 'reps' | 'weightKg'>
@@ -34,7 +37,8 @@ const weightFormatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 
 /**
  * One exercise of the day as a set log. Logged sets read as stamped numbers ("12 × 5 kg"); below
  * them "Satz hinzufügen" opens the next set, prefilled with last time's values, and "Satz abhaken"
- * logs it. The open set is only a draft, so only sets actually done are stored.
+ * logs it. The open set is only a draft, so only sets actually done are stored. It also offers the
+ * training wave: after a countdown it sets the pace for every repetition and then logs the set.
  */
 export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChange, onRemove, onSetLogged }: ExerciseEntryCardProps) {
   const isTouch = useIsTouch()
@@ -48,6 +52,13 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
   const dragX = useMotionValue(0)
   const deleteOpacity = useTransform(dragX, [-140, -40, 0], [1, 0.4, 0])
   const deleteScale = useTransform(dragX, [-140, -40], [1, 0.6])
+
+  // When "Welle starten" was tapped for the open set; the wave runs from then on.
+  const [waveStartedAt, setWaveStartedAt] = useState<number | null>(null)
+  const [tempo] = useWaveTempo()
+  const draftReps = draft?.reps ?? 0
+  const lowersFirst = exercise?.lowersFirst ?? false
+  const wavePlan = useMemo<WavePlan>(() => ({ tempo, reps: draftReps, lowersFirst }), [tempo, draftReps, lowersFirst])
 
   const nextNumber = entry.sets.length + 1
 
@@ -69,6 +80,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
   const logSet = (values: SetValues) => {
     haptic(12)
     setDraft(null)
+    setWaveStartedAt(null)
     setSelectedId(null)
     onChange({ ...entry, sets: [...entry.sets, createSet(values.reps, entry.usesWeight ? values.weightKg : null)] })
     onSetLogged(nextNumber)
@@ -143,6 +155,9 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                     </li>
                   ))}
                 </ul>
+                <p className="mt-3 text-[13px] text-muted">
+                  <span className="font-semibold text-fg/85">Atmung:</span> {exercise.breathing}
+                </p>
               </div>
             </m.div>
           )}
@@ -188,7 +203,19 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
               </m.li>
             ))}
             <m.li key="next" layout="position" transition={settle} className="border-t border-line first:border-t-0">
-              {draft ? (
+              {draft && waveStartedAt !== null ? (
+                <WaveRun
+                  plan={wavePlan}
+                  number={nextNumber}
+                  startedAt={waveStartedAt}
+                  onFinish={() => logSet(draft)}
+                  onStop={(completedReps) => {
+                    setWaveStartedAt(null)
+                    // Ended early: the steppers show what was actually done, ready to be logged.
+                    if (completedReps > 0) setDraft({ ...draft, reps: completedReps })
+                  }}
+                />
+              ) : draft ? (
                 <EditSet
                   entry={entry}
                   values={draft}
@@ -199,6 +226,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                       <X className="size-4" strokeWidth={2.5} />
                     </SmallButton>
                   }
+                  wave={!exercise?.noWave && <WavePreview plan={wavePlan} onStart={() => setWaveStartedAt(Date.now())} />}
                   footer={<LogButton number={nextNumber} onClick={() => logSet(draft)} />}
                 />
               ) : (
@@ -326,6 +354,7 @@ function EditSet({
   onChange,
   onCollapse,
   action,
+  wave,
   footer,
 }: {
   entry: WorkoutEntry
@@ -335,6 +364,8 @@ function EditSet({
   /** A logged set: its title row closes the editor again (changes are already saved). */
   onCollapse?: () => void
   action: ReactNode
+  /** The next set: the training wave, between the steppers and the button. */
+  wave?: ReactNode
   footer: ReactNode
 }) {
   const weightLabel = entry.perDumbbell ? 'kg je Hantel' : 'kg'
@@ -386,6 +417,7 @@ function EditSet({
             </Field>
           )}
         </div>
+        {wave}
         {footer}
       </div>
     </m.div>

@@ -2,6 +2,7 @@ import { animate, useReducedMotion, type AnimationPlaybackControls } from 'frame
 import { Check, Pause, Play, Plus, Rotate3d } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
+import { BREATHING_RULE } from '../../data/exercises'
 import {
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
@@ -97,6 +98,11 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
               </li>
             ))}
           </ul>
+        </Section>
+
+        <Section title="Atmung">
+          <p className="text-[15px] font-medium leading-relaxed">{shown.breathing}</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-fg/80">{BREATHING_RULE}</p>
         </Section>
 
         <Section title="Verlauf">

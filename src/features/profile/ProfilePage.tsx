@@ -12,7 +12,9 @@ import { EXERCISES } from '../../data/exercises'
 import { haptic, useTheme, type ThemePreference } from '../../hooks/useUi'
 import { useInstallState } from '../../lib/pwa'
 import { formatRestClock, MAX_REST_SECONDS, MIN_REST_SECONDS, REST_STEP_SECONDS } from '../../lib/restTimer'
+import { MAX_TEMPO_SECONDS, MIN_TEMPO_SECONDS } from '../../lib/tempoWave'
 import { useRestTimer } from '../rest/restTimerContext'
+import { useWaveTempo } from '../tracker/useWaveTempo'
 import { repository } from '../../services/repository'
 import { RoleBadge, UserAvatar } from '../admin/UserBadges'
 import { GamificationDashboard } from '../gamification/GamificationDashboard'
@@ -74,6 +76,7 @@ export function ProfilePage() {
             </SettingRow>
             <DumbbellRow />
             <RestRow />
+            <WaveTempoRow />
           </SettingsList>
           <BodyWeightCard entries={bodyWeights} />
         </ProfileSection>
@@ -236,6 +239,35 @@ function RestRow() {
           onChange={(seconds) => seconds !== null && setRestSeconds(seconds)}
         />
         <span className="w-14 text-[14px] font-medium text-muted tabular-nums">{formatRestClock(restSeconds * 1000)} min</span>
+      </div>
+    </SettingRow>
+  )
+}
+
+/** Pace of the training wave; stored per device like the rest time. */
+function WaveTempoRow() {
+  const [tempo, setTempo] = useWaveTempo()
+  const phases = [
+    { key: 'liftSeconds', label: 'Heben' },
+    { key: 'lowerSeconds', label: 'Senken' },
+  ] as const
+  return (
+    <SettingRow title="Trainingswelle" description="So viele Sekunden gibt die Welle fürs Heben und fürs Senken vor. Langsamer senken als heben ist sinnvoll, für Maximalkraft 1 Sekunde heben." inline>
+      <div className="grid gap-2">
+        {phases.map(({ key, label }) => (
+          <div key={key} className="flex items-center gap-2">
+            <span className="w-14 text-[14px] font-medium text-muted">{label}</span>
+            <NumberStepper
+              label={`${label} in Sekunden`}
+              value={tempo[key]}
+              step={1}
+              min={MIN_TEMPO_SECONDS}
+              max={MAX_TEMPO_SECONDS}
+              onChange={(seconds) => seconds !== null && setTempo({ ...tempo, [key]: seconds })}
+            />
+            <span className="text-[14px] font-medium text-muted">s</span>
+          </div>
+        ))}
       </div>
     </SettingRow>
   )

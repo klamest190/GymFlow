@@ -24,12 +24,14 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'seitlich neben die untere Brust absenken, die Ellbogen dabei rund 45–60° vom Körper entfernt halten. ' +
       'Unten kurz halten und kraftvoll nach oben drücken, bis die Arme fast gestreckt sind.',
     formCues: ['Schulterblätter bleiben fixiert', 'Leichtes Hohlkreuz, Gesäß auf der Bank', 'Ellbogen nicht 90° abspreizen'],
+    breathing: 'Beim Absenken der Hanteln einatmen, beim Hochdrücken ausatmen.',
     primaryMuscle: 'chest',
     secondaryMuscles: ['shoulders', 'triceps'],
     category: 'strength',
     equipment: 'dumbbell',
     difficulty: 'intermediate',
     usesWeight: true,
+    lowersFirst: true,
     defaultSets: 4,
     defaultReps: 10,
   },
@@ -44,12 +46,14 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'Ellbogenwinkel bleibt dabei konstant. Anschließend die Arme mit bewusster Brustspannung ' +
       'wieder zusammenführen, als würdest du einen großen Baum umarmen.',
     formCues: ['Ellbogenwinkel nicht verändern', 'Langsame, kontrollierte Dehnung', 'Schultern tief halten'],
+    breathing: 'Beim Öffnen der Arme einatmen, beim Zusammenführen ausatmen.',
     primaryMuscle: 'chest',
     secondaryMuscles: ['shoulders'],
     category: 'strength',
     equipment: 'dumbbell',
     difficulty: 'beginner',
     usesWeight: true,
+    lowersFirst: true,
     defaultSets: 3,
     defaultReps: 12,
   },
@@ -64,12 +68,14 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'Ellbogen dabei eng am Oberkörper führen. Aus dem Trizeps heraus nach oben drücken, ohne die ' +
       'Ellbogen nach außen klappen zu lassen.',
     formCues: ['Hanteln bleiben eng beieinander', 'Ellbogen eng am Körper', 'Handgelenke stabil und neutral'],
+    breathing: 'Beim Absenken der Hanteln einatmen, beim Hochdrücken ausatmen.',
     primaryMuscle: 'triceps',
     secondaryMuscles: ['chest', 'shoulders'],
     category: 'strength',
     equipment: 'dumbbell',
     difficulty: 'intermediate',
     usesWeight: true,
+    lowersFirst: true,
     defaultSets: 3,
     defaultReps: 10,
   },
@@ -83,6 +89,7 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'an den Rumpf gepresst, während du die Gewichte durch Beugen im Ellbogen bis auf Schulterhöhe ' +
       'curlst. Oben kurz den Bizeps anspannen und langsam, über zwei bis drei Sekunden, absenken.',
     formCues: ['Kein Schwung aus dem Rücken', 'Ellbogen bleiben am Körper', 'Unten vollständig strecken'],
+    breathing: 'Beim Hochführen der Hanteln ausatmen, beim Ablassen einatmen.',
     primaryMuscle: 'biceps',
     secondaryMuscles: ['forearms'],
     category: 'strength',
@@ -102,6 +109,7 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'bis knapp auf Schulterhöhe anheben und dabei mit den Ellbogen führen, nicht mit den Händen. ' +
       'Kurz halten und kontrolliert absenken, ohne die Spannung unten komplett abzugeben.',
     formCues: ['Nicht über Schulterhöhe heben', 'Nacken entspannt, Schultern tief', 'Leichtes Gewicht, saubere Technik'],
+    breathing: 'Beim Anheben der Arme ausatmen, beim Senken einatmen.',
     primaryMuscle: 'shoulders',
     secondaryMuscles: [],
     category: 'strength',
@@ -121,6 +129,7 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'abwechselnd oder gleichzeitig nach vorne bis auf Augenhöhe heben. Den Oberkörper ruhig halten ' +
       'und die Bewegung langsam zurückführen.',
     formCues: ['Rumpf stabil, kein Zurücklehnen', 'Maximal bis Augenhöhe', 'Kontrollierte Abwärtsphase'],
+    breathing: 'Beim Anheben der Arme ausatmen, beim Senken einatmen.',
     primaryMuscle: 'shoulders',
     secondaryMuscles: ['chest'],
     category: 'strength',
@@ -141,12 +150,14 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'dich auf einen Stuhl setzen. Die Knie folgen der Richtung der Fußspitzen. Mindestens bis die Oberschenkel parallel zum Boden sind, ' +
       'dann über die ganze Fußsohle kraftvoll nach oben drücken.',
     formCues: ['Knie nicht nach innen fallen lassen', 'Fersen bleiben am Boden', 'Neutraler Rücken, Blick nach vorn'],
+    breathing: 'Beim Absenken einatmen, beim Hochkommen ausatmen.',
     primaryMuscle: 'quads',
     secondaryMuscles: ['glutes', 'hamstrings', 'core'],
     category: 'strength',
     equipment: 'dumbbell',
     difficulty: 'intermediate',
     usesWeight: true,
+    lowersFirst: true,
     defaultSets: 4,
     defaultReps: 8,
   },
@@ -161,12 +172,14 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'etwa 90° bilden. Das vordere Knie bleibt über dem Fußgelenk. Über die Ferse des vorderen Beins zurück in den Stand drücken und ' +
       'die Seite wechseln.',
     formCues: ['Oberkörper aufrecht', 'Vorderes Knie stabil über dem Fuß', 'Schritt lang genug wählen'],
+    breathing: 'Beim Absenken in den Ausfallschritt einatmen, beim Hochdrücken ausatmen.',
     primaryMuscle: 'quads',
     secondaryMuscles: ['glutes', 'hamstrings'],
     category: 'strength',
     equipment: 'dumbbell',
     difficulty: 'beginner',
     usesWeight: true,
+    lowersFirst: true,
     defaultSets: 3,
     defaultReps: 12,
   },
@@ -180,6 +193,7 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'Brust halten. Mit dem Ausatmen den oberen Rücken Wirbel für Wirbel einrollen, bis ' +
       'die Schulterblätter vom Boden abheben. Kurz halten und langsam wieder ablegen.',
     formCues: ['Hanteln fest an der Brust', 'Unterer Rücken bleibt am Boden', 'Beim Hochkommen ausatmen'],
+    breathing: 'Beim Aufrollen ausatmen, beim Ablegen einatmen.',
     primaryMuscle: 'core',
     secondaryMuscles: [],
     category: 'core',
@@ -200,12 +214,14 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'rotieren und die Kurzhanteln jeweils neben die Hüfte führen. Eine Seite plus die ' +
       'andere zählt als eine Wiederholung.',
     formCues: ['Rotation aus dem Rumpf, nicht nur den Armen', 'Rücken bleibt gerade', 'Gleichmäßig atmen'],
+    breathing: 'Gleichmäßig weiteratmen: bei jeder Drehung zur Seite ausatmen, in der Mitte einatmen.',
     primaryMuscle: 'obliques',
     secondaryMuscles: ['core'],
     category: 'core',
     equipment: 'dumbbell',
     difficulty: 'beginner',
     usesWeight: true,
+    noWave: true,
     defaultSets: 3,
     defaultReps: 20,
   },
@@ -219,6 +235,7 @@ const DEFINITIONS: ExerciseDefinition[] = [
       'fest anspannen. Die Hanteln senkrecht nach oben drücken und oben leicht zusammenführen, bis die ' +
       'Arme gestreckt sind. Kontrolliert zurück auf Schulterhöhe absenken.',
     formCues: ['Kein Hohlkreuz – Rumpf fest', 'Hanteln auf gerader Linie führen', 'Handgelenke über den Ellbogen'],
+    breathing: 'Beim Hochdrücken ausatmen, beim Absenken einatmen.',
     primaryMuscle: 'shoulders',
     secondaryMuscles: ['triceps', 'core'],
     category: 'strength',
@@ -229,6 +246,9 @@ const DEFINITIONS: ExerciseDefinition[] = [
     defaultReps: 8,
   },
 ]
+
+/** Holds for every exercise; shown next to each exercise's own breathing cue. */
+export const BREATHING_RULE = 'Grundregel: bei der Anstrengung ausatmen, beim Nachgeben einatmen. Die Luft nicht anhalten.'
 
 const buildSearchTerms = (name: string, aliases: string[]) =>
   [...new Set([name, ...aliases].map((term) => term.toLowerCase().trim()).filter(Boolean))]

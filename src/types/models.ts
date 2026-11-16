@@ -52,6 +52,8 @@ export interface Exercise {
   instructions: string
   /** Key coaching cues, rendered as a checklist. */
   formCues: string[]
+  /** When to breathe in and out during a repetition. */
+  breathing: string
   primaryMuscle: MuscleGroup
   secondaryMuscles: MuscleGroup[]
   category: ExerciseCategory
@@ -59,6 +61,10 @@ export interface Exercise {
   difficulty: Difficulty
   /** Whether the tracker shows a weight field for this exercise. */
   usesWeight: boolean
+  /** The movement starts at the top and lowers first (bench press, squats); the training wave follows. */
+  lowersFirst?: boolean
+  /** No training wave: the movement has no lifting and lowering to pace (rotations). */
+  noWave?: boolean
   /** Pre-filled values when the exercise is added to a day. */
   defaultSets: number
   defaultReps: number

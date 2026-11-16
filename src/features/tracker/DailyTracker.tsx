@@ -1,7 +1,6 @@
 import { AnimatePresence, m } from 'framer-motion'
 import { CalendarDays, CloudCheck, CloudOff, LayoutList, LoaderCircle, Moon, Plus, Sun } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { EXERCISES, getExercise } from '../../data/exercises'
 import { Loadable } from '../../components/ui/Loadable'
 import { useToast } from '../../components/ui/toastContext'
@@ -9,7 +8,7 @@ import { useLogsInRange } from '../../hooks/useData'
 import { useDayDraft, type SyncState } from '../../hooks/useDayDraft'
 import { useSession } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
-import { settle } from '../../lib/motion'
+import { settle, snap } from '../../lib/motion'
 import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
 import { buildExerciseHistory } from '../../lib/exerciseHistory'
 import { lastSessionBefore, nextPlannedSet } from '../../lib/plannedSet'
@@ -17,7 +16,6 @@ import { trainingDays } from '../../lib/stats'
 import { createEntry, NEW_ENTRY_REPS, newSetValues, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
 import { useGamification } from '../gamification/gamificationContext'
-import { REST_BAR_HEIGHT } from '../rest/RestTimerBar'
 import { useRestTimer } from '../rest/restTimerContext'
 import { DaySummary } from './DaySummary'
 import { ExerciseEntryCard } from './ExerciseEntryCard'
@@ -29,7 +27,7 @@ import { WeeklyRecapCard } from './WeeklyRecapCard'
 
 /**
  * Daily Workout Tracker: pick a day (today or any past day), add exercises from
- * the catalog and log reps/weight per set. Mobile: single column with a floating
+ * the catalog and log reps/weight per set. Mobile: single column, closed by the
  * add button. Desktop: entries on the left, sticky summary + quick add on the right.
  */
 export function DailyTracker() {
@@ -170,6 +168,21 @@ export function DailyTracker() {
               </ul>
             )}
           </Loadable>
+
+          {/* Phones: the add button closes the list instead of floating over it, where it used to
+              cover "Satz abhaken" and "Satz hinzufügen" (an empty day has its own buttons). */}
+          {ready && entries.length > 0 && (
+            <m.button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              whileTap={{ scale: 0.97 }}
+              transition={snap}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-4 text-[15px] font-semibold text-accent-ink lg:hidden"
+            >
+              <Plus className="size-5" strokeWidth={3} />
+              Übung hinzufügen
+            </m.button>
+          )}
         </div>
 
         {/* Mobile: summary sits above the entries. Desktop: sticky right column. */}
@@ -212,23 +225,6 @@ export function DailyTracker() {
           </div>
         </aside>
       </div>
-
-      {/* Mobile floating action button above the tab bar (and the rest bar), once the day has entries
-          (an empty day has its own buttons). Portaled so it stays outside the page transition's fading wrapper. */}
-      {entries.length > 0 && createPortal(
-      <m.button
-        type="button"
-        onClick={() => setPickerOpen(true)}
-        whileTap={{ scale: 0.92 }}
-        style={restTimer.rest ? { bottom: `calc(env(safe-area-inset-bottom) + ${84 + REST_BAR_HEIGHT}px)` } : undefined}
-        className="fixed bottom-[calc(env(safe-area-inset-bottom)+84px)] right-4 z-30 flex items-center gap-2 rounded-xl bg-accent py-4 pl-5 pr-6 text-[15px] font-semibold text-accent-ink shadow-float lg:hidden"
-        aria-label="Übung hinzufügen"
-      >
-        <Plus className="size-5" strokeWidth={3} />
-        Übung
-      </m.button>,
-        document.body,
-      )}
 
       <ExercisePicker
         open={pickerOpen}

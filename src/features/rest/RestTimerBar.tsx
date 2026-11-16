@@ -6,7 +6,7 @@ import { settle, snap } from '../../lib/motion'
 import { formatRestClock, REST_STEP_SECONDS, restRemainingMs } from '../../lib/restTimer'
 import { useRestTimer } from './restTimerContext'
 
-/** Height of the bar on phones; the tab content and the tracker's add button make room for it. */
+/** Height of the bar on phones; the tab content makes room for it. */
 export const REST_BAR_HEIGHT = 72
 
 /**

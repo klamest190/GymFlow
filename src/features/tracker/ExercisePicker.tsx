@@ -67,7 +67,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
             enterKeyHint="search"
           />
         </label>
-        <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5 lg:-mx-7 lg:px-7">
+        <div className="no-scrollbar scroll-row mt-3 [--row-inset:--spacing(5)] lg:[--row-inset:--spacing(7)]">
           <button type="button" className={chip(muscle === 'all')} onClick={() => setMuscle('all')}>
             Alle
           </button>

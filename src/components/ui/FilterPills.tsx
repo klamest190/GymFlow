@@ -18,29 +18,39 @@ interface FilterPillsProps<T extends string> {
 }
 
 /**
- * Horizontally scrolling single-choice pills. The neon highlight slides between pills and the
- * active pill is scrolled into view, so it never hides off-screen on phones.
+ * Horizontally scrolling single-choice pills (a `scroll-row`: set `--row-inset` in `className` to
+ * the surrounding card's padding). The highlight slides between pills and the active pill is
+ * scrolled fully into view with the row's inset beside it, so it never hides at the edge on phones.
  */
 export function FilterPills<T extends string>({ value, onChange, options, label, className = '' }: FilterPillsProps<T>) {
   const layoutId = useId()
-  const activeRef = useRef<HTMLButtonElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
   const shownValue = useRef(value)
 
   useEffect(() => {
     // Only follow actual changes; scrolling on mount could move the page.
     if (shownValue.current === value) return
     shownValue.current = value
-    activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    const row = rowRef.current
+    // Looked up, not a ref passed to the active pill: motion components keep the first ref they
+    // get, so a ref moving from pill to pill would still point at the previously active one.
+    const pill = row?.querySelector<HTMLElement>('[aria-checked="true"]')
+    if (!row || !pill) return
+    // Scrolls only the row (scrollIntoView would also move the page and, on iOS, stop short).
+    const inset = parseFloat(getComputedStyle(row).paddingLeft) || 0
+    const start = pill.offsetLeft - inset
+    const end = pill.offsetLeft + pill.offsetWidth + inset - row.clientWidth
+    if (row.scrollLeft > start) row.scrollTo({ left: start, behavior: 'smooth' })
+    else if (row.scrollLeft < end) row.scrollTo({ left: end, behavior: 'smooth' })
   }, [value])
 
   return (
-    <div role="radiogroup" aria-label={label} className={`no-scrollbar flex gap-2 overflow-x-auto scroll-smooth ${className}`}>
+    <div ref={rowRef} role="radiogroup" aria-label={label} className={`no-scrollbar scroll-row scroll-smooth ${className}`}>
       {options.map((option) => {
         const active = option.value === value
         return (
           <m.button
             key={option.value}
-            ref={active ? activeRef : undefined}
             type="button"
             role="radio"
             aria-checked={active}

@@ -88,7 +88,7 @@ export function ExerciseCatalog() {
           value={catalog.muscle}
           onChange={catalog.setMuscle}
           options={MUSCLE_OPTIONS}
-          className="-mx-3 px-3 lg:-mx-4 lg:px-4"
+          className="[--row-inset:--spacing(3)] lg:[--row-inset:--spacing(4)]"
         />
       </div>
 

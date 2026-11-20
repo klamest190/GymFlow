@@ -11,13 +11,25 @@ function fromCatalog(id: string, name: string, exerciseIds: string[]): WorkoutTe
   return { id, name, exercises, createdAt: 0, builtIn: true }
 }
 
-/**
- * Ready-made days. There is no pure back exercise in the catalog yet, so a "Pull" day would be
- * misleading; it can be added once rows/pull-ups exist.
- */
+/** Ready-made days: a push/pull/legs split, an arm day and one full-body day with push and pull. */
 export const BUILT_IN_TEMPLATES: WorkoutTemplate[] = [
-  fromCatalog('builtin-push', 'Push: Brust, Schultern, Trizeps', ['wide-grip-bench-press', 'military-press', 'butterflies', 'lateral-raises', 'close-grip-bench-press']),
-  fromCatalog('builtin-legs-core', 'Beine & Core', ['squats', 'lunges', 'crunches', 'russian-twists']),
-  fromCatalog('builtin-arms-shoulders', 'Arme & Schultern', ['bicep-curls', 'close-grip-bench-press', 'lateral-raises', 'front-raises']),
-  fromCatalog('builtin-full-body', 'Ganzkörper', ['squats', 'wide-grip-bench-press', 'military-press', 'bicep-curls', 'crunches']),
+  fromCatalog('builtin-push', 'Push: Brust, Schultern, Trizeps', [
+    'wide-grip-bench-press',
+    'military-press',
+    'butterflies',
+    'lateral-raises',
+    'close-grip-bench-press',
+    'overhead-triceps-extension',
+  ]),
+  fromCatalog('builtin-pull', 'Pull: Rücken, Bizeps', ['bent-over-row', 'one-arm-dumbbell-row', 'reverse-flys', 'bicep-curls', 'hammer-curls']),
+  fromCatalog('builtin-legs-core', 'Beine & Core', ['squats', 'romanian-deadlift', 'lunges', 'calf-raises', 'crunches', 'russian-twists']),
+  fromCatalog('builtin-arms-shoulders', 'Arme & Schultern', [
+    'bicep-curls',
+    'hammer-curls',
+    'close-grip-bench-press',
+    'overhead-triceps-extension',
+    'lateral-raises',
+    'front-raises',
+  ]),
+  fromCatalog('builtin-full-body', 'Ganzkörper', ['squats', 'wide-grip-bench-press', 'bent-over-row', 'military-press', 'crunches']),
 ]

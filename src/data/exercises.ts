@@ -247,6 +247,156 @@ const DEFINITIONS: ExerciseDefinition[] = [
     defaultSets: 4,
     defaultReps: 8,
   },
+  {
+    id: 'one-arm-dumbbell-row',
+    name: 'Einarmiges Rudern',
+    aliases: ['one arm row', 'one arm dumbbell row', 'single arm row', 'kurzhantelrudern einarmig', 'rudern einarmig'],
+    description: 'Rudern mit einer Hand, die andere abgestützt – für einen breiten, kräftigen Rücken.',
+    instructions:
+      'In Schrittstellung stehen, das vordere Knie gebeugt, und die freie Hand auf den vorderen ' +
+      'Oberschenkel stützen. Den Oberkörper mit geradem Rücken weit nach vorne neigen, die Kurzhantel ' +
+      'hängt im Neutralgriff unter der Schulter. Den Ellbogen nah am Körper nach hinten oben ziehen, bis ' +
+      'die Hantel neben der Hüfte ist, oben das Schulterblatt zur Wirbelsäule ziehen. Kontrolliert ' +
+      'absenken, bis der Arm gestreckt ist. Alle Wiederholungen auf einer Seite, dann wechseln.',
+    formCues: ['Rücken gerade, Hüfte bleibt parallel zum Boden', 'Mit dem Ellbogen ziehen, nicht mit der Hand', 'Oberkörper nicht aufdrehen'],
+    breathing: 'Beim Hochziehen ausatmen, beim Absenken einatmen.',
+    primaryMuscle: 'back',
+    secondaryMuscles: ['biceps', 'shoulders'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'beginner',
+    usesWeight: true,
+    defaultSets: 3,
+    defaultReps: 10,
+  },
+  {
+    id: 'bent-over-row',
+    name: 'Vorgebeugtes Rudern',
+    aliases: ['bent over row', 'dumbbell row', 'kurzhantelrudern', 'rudern vorgebeugt', 'langhantelrudern'],
+    description: 'Beidarmiges Rudern im Vorbeugen für den ganzen oberen Rücken.',
+    instructions:
+      'Hüftbreit stehen, die Knie leicht beugen und den Oberkörper mit geradem Rücken etwa 45° nach ' +
+      'vorne neigen, die Hüfte schiebt dabei nach hinten. Die Kurzhanteln hängen im Neutralgriff ' +
+      'unter den Schultern. Beide Ellbogen nah am Körper nach hinten oben ziehen, bis die Hanteln neben ' +
+      'der Hüfte sind, und die Schulterblätter zusammenziehen. Langsam absenken, ohne den Oberkörper ' +
+      'aufzurichten.',
+    formCues: ['Rücken bleibt gerade, kein Rundrücken', 'Oberkörperwinkel bleibt gleich', 'Schulterblätter oben zusammenziehen'],
+    breathing: 'Beim Hochziehen ausatmen, beim Absenken einatmen.',
+    primaryMuscle: 'back',
+    secondaryMuscles: ['biceps', 'shoulders', 'hamstrings'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'intermediate',
+    usesWeight: true,
+    defaultSets: 4,
+    defaultReps: 10,
+  },
+  {
+    id: 'reverse-flys',
+    name: 'Reverse Flys',
+    aliases: ['reverse fly', 'reverse flies', 'rear delt fly', 'vorgebeugtes seitheben', 'butterfly reverse'],
+    description: 'Vorgebeugtes Seitheben für die hintere Schulter und den oberen Rücken.',
+    instructions:
+      'Die Knie beugen und den Oberkörper mit geradem Rücken fast waagerecht nach vorne neigen. Die ' +
+      'Kurzhanteln hängen mit leicht gebeugten Armen unter der Brust, die Handflächen zeigen ' +
+      'zueinander. Die Arme in einem weiten Bogen seitlich bis auf Schulterhöhe öffnen, der ' +
+      'Ellbogenwinkel bleibt dabei gleich. Oben kurz halten und langsam zurückführen.',
+    formCues: ['Ellbogenwinkel nicht verändern', 'Nicht mit Schwung aus dem Oberkörper', 'Leichtes Gewicht, Schultern weg von den Ohren'],
+    breathing: 'Beim Öffnen der Arme ausatmen, beim Zurückführen einatmen.',
+    primaryMuscle: 'shoulders',
+    secondaryMuscles: ['back'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'beginner',
+    usesWeight: true,
+    defaultSets: 3,
+    defaultReps: 15,
+  },
+  {
+    id: 'romanian-deadlift',
+    name: 'Rumänisches Kreuzheben',
+    aliases: ['romanian deadlift', 'rdl', 'kreuzheben', 'kreuzheben gestreckt', 'stiff leg deadlift', 'deadlift'],
+    description: 'Hüftbeuge mit zwei Kurzhanteln für Beinrückseite und Gesäß.',
+    instructions:
+      'Hüftbreit stehen, die Kurzhanteln im Obergriff vor den Oberschenkeln. Die Knie leicht ' +
+      'entriegeln und die Hüfte weit nach hinten schieben, der Rücken bleibt dabei gerade. Die Hanteln ' +
+      'gleiten eng an den Beinen entlang nach unten, bis etwa auf Kniehöhe oder bis die Dehnung in der ' +
+      'Beinrückseite deutlich wird. Die Hüfte kraftvoll nach vorne bringen und oben das Gesäß anspannen.',
+    formCues: ['Rücken gerade, Blick zum Boden', 'Hanteln bleiben nah an den Beinen', 'Bewegung kommt aus der Hüfte, nicht aus den Knien'],
+    breathing: 'Beim Absenken einatmen, beim Aufrichten ausatmen.',
+    primaryMuscle: 'hamstrings',
+    secondaryMuscles: ['glutes', 'back'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'intermediate',
+    usesWeight: true,
+    lowersFirst: true,
+    defaultSets: 3,
+    defaultReps: 10,
+  },
+  {
+    id: 'overhead-triceps-extension',
+    name: 'Trizeps-Überkopfdrücken',
+    aliases: ['overhead triceps extension', 'triceps extension', 'trizepsdrücken über kopf', 'french press', 'trizeps strecken'],
+    description: 'Streckübung über dem Kopf für den langen Kopf des Trizeps.',
+    instructions:
+      'Aufrecht stehen und die Kurzhanteln im Neutralgriff mit gestreckten Armen über den Kopf ' +
+      'bringen. Die Oberarme bleiben senkrecht neben dem Kopf, die Ellbogen zeigen nach vorne. Nur ' +
+      'die Unterarme langsam hinter den Kopf absenken, bis die Ellbogen deutlich gebeugt sind. Aus dem ' +
+      'Trizeps heraus wieder strecken, ohne die Oberarme zu bewegen.',
+    formCues: ['Oberarme bleiben ruhig neben dem Kopf', 'Ellbogen zeigen nach vorne, nicht zur Seite', 'Rumpf fest, kein Hohlkreuz'],
+    breathing: 'Beim Absenken einatmen, beim Strecken ausatmen.',
+    primaryMuscle: 'triceps',
+    secondaryMuscles: [],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'beginner',
+    usesWeight: true,
+    lowersFirst: true,
+    defaultSets: 3,
+    defaultReps: 12,
+  },
+  {
+    id: 'hammer-curls',
+    name: 'Hammer-Curls',
+    aliases: ['hammer curl', 'hammercurls', 'neutralgriff curls'],
+    description: 'Curls im Neutralgriff für Bizeps, Oberarmmuskel und Unterarme.',
+    instructions:
+      'Aufrecht stehen, die Kurzhanteln seitlich am Körper, die Daumen zeigen nach vorne. Die ' +
+      'Oberarme bleiben am Rumpf, während du die Hanteln durch Beugen im Ellbogen bis auf Schulterhöhe ' +
+      'curlst. Der Griff dreht sich dabei nicht, die Daumen zeigen oben zu den Schultern. Kontrolliert ' +
+      'absenken, bis die Arme gestreckt sind.',
+    formCues: ['Handgelenke bleiben gerade', 'Ellbogen bleiben am Körper', 'Kein Schwung aus dem Rücken'],
+    breathing: 'Beim Hochführen der Hanteln ausatmen, beim Ablassen einatmen.',
+    primaryMuscle: 'biceps',
+    secondaryMuscles: ['forearms'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'beginner',
+    usesWeight: true,
+    defaultSets: 3,
+    defaultReps: 12,
+  },
+  {
+    id: 'calf-raises',
+    name: 'Wadenheben',
+    aliases: ['calf raise', 'calf raises', 'wadenheben stehend', 'zehenstand'],
+    description: 'Fersenheben im Stand mit zwei Kurzhanteln für kräftige Waden.',
+    instructions:
+      'Aufrecht stehen, Füße hüftbreit, die Kurzhanteln hängen seitlich. Die Fersen so weit wie möglich ' +
+      'anheben, bis du auf den Fußballen stehst, oben kurz halten. Langsam absenken, bis die Fersen ' +
+      'wieder am Boden sind. Für mehr Bewegungsumfang mit den Fußballen auf einer Stufe stehen.',
+    formCues: ['Knie gestreckt, aber nicht durchgedrückt', 'Oben eine Sekunde halten', 'Gewicht über dem großen Zeh'],
+    breathing: 'Beim Anheben ausatmen, beim Absenken einatmen.',
+    primaryMuscle: 'calves',
+    secondaryMuscles: [],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'beginner',
+    usesWeight: true,
+    defaultSets: 3,
+    defaultReps: 15,
+  },
 ]
 
 /** Holds for every exercise; shown next to each exercise's own breathing cue. */

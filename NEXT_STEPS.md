@@ -1,6 +1,6 @@
 # GymFlow: Stand & nächste Schritte
 
-Stand: 31.10.2026. Teilprojekt 2 (Kernablauf im Training) umgesetzt: „Satz hinzufügen“ mit Werten vom letzten Mal, „Satz abhaken“, Satz-Timer. Der Test auf dem iPhone steht noch aus (siehe „Offen: Kernablauf auf dem iPhone prüfen“). GymFlow läuft auf **Vercel** unter https://gym-flow-alpha-six.vercel.app (automatischer Deploy bei jedem Push auf `main`, echte Firebase-Config, am 30.10. geprüft). **Die Rules seit dem 23.10. sind noch nicht deployt** (siehe „Offen: Auf das Handy bringen“).
+Stand: 20.11.2026. Teilprojekt 3 (Katalog für Kurzhanteln) umgesetzt: 7 neue Übungen mit 3D-Animation, jetzt 18 im Katalog, dazu eine Vorlage „Pull“. Die Animationen sind realistischer (Unterarm dreht beim Bizeps-Curl, Gelenke bewegen sich gestaffelt). GymFlow läuft auf **Vercel** unter https://gym-flow-alpha-six.vercel.app (automatischer Deploy bei jedem Push auf `main`) und auf dem Handy. Die Firestore-Rules sind aktuell: Ein Deploy am 20.11. meldete „already up to date“.
 
 ## Ziel und Roadmap (festgelegt am 30.10.)
 
@@ -10,9 +10,9 @@ Einschätzung am 30.10.: als Code etwa 7,5/10, als Produkt etwa 5/10, weil die A
 
 | # | Teilprojekt | Status |
 |---|---|---|
-| 1 | **Auf das Handy bringen:** Rules, Console, PWA installieren, Live-Test | 🔄 Hosting läuft (Vercel), Rules-Deploy und Live-Test offen |
+| 1 | **Auf das Handy bringen:** Rules, Console, PWA installieren, Live-Test | 🔄 Hosting läuft (Vercel), App läuft auf dem Handy, Rules aktuell (geprüft 20.11.); Live-Test der Nutzerverwaltung offen |
 | 2 | **Kernablauf im Training:** Werte vom letzten Mal je Übung, Satz-Timer, Satz mit einem Tipp übernehmen. Steigerungsziele bewusst weggelassen (entschieden am 31.10.) | ✅ umgesetzt am 31.10., Test auf dem iPhone offen |
-| 3 | **Katalog für Kurzhanteln ergänzen:** einarmiges Rudern, vorgebeugtes Rudern, Reverse Flys, rumänisches Kreuzheben, Trizeps-Überkopfdrücken, Hammer-Curls, optional Wadenheben (je eine 3D-Pose) | offen |
+| 3 | **Katalog für Kurzhanteln ergänzen:** einarmiges Rudern, vorgebeugtes Rudern, Reverse Flys, rumänisches Kreuzheben, Trizeps-Überkopfdrücken, Hammer-Curls, optional Wadenheben (je eine 3D-Pose) | ✅ umgesetzt am 20.11., alle 7 inklusive Wadenheben |
 | 4 | **Nachschärfen nach zwei Wochen echter Nutzung** | offen |
 
 ## Weitermachen
@@ -63,6 +63,8 @@ npm run dev
 | **Kleinerer Start & XP am Folgetag** (25.10.) | ✅ Neue Übungen starten mit 1 Satz × 10 Wdh. (Katalogwerte heißen jetzt „Empfohlen“). XP, Level und Erfolge zählen nur abgeschlossene Tage; der laufende Tag zeigt „+X XP für heute“ im Tracker und im Profil und wird am nächsten Tag gutgeschrieben (mit Toast). Versehentlich angelegte und wieder gelöschte Übungen bringen so nichts mehr |
 | **Kernablauf im Training** (31.10.) | ✅ Neue Übungen haben 0 Sätze. „Satz hinzufügen“ öffnet den nächsten Satz mit Satz n vom letzten Mal in den Steppern, „Satz abhaken“ speichert ihn (vorher nur Entwurf). Zuerst als grauer Vorschau-Satz mit ✓ gebaut, auf Wunsch am 31.10. durch den expliziten Button ersetzt (zwei Tipps pro Satz, dafür eindeutig). „Letztes Mal: 12, 10, 8 Wdh. mit 8 kg“ unter dem Namen. Satz-Timer nach jedem Satz von heute: Leiste auf allen Tabs, ±15 s, Überzeit, Ton, Bildschirm bleibt an; Pausenzeit im Profil (pro Gerät). Vorlagen setzen nur noch Übungen, ihre Werte füllen die Vorschau ohne Historie. Statistik, Heatmap und Wochenstreifen zählen nur Tage mit Sätzen. Keine Rules-Änderung nötig. Offene Entwürfe überstehen Tab-Wechsel und Neuladen. Gespeicherte Sätze schließen wie neue mit „Satz abhaken“ oder über ihre Kopfzeile (kein grauer „Fertig“-Button mehr). Neu hinzugefügte Übungen (Tracker, Katalog, erste Übung einer Vorlage) kommen mit aufgeklapptem Satz 1 und lassen sich auch zugeklappt löschen, mit Rückfrage in der Zeile. 189 Unit-Tests |
 | **Trainingswelle** (16.11.) | ✅ Der offene Satz zeigt eine Welle wie am Milon-Gerät. „Welle starten“ zählt 5 Sekunden herunter und führt dann durch jede Wiederholung: Ein Punkt fährt die Kurve ab, dazu Zähler, „Heben“/„Senken“ mit Atemhinweis (beim Heben ausatmen, beim Senken einatmen), Töne an den Wendepunkten, Bildschirm bleibt an. Nach der letzten Wiederholung wird der Satz abgehakt und die Pause startet; „Vorzeitig beenden“ trägt die geschafften Wiederholungen in den Satz ein. Tempo im Profil (pro Gerät, Standard 2 s heben, 3 s senken, höchstens 6 s je Phase, weil sehr langsame Wiederholungen ab etwa 10 s weniger Muskelaufbau bringen). Russian Twists haben keine Welle (`noWave`, kein Heben und Senken). Übungen, die oben beginnen (Brustdrücken, Butterflies, Squats, Lunges), haben `lowersFirst` im Katalog und starten mit Senken. „Satz abhaken“ ohne Welle bleibt. Jede Übung hat einen Atemhinweis (`breathing`): Abschnitt „Atmung“ im Übungs-Detail und im Info-Feld der Übung in „Heute“. 200 Unit-Tests |
+| **Realistischere Animationen** (20.11.) | ✅ Der Unterarm kann sich drehen (`forearmRoll`): Bizeps-Curls beginnen im Neutralgriff und drehen beim Hochführen in den Untergriff, die Hantel dreht sichtbar mit (Anleitung angepasst). Körperteile können gestaffelt laufen (`phases`): bei Crunches zuerst das Kinn, dann der Rücken; bei Squats beginnt die Hüfte |
+| **Katalog für Kurzhanteln** (20.11.) | ✅ Teilprojekt 3: einarmiges Rudern (Schrittstellung, freie Hand auf dem Oberschenkel), vorgebeugtes Rudern, Reverse Flys, rumänisches Kreuzheben (Hanteln gleiten an den Beinen entlang), Trizeps-Überkopfdrücken, Hammer-Curls, Wadenheben (Fersen heben, Fußballen bleiben stehen). Die Figur hat jetzt eine Rückenseite am Rumpf, die bei Rückenübungen leuchtet, und Waden. Neue Vorlage „Pull: Rücken, Bizeps“; Push, Beine & Core, Arme & Schultern und Ganzkörper (Rudern statt Curls) ergänzt. 247 Unit-Tests |
 
 ### Behobener Fehler (19.10.)
 
@@ -78,12 +80,11 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 
 ## Offen: Auf das Handy bringen (Teilprojekt 1)
 
-- [ ] **Rules deployen** (selbst ausführen, Claude darf nicht in Produktion deployen; die App selbst deployt Vercel automatisch):
+- [x] **Rules deployen:** am 20.11. von Claude auf Wunsch ausgeführt, Firebase meldete „already up to date“ (waren also schon live). Bei künftigen Rules-Änderungen erneut nötig, Vercel deployt nur die App:
   ```bash
   npx firebase-tools deploy --only firestore:rules --project gymflow-917db
   ```
-  Bis dahin klappen Login per Benutzername und das Anlegen neuer Nutzer nicht, die Einführung kann ihren Abschluss nicht speichern (sie käme bei jedem Start wieder), eigene Vorlagen, Körpergewicht und das Hantelgewicht im Profil lassen sich nicht speichern.
-- [ ] **CI prüfen:** nach dem ersten Push unter GitHub → Actions nachsehen, ob beide Jobs grün sind.
+- [x] **CI prüfen:** am 20.11. geprüft, alle Läufe auf `main` grün.
 - [ ] **Eigenen Benutzernamen setzen:** Admin → eigenes Konto öffnen → „Benutzername“. Bestehende Konten haben noch keinen.
 
 ## Offen: nur in der Firebase Console möglich (sonst kann sich niemand anmelden)
@@ -109,7 +110,8 @@ Beim allerersten Start eines neuen Nutzers erzeugte die App zwei anonyme Konten,
 
 ## Ideen für danach (optional)
 
-- **Katalog erweitern** (siehe Teilprojekt 3): Neue Einträge kommen in `DEFINITIONS` in `src/data/exercises.ts`, bestehende IDs nie ändern. Für die Animation zusätzlich eine Pose in `src/features/exercises/animation/poses.ts` anlegen.
+- **Katalog erweitern:** Neue Einträge kommen in `DEFINITIONS` in `src/data/exercises.ts`, bestehende IDs nie ändern. Für die Animation zusätzlich eine Pose in `src/features/exercises/animation/poses.ts` anlegen. Werkzeuge dafür: `forearmRoll` (Griff dreht mit dem Unterarm), `phases` (Körperteile bewegen sich gestaffelt), `grip` (Hände per inverser Kinematik, z. B. an den Beinen entlang), Hervorheben von `back`, `lowerBack` und `calves`. Neue Posen immer auch als Bild prüfen, nicht nur per Test.
+- **Seitheben:** Laut Anleitung führen die Ellbogen. Dafür bräuchten Ober- und Unterarm getrennte Phasen (bisher nur der ganze Arm).
 
 ## Getroffene Entscheidungen
 

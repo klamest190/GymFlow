@@ -1,12 +1,16 @@
 import type { Camera } from './camera'
 import {
+  LENGTH,
   add,
+  distance,
   interpolatePose,
   lerp3,
   limb,
+  normalize,
   scale,
   seg,
   solvePose,
+  sub,
   withHands,
   type PartProgress,
   type Pose,
@@ -16,8 +20,11 @@ import {
   type Vec3,
 } from './rig'
 
-/** Body regions that can light up as working muscles. */
-export type BodyPart = 'chest' | 'abs' | 'shoulders' | 'upperArms' | 'forearms' | 'thighs'
+/**
+ * Body regions that can light up as working muscles. `back` is the upper back, `lowerBack` the
+ * lower back with the glutes, `calves` the lower legs.
+ */
+export type BodyPart = 'chest' | 'abs' | 'back' | 'lowerBack' | 'shoulders' | 'upperArms' | 'forearms' | 'thighs' | 'calves'
 
 export interface ExerciseAnimationSpec {
   setup: RigSetup
@@ -127,6 +134,60 @@ const seated: Pose = {
 /** Dumbbells on the bench press: straight up and down over the lower chest, `halfGrip` from the middle. */
 const benchGrip = (halfGrip: number) => (s: Skeleton, t: number) =>
   inTorso(s, s.shoulderCenter, lerp3([halfGrip, -3, 48], [halfGrip, -13, 12.5], t))
+
+/**
+ * Hip hinge: the hips pushed back over soft knees, the torso leaning forward (`torso` = its angle,
+ * 90 is level with the floor), the neck in line with the spine.
+ */
+const hinged = (torso: number, thigh: number, shin: number): Pose => ({
+  ...standing,
+  torso: seg(torso),
+  head: seg(torso + 4),
+  legs: both(limb([thigh, LEG_SPREAD], [shin, LEG_SPREAD])),
+})
+
+/**
+ * Rowing hand path (+x side first): from hanging straight below the shoulder to beside the hip,
+ * where the forearm hangs vertically under the raised elbow.
+ */
+const rowHands = (s: Skeleton, t: number): [Vec3, Vec3] => {
+  const pulled = inTorso(s, s.shoulderCenter, [17, -35, 0])
+  return [lerp3(add(s.shoulders[0], [-1, -50, 2]), pulled[0], t), lerp3(add(s.shoulders[1], [1, -50, 2]), pulled[1], t)]
+}
+
+/** Elbow pole for rows: out of the back of a torso leaning at `torso` (`seg` angle), a little outward. */
+const behindTorso = (torso: number): Vec3 => {
+  const radians = (torso * Math.PI) / 180
+  return [0.15, Math.sin(radians), Math.cos(radians)]
+}
+
+/** An arm that is straight but not locked. */
+const HANGING_ARM = LENGTH.upperArm + LENGTH.forearm - 1
+
+/**
+ * Hands resting on the front of the thighs (+x side first): the dumbbells hang from almost straight
+ * arms and lie against the legs, as low as the arms reach (at most down to the knee). As the hips
+ * hinge back, they slide down the thighs by themselves.
+ */
+const onThighs = (s: Skeleton): [Vec3, Vec3] => {
+  const hand = (side: 0 | 1) => {
+    const along = normalize(sub(s.knees[side], s.hips[side]))
+    const front = normalize(sub([0, 0, 1], scale(along, along[2])))
+    const at = (k: number) => add(add(lerp3(s.hips[side], s.knees[side], k), scale(front, 10.5)), [side === 0 ? 2 : -2, 0, 0])
+    const reaches = (k: number) => distance(s.shoulders[side], at(k)) <= HANGING_ARM
+    if (reaches(1)) return at(1)
+    if (!reaches(0)) return at(0)
+    // Lower down the thigh is farther from the shoulder: bisect for the lowest point in reach.
+    let [low, high] = [0, 1]
+    for (let step = 0; step < 24; step++) {
+      const middle = (low + high) / 2
+      if (reaches(middle)) low = middle
+      else high = middle
+    }
+    return at(low)
+  }
+  return [hand(0), hand(1)]
+}
 
 /** Whether the exercise also lights up supporting muscles (for the legend). */
 export const hasSecondaryHighlight = (exerciseId: string) => Boolean(EXERCISE_ANIMATIONS[exerciseId]?.highlight.secondary?.length)
@@ -323,5 +384,126 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     ground: 'floor',
     still: 1,
     camera: { yaw: -35, pitch: 10 },
+  },
+  'bent-over-row': {
+    setup: STANDING,
+    // Torso about 40° above level, neutral grip; both dumbbells travel up to the hips.
+    from: { ...hinged(130, 30, -10), forearmRoll: 0 },
+    to: { ...hinged(130, 30, -10), forearmRoll: 0 },
+    grip: { at: rowHands, elbows: both(behindTorso(130)) },
+    tempo: [1, 1.6],
+    highlight: { primary: ['back'], secondary: ['upperArms', 'shoulders'] },
+    equipment: 'dumbbells',
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -118, pitch: 24 },
+  },
+  'one-arm-dumbbell-row': {
+    // Staggered stance, the +x leg in front (root) with the +x hand propped on its thigh; the -x
+    // arm rows. The rowing shoulder turns up a little at the top, the hips stay square.
+    setup: STANDING,
+    from: {
+      ...standing,
+      root: [10, 4, 25],
+      torso: seg(120),
+      head: seg(124),
+      legs: [limb([35, 3], [-8, 2]), limb([-22, 3], [-28, 3])],
+      forearmRoll: 0,
+    },
+    to: {
+      ...standing,
+      root: [10, 4, 25],
+      torso: seg(120),
+      twist: 6,
+      head: seg(124),
+      legs: [limb([35, 3], [-8, 2]), limb([-22, 3], [-28, 3])],
+      forearmRoll: 0,
+    },
+    grip: {
+      at: (s, t) => {
+        const propped = add(lerp3(s.knees[0], s.hips[0], 0.25), [0, 9.5, 1])
+        return [propped, rowHands(s, t)[1]]
+      },
+      elbows: [[1, 0, -0.6], behindTorso(120)],
+    },
+    tempo: [1, 1.6],
+    highlight: { primary: ['back'], secondary: ['upperArms', 'shoulders'] },
+    equipment: 'dumbbells',
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -112, pitch: 20 },
+  },
+  'reverse-flys': {
+    setup: STANDING,
+    // Torso almost level; the slightly bent arms open out to the sides in a wide arc up to
+    // shoulder height, palms facing down at the top.
+    from: { ...hinged(110, 32, -8), arms: both(limb([0, 16], [6, 4])) },
+    to: { ...hinged(110, 32, -8), arms: both(limb([0, 84], [28, 74])) },
+    tempo: [1, 1.6],
+    highlight: { primary: ['shoulders'], secondary: ['back'] },
+    equipment: 'dumbbells',
+    handle: ALONG_SPINE,
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -148, pitch: 30 },
+  },
+  'romanian-deadlift': {
+    setup: STANDING,
+    // The hips travel back while the knees stay softly bent; the dumbbells slide down the front of
+    // the thighs to the knees. The knees unlock early, then the hinge carries the movement.
+    from: standing,
+    to: hinged(118, 32, -4),
+    grip: { at: onThighs, elbows: both([0.2, 0, -1]) },
+    phases: { legs: [0, 0.6] },
+    tempo: [1.6, 1],
+    highlight: { primary: ['thighs'], secondary: ['lowerBack'] },
+    equipment: 'dumbbells',
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -78, pitch: 12 },
+  },
+  'overhead-triceps-extension': {
+    setup: STANDING,
+    // Upper arms stay upright beside the head, elbows pointing forward; only the forearms move,
+    // from straight overhead down behind the head, in the neutral grip.
+    from: { ...standing, arms: both(limb([165, -3], [178, -4])), forearmRoll: 0 },
+    to: { ...standing, arms: both(limb([162, -3], [-50, -2])), forearmRoll: 0 },
+    tempo: [1.6, 1],
+    highlight: { primary: ['upperArms'] },
+    equipment: 'dumbbells',
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -72, pitch: 8 },
+  },
+  'hammer-curls': {
+    setup: STANDING,
+    // Like the bicep curl, but the neutral grip (thumbs up) stays the whole way.
+    from: { ...standing, arms: both(limb([0, 6], [4, 6])), forearmRoll: 0 },
+    to: { ...standing, arms: both(limb([9, 6], [152, 4])), forearmRoll: 0 },
+    tempo: [1, 1.6],
+    highlight: { primary: ['upperArms', 'forearms'] },
+    equipment: 'dumbbells',
+    ground: 'floor',
+    still: 1,
+    camera: THREE_QUARTER,
+  },
+  'calf-raises': {
+    setup: STANDING,
+    // The heels rise while the balls of the feet stay put: the ankle (root) moves up and a little
+    // forward exactly as much as the foot tilts. Dumbbells hang at the sides.
+    from: { ...standing, arms: both(limb([0, 8], [2, 7])), feet: both(seg(90, 10)) },
+    to: {
+      ...standing,
+      root: add(standing.root, scale(sub(seg(90, 10), seg(40, 10)), LENGTH.foot)),
+      arms: both(limb([0, 8], [2, 7])),
+      feet: both(seg(40, 10)),
+    },
+    tempo: [0.8, 1.4],
+    highlight: { primary: ['calves'] },
+    equipment: 'dumbbells',
+    handle: FORWARD,
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -80, pitch: 6 },
   },
 }

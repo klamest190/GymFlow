@@ -3,7 +3,7 @@ import { EXERCISES } from '../../../data/exercises'
 import { STAGE, projector, type Camera } from './camera'
 import { EXERCISE_ANIMATIONS, partProgress, skeletonAt } from './poses'
 import { LENGTH, add, distance, dot, normalize, reach, scale, seg, slerp, sub, type Vec3 } from './rig'
-import { buildScene, handleAxis, scenePoints, stageLayout } from './scene'
+import { buildScene, handleAxis, scenePoints, stageLayout, type Shape } from './scene'
 
 describe('bicep curl', () => {
   const spec = EXERCISE_ANIMATIONS['bicep-curls']
@@ -49,6 +49,66 @@ describe('part phases', () => {
     expect(partProgress(spec, 1)).toMatchObject({ head: 1, torso: 1 })
     const middle = partProgress(spec, 0.4)
     expect(middle.head).toBeGreaterThan(middle.torso)
+  })
+})
+
+describe('new movement details', () => {
+  const rolling = Object.entries(EXERCISE_ANIMATIONS).filter(([, spec]) => spec.from.forearmRoll !== undefined)
+
+  it.each(rolling)('%s never points a forearm along the shoulder axis (the grip stays defined)', (_, spec) => {
+    for (const t of STEPS) {
+      const skeleton = skeletonAt(spec, t)
+      for (const side of [0, 1] as const) {
+        const forearm = normalize(sub(skeleton.hands[side], skeleton.elbows[side]))
+        const outward = side === 0 ? skeleton.lateral : scale(skeleton.lateral, -1)
+        expect(Math.abs(dot(forearm, outward))).toBeLessThan(0.9)
+      }
+    }
+  })
+
+  it('calf raises lift the heels while the balls of the feet stay put', () => {
+    const spec = EXERCISE_ANIMATIONS['calf-raises']
+    const start = skeletonAt(spec, 0)
+    for (const t of STEPS) {
+      const skeleton = skeletonAt(spec, t)
+      for (const side of [0, 1] as const) expect(distance(skeleton.toes[side], start.toes[side])).toBeLessThan(1)
+    }
+    expect(skeletonAt(spec, 1).ankles[0][1] - start.ankles[0][1]).toBeGreaterThan(6)
+  })
+
+  it('Romanian deadlifts keep the dumbbells on the legs', () => {
+    const spec = EXERCISE_ANIMATIONS['romanian-deadlift']
+    for (const t of STEPS) {
+      const s = skeletonAt(spec, t)
+      for (const side of [0, 1] as const) {
+        const along = normalize(sub(s.knees[side], s.hips[side]))
+        const offset = sub(s.hands[side], s.hips[side])
+        const fromLine = sub(offset, scale(along, Math.min(LENGTH.thigh, Math.max(0, dot(offset, along)))))
+        // Thigh radius plus hand radius (10.3), with a little air.
+        expect(Math.hypot(...fromLine)).toBeLessThan(11)
+      }
+    }
+  })
+
+  it('rows end with the hand beside the hip, the elbow behind the back', () => {
+    for (const id of ['bent-over-row', 'one-arm-dumbbell-row']) {
+      const s = skeletonAt(EXERCISE_ANIMATIONS[id], 1)
+      const elbow = sub(s.elbows[1], s.shoulderCenter)
+      const hand = sub(s.hands[1], s.pelvis)
+      expect(dot(elbow, s.forward), id).toBeLessThan(0)
+      expect(dot(hand, s.spine), id).toBeLessThan(20)
+    }
+  })
+
+  it('only splits the torso into front and back when the back works', () => {
+    const torsoHulls = (id: string) => {
+      const count = (shape: Shape): number => (shape.kind === 'hull' ? 1 : shape.kind === 'seam' ? count(shape.shapes[0]) + count(shape.shapes[1]) : 0)
+      const spec = EXERCISE_ANIMATIONS[id]
+      return count(buildScene(spec, skeletonAt(spec, 0)).body[0])
+    }
+    expect(torsoHulls('bent-over-row')).toBe(4)
+    expect(torsoHulls('romanian-deadlift')).toBe(4)
+    expect(torsoHulls('bicep-curls')).toBe(2)
   })
 })
 

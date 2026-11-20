@@ -75,29 +75,48 @@ function ellipse(center: Vec3, a: Vec3, b: Vec3, ra: number, rb: number, steps =
   })
 }
 
-/** Chest and abs as two hulls, so either can light up; the twist blends from hips to shoulders. */
+type TorsoSide = 'whole' | 'front' | 'back'
+
+/**
+ * Chest and abs as two hulls, so either can light up; the twist blends from hips to shoulders.
+ * When the back works, each hull is also cut into a front and a back half at the body's side
+ * line, so the back can light up on its own (upper back, and lower back with the glutes). Without
+ * it the torso stays in one piece per half: no extra seam on the flanks.
+ */
 function torso(s: Skeleton, paint: (part: BodyPart) => Paint): Shape {
   const rings = TORSO_SECTIONS.map(([height, halfWidth, halfDepth, shift]) => {
     const lateral = rotateAround(s.pelvisLateral, s.spine, (-s.twist * Math.max(0, height)) / 47)
     const forward = cross(lateral, s.spine)
     const center = add(add(s.pelvis, scale(s.spine, height)), scale(forward, shift))
+    // Where the light catches the body: upper front, or the matching spot on the back.
+    const sheen = (toward: number) =>
+      ellipse(add(center, add(scale(forward, toward * halfDepth * 0.45), scale(lateral, halfWidth * 0.15))), lateral, forward, halfWidth * 0.5, halfDepth * 0.4, 8)
+    const outline = ellipse(center, lateral, forward, halfWidth, halfDepth)
+    // The ellipse starts at the +x side and runs over the chest (first half) and the back.
     return {
-      outline: ellipse(center, lateral, forward, halfWidth, halfDepth),
-      // Upper-front part of the section: where the light catches the body.
-      sheen: ellipse(add(center, add(scale(forward, halfDepth * 0.45), scale(lateral, halfWidth * 0.15))), lateral, forward, halfWidth * 0.5, halfDepth * 0.4, 8),
+      whole: { outline, sheen: sheen(1) },
+      front: { outline: outline.slice(0, 7), sheen: sheen(1) },
+      back: { outline: [...outline.slice(6), outline[0]], sheen: sheen(-1) },
     }
   })
-  const hull = (from: number, to: number, part: BodyPart): Shape => ({
+  const hull = (from: number, to: number, side: TorsoSide, part: BodyPart): Shape => ({
     kind: 'hull',
-    points: rings.slice(from, to).flatMap((ring) => ring.outline),
-    sheen: rings.slice(from, to).flatMap((ring) => ring.sheen),
+    points: rings.slice(from, to).flatMap((ring) => ring[side].outline),
+    sheen: rings.slice(from, to).flatMap((ring) => ring[side].sheen),
     paint: paint(part),
     // Torso before limbs at equal depth: arms and legs should never vanish into the trunk.
     bias: -4,
   })
-  // The halves share the middle section; whichever side of it faces the camera covers it.
   const [middle] = TORSO_SECTIONS[2]
-  return { kind: 'seam', shapes: [hull(0, 3, 'abs'), hull(2, 5, 'chest')], plane: { at: add(s.pelvis, scale(s.spine, middle)), normal: s.spine } }
+  const waist = add(s.pelvis, scale(s.spine, middle))
+  const split = paint('back') !== 'body' || paint('lowerBack') !== 'body'
+  // Front and back half of a section meet at the side line; whichever faces the camera covers it.
+  const halves = (from: number, to: number, front: BodyPart, back: BodyPart): Shape =>
+    split
+      ? { kind: 'seam', shapes: [hull(from, to, 'back', back), hull(from, to, 'front', front)], plane: { at: waist, normal: s.forward } }
+      : hull(from, to, 'whole', front)
+  // Lower and upper half share the middle section; whichever side of it faces the camera covers it.
+  return { kind: 'seam', shapes: [halves(0, 3, 'abs', 'lowerBack'), halves(2, 5, 'chest', 'back')], plane: { at: waist, normal: s.spine } }
 }
 
 /**
@@ -109,8 +128,9 @@ function torso(s: Skeleton, paint: (part: BodyPart) => Paint): Shape {
 export function handleAxis(spec: ExerciseAnimationSpec, s: Skeleton, side: 0 | 1): Vec3 | null {
   if (spec.equipment !== 'dumbbells') return null
   const outwardSide = side === 0 ? s.lateral : scale(s.lateral, -1)
-  if (s.forearmRoll !== undefined) {
-    const forearm = normalize(sub(s.hands[side], s.elbows[side]))
+  const forearm = normalize(sub(s.hands[side], s.elbows[side]))
+  // A forearm pointing straight out to the side has no "across" from the torso's side axis.
+  if (s.forearmRoll !== undefined && Math.abs(dot(outwardSide, forearm)) < 0.9) {
     const across = normalize(sub(outwardSide, scale(forearm, dot(outwardSide, forearm))))
     const neutral = scale(cross(forearm, across), side === 0 ? 1 : -1)
     const roll = (s.forearmRoll * Math.PI) / 180
@@ -174,7 +194,7 @@ export function buildScene(spec: ExerciseAnimationSpec, s: Skeleton): Scene {
     const [shoulder, elbow, wrist] = [s.shoulders[side], s.elbows[side], s.hands[side]]
     body.push(
       capsule(hip, knee, RADIUS.thigh, paint('thighs'), 'attached', { joint: ankle, radius: RADIUS.shin, owner: true }),
-      capsule(knee, ankle, RADIUS.shin, 'body', { joint: hip, radius: RADIUS.thigh }, { joint: toe, radius: RADIUS.foot, owner: true }),
+      capsule(knee, ankle, RADIUS.shin, paint('calves'), { joint: hip, radius: RADIUS.thigh }, { joint: toe, radius: RADIUS.foot, owner: true }),
       capsule(ankle, toe, RADIUS.foot, 'body', { joint: knee, radius: RADIUS.shin }),
       // The deltoid sits on the torso's corner: it goes by its own depth (so it doesn't dive behind the
       // chest whenever the arm swings back) but always caps its upper arm.

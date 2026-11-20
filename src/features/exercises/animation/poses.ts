@@ -1,5 +1,20 @@
 import type { Camera } from './camera'
-import { add, interpolatePose, lerp3, limb, scale, seg, solvePose, withHands, type Pose, type RigSetup, type Skeleton, type Vec3 } from './rig'
+import {
+  add,
+  interpolatePose,
+  lerp3,
+  limb,
+  scale,
+  seg,
+  solvePose,
+  withHands,
+  type PartProgress,
+  type Pose,
+  type PosePart,
+  type RigSetup,
+  type Skeleton,
+  type Vec3,
+} from './rig'
 
 /** Body regions that can light up as working muscles. */
 export type BodyPart = 'chest' | 'abs' | 'shoulders' | 'upperArms' | 'forearms' | 'thighs'
@@ -16,12 +31,21 @@ export interface ExerciseAnimationSpec {
    * Keeps a bar on a straight path or the hands on the head while the body moves.
    */
   grip?: { at: (skeleton: Skeleton, t: number) => readonly [Vec3, Vec3]; elbows: readonly [Vec3, Vec3] }
+  /**
+   * The share of the repetition (start, end of the progress 0–1) in which a body part moves;
+   * default all of it. Real joints don't move in lockstep: the head tucks before the back rolls
+   * up, the wrist turns while the dumbbell leaves the thigh. On the way back the order reverses.
+   */
+  phases?: Partial<Record<PosePart, readonly [start: number, end: number]>>
   /** Seconds for from → to and back; slow on the lowering (eccentric) part. */
   tempo: readonly [number, number]
   highlight: { primary: BodyPart[]; secondary?: BodyPart[] }
   /** Every catalog exercise is done with two light dumbbells, one per hand. */
   equipment: 'none' | 'dumbbells'
-  /** Dumbbell handle direction in the torso frame [outward, up the spine, out of the chest]; default sideways. */
+  /**
+   * Dumbbell handle direction in the torso frame [outward, up the spine, out of the chest]; default
+   * sideways. Ignored when the poses set `forearmRoll`: then the handle turns with the forearm.
+   */
   handle?: Vec3
   ground: 'floor' | 'bench'
   /** Progress (0 = from, 1 = to) for the still image in lists. */
@@ -30,9 +54,24 @@ export interface ExerciseAnimationSpec {
   camera: Camera
 }
 
+const POSE_PARTS: readonly PosePart[] = ['torso', 'head', 'arms', 'legs', 'forearms']
+/** Eases in and out of a phase, so a part that starts late doesn't jerk into motion. */
+const smoothstep = (x: number) => x * x * (3 - 2 * x)
+
+/** Each body part's own progress at overall progress `t`. */
+export function partProgress(spec: ExerciseAnimationSpec, t: number): PartProgress {
+  const entries = POSE_PARTS.map((part) => {
+    const phase = spec.phases?.[part]
+    if (!phase) return [part, t] as const
+    const [start, end] = phase
+    return [part, smoothstep(Math.min(1, Math.max(0, (t - start) / (end - start))))] as const
+  })
+  return Object.fromEntries(entries) as Record<PosePart, number>
+}
+
 /** The figure at progress `t` of the repetition. */
 export function skeletonAt(spec: ExerciseAnimationSpec, t: number): Skeleton {
-  const pose = interpolatePose(spec.from, spec.to, t)
+  const pose = interpolatePose(spec.from, spec.to, partProgress(spec, t))
   if (!spec.grip) return solvePose(spec.setup, pose)
   const targets = spec.grip.at(solvePose(spec.setup, pose), t)
   return solvePose(spec.setup, withHands(spec.setup, pose, targets, spec.grip.elbows))
@@ -144,8 +183,12 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
   },
   'bicep-curls': {
     setup: STANDING,
-    from: { ...standing, arms: both(limb([0, 6], [4, 6])) },
-    to: { ...standing, arms: both(limb([9, 6], [152, 4])) },
+    // Starts in the neutral grip (palms toward the thighs) and supinates on the way up, so the palms
+    // face the shoulders at the top. The wrist turns mostly while the dumbbell leaves the thigh; the
+    // elbows only drift forward a little near the top.
+    from: { ...standing, arms: both(limb([0, 6], [4, 6])), forearmRoll: 0 },
+    to: { ...standing, arms: both(limb([9, 6], [152, 4])), forearmRoll: 90 },
+    phases: { forearms: [0, 0.6] },
     tempo: [1, 1.6],
     highlight: { primary: ['upperArms'], secondary: ['forearms'] },
     equipment: 'dumbbells',
@@ -190,6 +233,9 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     },
     // Dumbbells racked in front of the shoulders, elbows pointing down and forward.
     grip: { at: (s) => inTorso(s, s.shoulderCenter, [16, 6, 13]), elbows: both([0.3, -1, 0.6]) },
+    // The descent starts at the hips (the torso leans) a moment before the knees bend; on the way up
+    // the legs drive first and the chest straightens last.
+    phases: { torso: [0, 0.9], legs: [0.1, 1] },
     tempo: [1.6, 1],
     highlight: { primary: ['thighs'], secondary: ['abs'] },
     equipment: 'dumbbells',
@@ -241,6 +287,8 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     },
     // Dumbbells held upright on the chest, elbows out to the sides.
     grip: { at: (s) => inTorso(s, s.shoulderCenter, [9, -8, 16]), elbows: both([1, -0.3, 0.4]) },
+    // The chin tucks first, then the upper back rolls up vertebra by vertebra (and down in reverse).
+    phases: { head: [0, 0.55], torso: [0.15, 1] },
     tempo: [1, 1.4],
     highlight: { primary: ['abs'] },
     equipment: 'dumbbells',

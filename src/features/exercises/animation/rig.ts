@@ -28,7 +28,16 @@ export interface Pose {
   legs: readonly [Limb, Limb]
   /** Ankle → toe directions (side-relative); default flat, pointing forward. */
   feet?: readonly [Vec3, Vec3]
+  /**
+   * Rotation of both forearms around their own axis in degrees: 0 = neutral (palms facing each
+   * other, thumbs leading), 90 = supinated (palms up/forward), -90 = pronated. Turns the dumbbells.
+   */
+  forearmRoll?: number
 }
+
+/** Body parts that can move on their own schedule within a repetition (see `interpolatePose`). */
+export type PosePart = 'torso' | 'head' | 'arms' | 'legs' | 'forearms'
+export type PartProgress = Readonly<Record<PosePart, number>>
 
 export interface RigSetup {
   /** The joint that stays put: the +x ankle when standing, the pelvis when lying or sitting. */
@@ -56,6 +65,8 @@ export interface Skeleton {
   knees: [Vec3, Vec3]
   ankles: [Vec3, Vec3]
   toes: [Vec3, Vec3]
+  /** See `Pose.forearmRoll`; undefined when the poses don't set it. */
+  forearmRoll?: number
 }
 
 export const LENGTH = { torso: 50, neck: 8, headRadius: 10, upperArm: 27, forearm: 25, thigh: 36, shin: 35, foot: 10 }
@@ -114,15 +125,24 @@ const slerpLimb = (a: Limb, b: Limb, t: number): Limb => [slerp(a[0], b[0], t), 
 const slerpPair = (a: readonly [Vec3, Vec3], b: readonly [Vec3, Vec3], t: number) => [slerp(a[0], b[0], t), slerp(a[1], b[1], t)] as const
 const FLAT_FEET = [seg(90, 10), seg(90, 10)] as const
 
-export function interpolatePose(from: Pose, to: Pose, t: number): Pose {
+/**
+ * The pose between `from` and `to`: one progress for everything, or one per body part, so
+ * joints can lead or lag like they do in a real movement. The root and twist go with the torso,
+ * the feet with the legs.
+ */
+export function interpolatePose(from: Pose, to: Pose, progress: number | PartProgress): Pose {
+  const p: PartProgress =
+    typeof progress === 'number' ? { torso: progress, head: progress, arms: progress, legs: progress, forearms: progress } : progress
+  const rolls = from.forearmRoll !== undefined || to.forearmRoll !== undefined
   return {
-    root: lerp3(from.root, to.root, t),
-    torso: slerp(from.torso, to.torso, t),
-    twist: lerp(from.twist ?? 0, to.twist ?? 0, t),
-    head: slerp(from.head, to.head, t),
-    arms: [slerpLimb(from.arms[0], to.arms[0], t), slerpLimb(from.arms[1], to.arms[1], t)],
-    legs: [slerpLimb(from.legs[0], to.legs[0], t), slerpLimb(from.legs[1], to.legs[1], t)],
-    feet: slerpPair(from.feet ?? FLAT_FEET, to.feet ?? FLAT_FEET, t),
+    root: lerp3(from.root, to.root, p.torso),
+    torso: slerp(from.torso, to.torso, p.torso),
+    twist: lerp(from.twist ?? 0, to.twist ?? 0, p.torso),
+    head: slerp(from.head, to.head, p.head),
+    arms: [slerpLimb(from.arms[0], to.arms[0], p.arms), slerpLimb(from.arms[1], to.arms[1], p.arms)],
+    legs: [slerpLimb(from.legs[0], to.legs[0], p.legs), slerpLimb(from.legs[1], to.legs[1], p.legs)],
+    feet: slerpPair(from.feet ?? FLAT_FEET, to.feet ?? FLAT_FEET, p.legs),
+    forearmRoll: rolls ? lerp(from.forearmRoll ?? 0, to.forearmRoll ?? 0, p.forearms) : undefined,
   }
 }
 
@@ -187,6 +207,7 @@ export function solvePose(setup: RigSetup, pose: Pose): Skeleton {
     knees: [legs[0][0], legs[1][0]],
     ankles,
     toes,
+    forearmRoll: pose.forearmRoll,
   }
 }
 

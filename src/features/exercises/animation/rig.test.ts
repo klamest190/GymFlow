@@ -1,9 +1,56 @@
 import { describe, expect, it } from 'vitest'
 import { EXERCISES } from '../../../data/exercises'
 import { STAGE, projector, type Camera } from './camera'
-import { EXERCISE_ANIMATIONS, skeletonAt } from './poses'
-import { LENGTH, add, distance, reach, scale, seg, slerp, type Vec3 } from './rig'
-import { buildScene, scenePoints, stageLayout } from './scene'
+import { EXERCISE_ANIMATIONS, partProgress, skeletonAt } from './poses'
+import { LENGTH, add, distance, dot, normalize, reach, scale, seg, slerp, sub, type Vec3 } from './rig'
+import { buildScene, handleAxis, scenePoints, stageLayout } from './scene'
+
+describe('bicep curl', () => {
+  const spec = EXERCISE_ANIMATIONS['bicep-curls']
+  const at = (t: number) => {
+    const skeleton = skeletonAt(spec, t)
+    return { skeleton, axes: ([0, 1] as const).map((side) => handleAxis(spec, skeleton, side)!) }
+  }
+
+  it('starts in the neutral grip and ends supinated', () => {
+    const bottom = at(0).axes
+    const top = at(1).axes
+    for (const side of [0, 1] as const) {
+      // Neutral: the handle points forward (palms toward the thighs); supinated: across the body.
+      expect(Math.abs(bottom[side][2])).toBeGreaterThan(0.95)
+      expect(Math.abs(top[side][0])).toBeGreaterThan(0.95)
+    }
+  })
+
+  it('keeps the handle across the forearm while the wrist turns, mirrored on both sides', () => {
+    for (const t of STEPS) {
+      const { skeleton, axes } = at(t)
+      for (const side of [0, 1] as const) {
+        const forearm = normalize(sub(skeleton.hands[side], skeleton.elbows[side]))
+        expect(Math.abs(dot(axes[side], forearm))).toBeLessThan(1e-6)
+      }
+      expect(axes[0][0]).toBeCloseTo(-axes[1][0], 6)
+      expect(axes[0][2]).toBeCloseTo(axes[1][2], 6)
+    }
+  })
+
+  it('supinates outward: the thumb side swings away from the body', () => {
+    const { axes } = at(0.25)
+    // The handle end that led forward (thumb side) turns toward the +x outside on the +x hand.
+    const thumbSide = axes[0][2] >= 0 ? axes[0] : scale(axes[0], -1)
+    expect(thumbSide[0]).toBeGreaterThan(0.1)
+  })
+})
+
+describe('part phases', () => {
+  it('let a part lead and still cover the whole range', () => {
+    const spec = EXERCISE_ANIMATIONS.crunches
+    expect(partProgress(spec, 0)).toMatchObject({ head: 0, torso: 0 })
+    expect(partProgress(spec, 1)).toMatchObject({ head: 1, torso: 1 })
+    const middle = partProgress(spec, 0.4)
+    expect(middle.head).toBeGreaterThan(middle.torso)
+  })
+})
 
 const STEPS = Array.from({ length: 11 }, (_, index) => index / 10)
 

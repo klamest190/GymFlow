@@ -1,6 +1,6 @@
 import { cameraFraming, orbitFraming, type Camera, type Framing, type ScenePoint } from './camera'
 import { skeletonAt, type BodyPart, type ExerciseAnimationSpec } from './poses'
-import { LENGTH, add, cross, dot, normalize, rotateAround, scale, type Skeleton, type Vec3 } from './rig'
+import { LENGTH, add, cross, dot, normalize, rotateAround, scale, sub, type Skeleton, type Vec3 } from './rig'
 
 /** Color roles; `ExerciseFigure` maps them to the --figure-* CSS tokens. */
 export type Paint = 'body' | 'highlight' | 'soft' | 'gear' | 'ground'
@@ -101,16 +101,33 @@ function torso(s: Skeleton, paint: (part: BodyPart) => Paint): Shape {
 }
 
 /**
- * The hand, holding a dumbbell when `handle` is given (torso frame [outward, up the spine, out of
- * the chest]). The hand sits on the handle, which is exactly as deep: the bias keeps it on top.
+ * World direction of a dumbbell handle (null without dumbbells). With `forearmRoll` it turns with
+ * the forearm: always across it, starting from the neutral grip (thumb side leading in the arm's
+ * swing plane) and rolling toward the outside, mirrored on the two sides. Otherwise it is fixed in
+ * the torso frame (`spec.handle`).
  */
-function hand(s: Skeleton, side: 0 | 1, handle: Vec3 | null): Shape {
+export function handleAxis(spec: ExerciseAnimationSpec, s: Skeleton, side: 0 | 1): Vec3 | null {
+  if (spec.equipment !== 'dumbbells') return null
+  const outwardSide = side === 0 ? s.lateral : scale(s.lateral, -1)
+  if (s.forearmRoll !== undefined) {
+    const forearm = normalize(sub(s.hands[side], s.elbows[side]))
+    const across = normalize(sub(outwardSide, scale(forearm, dot(outwardSide, forearm))))
+    const neutral = scale(cross(forearm, across), side === 0 ? 1 : -1)
+    const roll = (s.forearmRoll * Math.PI) / 180
+    return normalize(add(scale(neutral, Math.cos(roll)), scale(across, Math.sin(roll))))
+  }
+  const [outward, up, out] = spec.handle ?? SIDEWAYS
+  return normalize(add(add(scale(outwardSide, outward), scale(s.spine, up)), scale(s.forward, out)))
+}
+
+/**
+ * The hand, holding a dumbbell when `axis` (the handle's world direction) is given. The hand sits
+ * on the handle, which is exactly as deep: the bias keeps it on top.
+ */
+function hand(s: Skeleton, side: 0 | 1, axis: Vec3 | null): Shape {
   const center = s.hands[side]
   const fist: Shape = { kind: 'sphere', center, radius: RADIUS.hand, paint: 'body', bias: 1 }
-  if (!handle) return fist
-  const [outward, up, out] = handle
-  const lateral = side === 0 ? s.lateral : scale(s.lateral, -1)
-  const axis = normalize(add(add(scale(lateral, outward), scale(s.spine, up)), scale(s.forward, out)))
+  if (!axis) return fist
   const { headAt, headRadius, headThickness } = DUMBBELL
   const heads = ([1, -1] as const).map(
     (sign): Shape => ({ kind: 'disc', center: add(center, scale(axis, sign * headAt)), axis, radius: headRadius, thickness: headThickness, paint: 'gear' }),
@@ -144,7 +161,6 @@ export function buildScene(spec: ExerciseAnimationSpec, s: Skeleton): Scene {
   })
   // Face direction: the chest's forward, made perpendicular to the head's own direction.
   const face = normalize(add(s.forward, scale(s.headDirection, -dot(s.forward, s.headDirection))))
-  const handle = spec.equipment === 'dumbbells' ? (spec.handle ?? SIDEWAYS) : null
 
   const body: Shape[] = [
     torso(s, paint),
@@ -172,7 +188,7 @@ export function buildScene(spec: ExerciseAnimationSpec, s: Skeleton): Scene {
       // The hand (and dumbbell) ends the forearm.
       {
         kind: 'group',
-        shapes: [capsule(elbow, wrist, RADIUS.forearm, paint('forearms'), { joint: shoulder, radius: RADIUS.upperArm }), hand(s, side, handle)],
+        shapes: [capsule(elbow, wrist, RADIUS.forearm, paint('forearms'), { joint: shoulder, radius: RADIUS.upperArm }), hand(s, side, handleAxis(spec, s, side))],
       },
     )
   }

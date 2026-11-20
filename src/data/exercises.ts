@@ -85,9 +85,11 @@ const DEFINITIONS: ExerciseDefinition[] = [
     aliases: ['bicep curls', 'bizepscurls', 'curls', 'hantelcurls'],
     description: 'Klassische Isolationsübung für einen kräftigen Bizeps.',
     instructions:
-      'Aufrecht stehen, Kurzhanteln mit Untergriff seitlich am Körper. Die Oberarme bleiben fest ' +
-      'an den Rumpf gepresst, während du die Gewichte durch Beugen im Ellbogen bis auf Schulterhöhe ' +
-      'curlst. Oben kurz den Bizeps anspannen und langsam, über zwei bis drei Sekunden, absenken.',
+      'Aufrecht stehen, Kurzhanteln seitlich am Körper, die Handflächen zeigen zu den Oberschenkeln. ' +
+      'Die Oberarme bleiben fest an den Rumpf gepresst, während du die Gewichte durch Beugen im ' +
+      'Ellbogen bis auf Schulterhöhe curlst und dabei die Handgelenke nach außen drehst, bis die ' +
+      'Handflächen oben zu den Schultern zeigen. Oben kurz den Bizeps anspannen und langsam, über ' +
+      'zwei bis drei Sekunden, mit der Rückdrehung absenken.',
     formCues: ['Kein Schwung aus dem Rücken', 'Ellbogen bleiben am Körper', 'Unten vollständig strecken'],
     breathing: 'Beim Hochführen der Hanteln ausatmen, beim Ablassen einatmen.',
     primaryMuscle: 'biceps',

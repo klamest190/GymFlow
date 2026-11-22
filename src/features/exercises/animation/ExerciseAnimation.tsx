@@ -11,7 +11,8 @@ const HOLD_SECONDS = 0.35
 /**
  * One repetition per cycle in the exercise's tempo (slower on the lowering part). Starts from
  * the still frame, so starting/stopping on hover doesn't jump. With "reduce motion" enabled in
- * the OS, only the still frame is shown.
+ * the OS, only the still frame is shown. With `progress`, the caller drives the frame instead
+ * (the training wave), and the figure follows it.
  */
 export function ExerciseAnimation({
   exerciseId,
@@ -19,9 +20,12 @@ export function ExerciseAnimation({
   compact,
   camera,
   label,
+  progress: driven,
 }: {
   exerciseId: string
   playing?: boolean
+  /** The frame to show (0 = start, 1 = turning point); replaces the own loop. */
+  progress?: number
   /** Thumbnail: fills more of the stage. */
   compact?: boolean
   /** A camera the viewer turns: framed for every angle. Default: the exercise's fixed angle. */
@@ -30,7 +34,7 @@ export function ExerciseAnimation({
 }) {
   const spec = EXERCISE_ANIMATIONS[exerciseId] as ExerciseAnimationSpec | undefined
   const reduceMotion = useReducedMotion()
-  const running = Boolean(spec) && playing && !reduceMotion
+  const running = Boolean(spec) && playing && !reduceMotion && driven === undefined
   const [progress, setProgress] = useState(spec?.still ?? 0)
 
   useEffect(() => {
@@ -54,7 +58,7 @@ export function ExerciseAnimation({
 
   const orbit = Boolean(camera)
   const layout = useMemo(() => (spec ? stageLayout(spec, orbit ? null : spec.camera, orbit ? 1 : compact ? 0.94 : 0.88) : null), [spec, orbit, compact])
-  const shown = running ? progress : (spec?.still ?? 0)
+  const shown = driven ?? (running ? progress : (spec?.still ?? 0))
   const skeleton = useMemo(() => (spec ? skeletonAt(spec, shown) : null), [spec, shown])
   if (!spec || !skeleton || !layout) return null
 

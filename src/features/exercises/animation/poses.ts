@@ -65,6 +65,11 @@ export interface ExerciseAnimationSpec {
   ground: 'floor' | 'bench'
   /** Progress (0 = from, 1 = to) for the still image in lists. */
   still: number
+  /**
+   * Where a set starts in the training wave: `from` (default) or `to`. Thrusters start in the
+   * squat (`from`) in the model, but the set starts standing with the weights overhead.
+   */
+  waveStart?: 'from' | 'to'
   /** The angle that shows the movement best (thumbnails, and the default in the detail view). */
   camera: Camera
 }
@@ -251,6 +256,16 @@ const planted =
     [x, y, z],
     [-x, y, z],
   ]
+
+/**
+ * The animation frame for a position of the training wave (`height` 0 bottom to 1 top, see
+ * lib/tempoWave.ts), so the figure demonstrates each repetition in the user's tempo.
+ */
+export function waveProgress(spec: ExerciseAnimationSpec, lowersFirst: boolean, height: number): number {
+  // Distance from the starting position of the set: 0 at the start, 1 at the turning point.
+  const away = lowersFirst ? 1 - height : height
+  return spec.waveStart === 'to' ? 1 - away : away
+}
 
 /** Whether the exercise also lights up supporting muscles (for the legend). */
 export const hasSecondaryHighlight = (exerciseId: string) => Boolean(EXERCISE_ANIMATIONS[exerciseId]?.highlight.secondary?.length)
@@ -688,6 +703,7 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     equipment: 'dumbbells',
     ground: 'floor',
     still: 1,
+    waveStart: 'to',
     camera: { yaw: -38, pitch: 12 },
   },
   'renegade-rows': {

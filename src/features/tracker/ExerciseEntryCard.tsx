@@ -1,6 +1,6 @@
 import { AnimatePresence, m, useMotionValue, useTransform } from 'framer-motion'
 import { Check, ChevronUp, History, Info, Plus, Trash2, X } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { Suspense, useMemo, useState, type ReactNode } from 'react'
 import { NumberStepper } from '../../components/ui/NumberStepper'
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { haptic, useIsTouch } from '../../hooks/useUi'
@@ -9,6 +9,7 @@ import { fade, reveal, settle, snap } from '../../lib/motion'
 import { nextPlannedSet } from '../../lib/plannedSet'
 import type { WavePlan } from '../../lib/tempoWave'
 import { createSet } from '../../lib/workoutMath'
+import { LazyExerciseAnimation } from '../exercises/animation/lazyFigures'
 import { WavePreview, WaveRun } from './TrainingWave'
 import { useSetDraft } from './useSetDraft'
 import { useWaveTempo } from './useWaveTempo'
@@ -59,6 +60,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
   const draftReps = draft?.reps ?? 0
   const lowersFirst = exercise?.lowersFirst ?? false
   const wavePlan = useMemo<WavePlan>(() => ({ tempo, reps: draftReps, lowersFirst }), [tempo, draftReps, lowersFirst])
+  const waveExercise = useMemo(() => (exercise ? { id: exercise.id, name: exercise.name } : undefined), [exercise])
 
   const nextNumber = entry.sets.length + 1
 
@@ -146,7 +148,15 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
           {showInfo && exercise && (
             <m.div {...reveal} className="overflow-hidden">
               <div className="mt-3 rounded-xl bg-sunken p-4 text-[14px] leading-relaxed">
-                <p className="text-fg/85">{exercise.instructions}</p>
+                {/* The movement itself next to the words, so it is clear at a glance mid-workout. */}
+                <div className="flex items-start gap-4">
+                  <span className="relative size-24 shrink-0 overflow-hidden rounded-lg bg-surface-solid">
+                    <Suspense fallback={null}>
+                      <LazyExerciseAnimation exerciseId={exercise.id} compact label={`Ausführung: ${exercise.name}`} />
+                    </Suspense>
+                  </span>
+                  <p className="min-w-0 text-fg/85">{exercise.instructions}</p>
+                </div>
                 <ul className="mt-3 space-y-1.5">
                   {exercise.formCues.map((cue) => (
                     <li key={cue} className="flex items-start gap-2 text-[13px] text-muted">
@@ -206,6 +216,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
               {draft && waveStartedAt !== null ? (
                 <WaveRun
                   plan={wavePlan}
+                  exercise={waveExercise}
                   number={nextNumber}
                   startedAt={waveStartedAt}
                   onFinish={() => logSet(draft)}
@@ -226,7 +237,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                       <X className="size-4" strokeWidth={2.5} />
                     </SmallButton>
                   }
-                  wave={!exercise?.noWave && <WavePreview plan={wavePlan} onStart={() => setWaveStartedAt(Date.now())} />}
+                  wave={!exercise?.noWave && <WavePreview plan={wavePlan} exercise={waveExercise} onStart={() => setWaveStartedAt(Date.now())} />}
                   footer={<LogButton number={nextNumber} onClick={() => logSet(draft)} />}
                 />
               ) : (

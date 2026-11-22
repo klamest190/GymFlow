@@ -1,10 +1,11 @@
 import { AnimatePresence, m } from 'framer-motion'
 import { Check, ChevronDown, Lock, Plus, Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
-import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
+import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '../../data/muscleGroups'
 import { haptic } from '../../hooks/useUi'
 import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../../types/models'
+import { LazyExerciseAnimation } from '../exercises/animation/lazyFigures'
 import { useGuestGate } from '../guest/guestGate'
 
 interface ExercisePickerProps {
@@ -20,6 +21,8 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
   const [search, setSearch] = useState('')
   const [muscle, setMuscle] = useState<MuscleGroup | 'all'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  // The row under the mouse demonstrates its exercise in the thumbnail.
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const gate = useGuestGate()
 
   // In body order like the catalog filter, independent of the order of the exercises.
@@ -92,8 +95,8 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
           if (locked) {
             return (
               <li key={exercise.id} className="rounded-2xl transition-colors hover:bg-sunken/60">
-                <button type="button" onClick={showLock} className="flex w-full items-center gap-3 px-2 py-2.5 text-left">
-                  <span className={`size-2.5 shrink-0 rounded-full opacity-50 ${MUSCLE_GROUP_TINTS[exercise.primaryMuscle]}`} />
+                <button type="button" onClick={showLock} className="flex w-full items-center gap-3 px-2 py-2 text-left">
+                  <Thumb exercise={exercise} playing={false} locked />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[16px] font-semibold tracking-tight text-fg/60">{exercise.name}</span>
                     <span className="block truncate text-[13px] text-muted">Mit eigenem Zugang</span>
@@ -106,15 +109,21 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
             )
           }
           return (
-            <li key={exercise.id} className="rounded-2xl transition-colors hover:bg-sunken/60">
-              <div className="flex items-center gap-3 px-2 py-2.5">
+            <li
+              key={exercise.id}
+              className="rounded-2xl transition-colors hover:bg-sunken/60"
+              onPointerEnter={(event) => event.pointerType === 'mouse' && setHoveredId(exercise.id)}
+              onPointerLeave={() => setHoveredId((id) => (id === exercise.id ? null : id))}
+            >
+              <div className="flex items-center gap-3 px-2 py-2">
                 <button
                   type="button"
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   onClick={() => setExpandedId(expanded ? null : exercise.id)}
                   aria-expanded={expanded}
                 >
-                  <span className={`size-2.5 shrink-0 rounded-full ${MUSCLE_GROUP_TINTS[exercise.primaryMuscle]}`} />
+                  {/* Expanded, the large figure below takes over the demonstration. */}
+                  <Thumb exercise={exercise} playing={hoveredId === exercise.id && !expanded} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[16px] font-semibold tracking-tight">{exercise.name}</span>
                     <span className="block truncate text-[13px] text-muted">
@@ -157,12 +166,19 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                     transition={{ duration: 0.22 }}
                     className="overflow-hidden"
                   >
-                    <div className="px-2 pb-3 pl-[30px] text-[14px] leading-relaxed text-muted">
-                      <p className="text-fg/85">{exercise.description}</p>
-                      {exercise.instructions && <p className="mt-2">{exercise.instructions}</p>}
-                      <p className="mt-2 text-[13px] font-medium">
-                        Empfohlen: {exercise.defaultSets} × {exercise.defaultReps}
-                      </p>
+                    <div className="flex flex-col gap-3 px-2 pb-3 text-[14px] leading-relaxed text-muted sm:flex-row sm:gap-4">
+                      <span className="relative mx-auto aspect-square w-full max-w-56 shrink-0 overflow-hidden rounded-2xl bg-sunken sm:mx-0 sm:size-40">
+                        <Suspense fallback={null}>
+                          <LazyExerciseAnimation exerciseId={exercise.id} label={`Ausführung: ${exercise.name}`} />
+                        </Suspense>
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-fg/85">{exercise.description}</p>
+                        {exercise.instructions && <p className="mt-2">{exercise.instructions}</p>}
+                        <p className="mt-2 text-[13px] font-medium">
+                          Empfohlen: {exercise.defaultSets} × {exercise.defaultReps}
+                        </p>
+                      </div>
                     </div>
                   </m.div>
                 )}
@@ -175,5 +191,19 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
         )}
       </ul>
     </Sheet>
+  )
+}
+
+/** The exercise's figure as a small still picture; it moves while `playing`. Locked: dimmed (the row shows the lock). */
+function Thumb({ exercise, playing, locked }: { exercise: Exercise; playing: boolean; locked?: boolean }) {
+  return (
+    // Decorative here: the row already names the exercise.
+    <span aria-hidden className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-sunken">
+      <span className={`block size-full ${locked ? 'opacity-30' : ''}`}>
+        <Suspense fallback={null}>
+          <LazyExerciseAnimation exerciseId={exercise.id} playing={playing} compact label={`Ausführung: ${exercise.name}`} />
+        </Suspense>
+      </span>
+    </span>
   )
 }

@@ -1,6 +1,7 @@
-import { m, useAnimationFrame, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
+import { m, useAnimationFrame, useMotionValue, useReducedMotion, useTransform, type MotionValue } from 'framer-motion'
 import { Play, Square } from 'lucide-react'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { LazyWaveFigure } from '../exercises/animation/lazyFigures'
 import { haptic } from '../../hooks/useUi'
 import { useWakeLock } from '../../hooks/useWakeLock'
 import { snap } from '../../lib/motion'
@@ -71,14 +72,43 @@ const tempoText = (plan: WavePlan) => {
   return plan.lowersFirst ? `${lower}, ${lift}` : `${lift}, ${lower}`
 }
 
-/** The wave of the open set, standing still, with the button that starts it. */
-export function WavePreview({ plan, onStart }: { plan: WavePlan; onStart: () => void }) {
+/** The figure of the exercise in a small frame, moving with `seconds` of the wave. */
+function FigureFrame({ exercise, plan, seconds, className }: { exercise: WaveExercise; plan: WavePlan; seconds: MotionValue<number>; className: string }) {
+  return (
+    <span className={`relative shrink-0 overflow-hidden rounded-xl bg-sunken ${className}`}>
+      <Suspense fallback={null}>
+        <LazyWaveFigure exerciseId={exercise.id} plan={plan} seconds={seconds} label={`${exercise.name} im Tempo der Welle`} />
+      </Suspense>
+    </span>
+  )
+}
+
+/** The exercise the wave leads; its figure demonstrates the repetitions. */
+export interface WaveExercise {
+  id: string
+  name: string
+}
+
+/**
+ * The wave of the open set, standing still, with the button that starts it. The figure next to
+ * the tempo repeats one repetition in that tempo, so the pace is clear before the set starts.
+ */
+export function WavePreview({ plan, exercise, onStart }: { plan: WavePlan; exercise?: WaveExercise; onStart: () => void }) {
   const seconds = useMotionValue(0)
+  const demo = useMotionValue(0)
+  const demoPlan = useMemo(() => ({ ...plan, reps: 1 }), [plan])
+  const reduceMotion = useReducedMotion()
+  useAnimationFrame((time) => {
+    if (exercise && !reduceMotion) demo.set((time / 1000) % repSeconds(plan.tempo))
+  })
   return (
     <div className="mt-3 border-t border-line pt-2">
       <WaveTrack plan={plan} seconds={seconds} anchorSeconds={0} />
       <div className="mt-1 flex items-center justify-between gap-3">
-        <p className="min-w-0 text-[13px] font-medium text-muted">{tempoText(plan)}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          {exercise && <FigureFrame exercise={exercise} plan={demoPlan} seconds={demo} className="size-14" />}
+          <p className="min-w-0 text-[13px] font-medium text-muted">{tempoText(plan)}</p>
+        </div>
         <m.button
           type="button"
           whileTap={{ scale: 0.95 }}
@@ -126,12 +156,15 @@ function signal(moment: WaveMoment, previous: WaveMoment) {
  */
 export function WaveRun({
   plan,
+  exercise,
   number,
   startedAt,
   onFinish,
   onStop,
 }: {
   plan: WavePlan
+  /** Shows its figure doing each repetition together with the wave. */
+  exercise?: WaveExercise
   number: number
   /** `Date.now()` of the tap on "Welle starten". */
   startedAt: number
@@ -196,6 +229,8 @@ export function WaveRun({
             {moment.phase === 'lift' ? 'Ausatmen' : moment.phase === 'lower' ? 'Einatmen' : counting ? 'Ruhig atmen' : ' '}
           </p>
         </div>
+        {/* In the starting position during the countdown, then one repetition after the other. */}
+        {exercise && <FigureFrame exercise={exercise} plan={plan} seconds={seconds} className="ml-auto size-24" />}
       </div>
       <div className="mt-2">
         <WaveTrack plan={plan} seconds={seconds} anchorSeconds={anchorSeconds} />

@@ -10,8 +10,9 @@ interface KpiTilesProps {
   weekStreak: number
 }
 
-const METRICS: { metric: Metric; label: string; unit?: string }[] = [
-  { metric: 'reps', label: 'Wiederholungen' },
+/** `short` stands in on phones, where three columns leave no room for "Wiederholungen". */
+const METRICS: { metric: Metric; label: string; short?: string; unit?: string }[] = [
+  { metric: 'reps', label: 'Wiederholungen', short: 'Wdh.' },
   { metric: 'sets', label: 'Sätze' },
   { metric: 'volumeKg', label: 'Volumen', unit: 'kg' },
 ]
@@ -66,6 +67,7 @@ function GoalMeter({ days, goal, weekStreak }: { days: number; goal: number; wee
 
 function MetricFigure({
   label,
+  short,
   metric,
   unit,
   trend,
@@ -73,6 +75,7 @@ function MetricFigure({
 }: {
   label: string
   metric: Metric
+  short?: string
   unit?: string
   trend: Trend
   comparisonWindow: string
@@ -83,7 +86,18 @@ function MetricFigure({
         <AnimatedNumber value={trend.current} compact className="numeral text-[39px] leading-none" />
         {unit && <span className="numeral text-[17px] text-muted">{unit}</span>}
       </p>
-      <p className="mt-1 truncate text-[13px] font-medium text-muted">{label}</p>
+      <p className="mt-1 truncate text-[13px] font-medium text-muted">
+        {short ? (
+          <>
+            <span className="sm:hidden" aria-hidden>
+              {short}
+            </span>
+            <span className="max-sm:sr-only">{label}</span>
+          </>
+        ) : (
+          label
+        )}
+      </p>
       <p className="mt-1">
         <TrendBadge change={trend.change} title={`Vorwoche (${comparisonWindow}): ${formatMetric(trend.previous, metric)}`} />
       </p>

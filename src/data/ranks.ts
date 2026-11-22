@@ -4,6 +4,8 @@ import type { RankId } from '../types/models'
 export interface RankDefinition {
   id: RankId
   label: string
+  /** The label with a soft hyphen where a long name may break in the narrow rank ladder on phones. */
+  ladderLabel?: string
   /** First level of this rank; the rank lasts until the next rank's `minLevel`. */
   minLevel: number
   icon: LucideIcon
@@ -21,7 +23,7 @@ export const RANKS: RankDefinition[] = [
   { id: 'gold', label: 'Gold', minLevel: 40, icon: Award, gradient: 'linear-gradient(135deg, #ffe58a, #d49a0c)', ink: '#2b1d00' },
   { id: 'platinum', label: 'Platin', minLevel: 60, icon: Trophy, gradient: 'linear-gradient(135deg, #e3fbf6, #6fc3b8)', ink: '#05332d' },
   { id: 'diamond', label: 'Diamant', minLevel: 80, icon: Gem, gradient: 'linear-gradient(135deg, #b9f2ff, #3b82f6)', ink: '#04204a' },
-  { id: 'grandmaster', label: 'Grandmaster', minLevel: 100, icon: Crown, gradient: 'linear-gradient(135deg, #3a3f44, #16191b)', ink: '#f2c200' },
+  { id: 'grandmaster', label: 'Grandmaster', ladderLabel: 'Grand­master', minLevel: 100, icon: Crown, gradient: 'linear-gradient(135deg, #3a3f44, #16191b)', ink: '#f2c200' },
 ]
 
 export const RANK_BY_ID = Object.fromEntries(RANKS.map((rank) => [rank.id, rank])) as Record<RankId, RankDefinition>

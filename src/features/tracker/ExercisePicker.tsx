@@ -5,7 +5,9 @@ import { Sheet } from '../../components/ui/Sheet'
 import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '../../data/muscleGroups'
 import { haptic } from '../../hooks/useUi'
 import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../../types/models'
+import { FigureThumb } from '../exercises/animation/FigureThumb'
 import { LazyExerciseAnimation } from '../exercises/animation/lazyFigures'
+import { InstructionSteps } from '../exercises/InstructionSteps'
 import { useGuestGate } from '../guest/guestGate'
 
 interface ExercisePickerProps {
@@ -96,7 +98,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
             return (
               <li key={exercise.id} className="rounded-2xl transition-colors hover:bg-sunken/60">
                 <button type="button" onClick={showLock} className="flex w-full items-center gap-3 px-2 py-2 text-left">
-                  <Thumb exercise={exercise} playing={false} locked />
+                  <FigureThumb exerciseId={exercise.id} dimmed />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[16px] font-semibold tracking-tight text-fg/60">{exercise.name}</span>
                     <span className="block truncate text-[13px] text-muted">Mit eigenem Zugang</span>
@@ -123,7 +125,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                   aria-expanded={expanded}
                 >
                   {/* Expanded, the large figure below takes over the demonstration. */}
-                  <Thumb exercise={exercise} playing={hoveredId === exercise.id && !expanded} />
+                  <FigureThumb exerciseId={exercise.id} playing={hoveredId === exercise.id && !expanded} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[16px] font-semibold tracking-tight">{exercise.name}</span>
                     <span className="block truncate text-[13px] text-muted">
@@ -174,7 +176,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                       </span>
                       <div className="min-w-0">
                         <p className="text-fg/85">{exercise.description}</p>
-                        {exercise.instructions && <p className="mt-2">{exercise.instructions}</p>}
+                        {exercise.instructions && <InstructionSteps instructions={exercise.instructions} className="mt-3" />}
                         <p className="mt-2 text-[13px] font-medium">
                           Empfohlen: {exercise.defaultSets} × {exercise.defaultReps}
                         </p>
@@ -191,19 +193,5 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
         )}
       </ul>
     </Sheet>
-  )
-}
-
-/** The exercise's figure as a small still picture; it moves while `playing`. Locked: dimmed (the row shows the lock). */
-function Thumb({ exercise, playing, locked }: { exercise: Exercise; playing: boolean; locked?: boolean }) {
-  return (
-    // Decorative here: the row already names the exercise.
-    <span aria-hidden className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-sunken">
-      <span className={`block size-full ${locked ? 'opacity-30' : ''}`}>
-        <Suspense fallback={null}>
-          <LazyExerciseAnimation exerciseId={exercise.id} playing={playing} compact label={`Ausführung: ${exercise.name}`} />
-        </Suspense>
-      </span>
-    </span>
   )
 }

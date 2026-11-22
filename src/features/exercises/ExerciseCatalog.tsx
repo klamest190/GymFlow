@@ -1,6 +1,6 @@
 import { AnimatePresence, m } from 'framer-motion'
 import { Lock, RotateCcw, Search, X } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSession } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
 import { FilterPills, type FilterOption } from '../../components/ui/FilterPills'
@@ -8,8 +8,9 @@ import { Loadable } from '../../components/ui/Loadable'
 import { useToast } from '../../components/ui/toastContext'
 import { getExercise } from '../../data/exercises'
 import { GUEST_EXERCISE_IDS } from '../../data/guest'
-import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
+import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS, REGION_LABELS, REGION_TINTS } from '../../data/muscleGroups'
 import { EXERCISE_HISTORY_DAYS, FILTERABLE_MUSCLES, useExercises, type MuscleFilter } from '../../hooks/useExercises'
+import { groupByRegion } from '../../lib/catalogSections'
 import { formatDaysAgo, todayKey } from '../../lib/dates'
 import { fade } from '../../lib/motion'
 import type { ExerciseSession } from '../../lib/exerciseHistory'
@@ -28,6 +29,8 @@ const MUSCLE_OPTIONS: FilterOption<MuscleFilter>[] = [
   ...FILTERABLE_MUSCLES.map((group) => ({ value: group, label: MUSCLE_GROUP_LABELS[group], dot: MUSCLE_GROUP_TINTS[group] })),
 ]
 const SKELETON_CARDS = 6
+/** A gallery: two figures side by side on phones, up to four on wide screens. */
+const GRID = 'grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 xl:grid-cols-4'
 
 /** Read-only overview of the fixed exercise catalog with per-exercise history. */
 export function ExerciseCatalog() {
@@ -37,6 +40,7 @@ export function ExerciseCatalog() {
   const toast = useToast()
   const gate = useGuestGate()
   const selected = selectedId ? (getExercise(selectedId) ?? null) : null
+  const sections = useMemo(() => groupByRegion(catalog.exercises), [catalog.exercises])
 
   const addToToday = (exercise: Exercise) => {
     if (!catalog.ready || catalog.isAddedToday(exercise.id)) return
@@ -100,7 +104,7 @@ export function ExerciseCatalog() {
       <Loadable
         ready={catalog.ready}
         skeleton={
-          <ul aria-label="Übungen werden geladen" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul aria-label="Übungen werden geladen" className={`mt-8 ${GRID}`}>
             {Array.from({ length: SKELETON_CARDS }, (_, index) => (
               <ExerciseCardSkeleton key={index} />
             ))}
@@ -109,20 +113,33 @@ export function ExerciseCatalog() {
       >
         <AnimatePresence mode="wait" initial={false}>
           {catalog.exercises.length > 0 ? (
-            <m.ul key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fade} className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {catalog.exercises.map((exercise) => {
-                const locked = gate.isLocked(exercise.id)
-                return (
-                  <ExerciseCard
-                    key={exercise.id}
-                    exercise={exercise}
-                    sessions={catalog.sessionsOf(exercise.id)}
-                    locked={locked}
-                    onClick={() => (locked ? gate.showUpgrade({ kind: 'exercise', exercise }) : setSelectedId(exercise.id))}
-                  />
-                )
-              })}
-            </m.ul>
+            <m.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fade} className="mt-8 space-y-9">
+              {sections.map((section) => (
+                <section key={section.region} aria-labelledby={`region-${section.region}`}>
+                  <header className="flex items-baseline gap-3 px-1">
+                    <span className={`size-2.5 shrink-0 self-center rounded-full ${REGION_TINTS[section.region]}`} aria-hidden />
+                    <h2 id={`region-${section.region}`} className="headline text-[31px]">
+                      {REGION_LABELS[section.region]}
+                    </h2>
+                    <p className="min-w-0 truncate text-[14px] text-muted">{section.muscles}</p>
+                  </header>
+                  <ul className={`mt-3 ${GRID}`}>
+                    {section.exercises.map((exercise) => {
+                      const locked = gate.isLocked(exercise.id)
+                      return (
+                        <ExerciseCard
+                          key={exercise.id}
+                          exercise={exercise}
+                          sessions={catalog.sessionsOf(exercise.id)}
+                          locked={locked}
+                          onClick={() => (locked ? gate.showUpgrade({ kind: 'exercise', exercise }) : setSelectedId(exercise.id))}
+                        />
+                      )
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </m.div>
           ) : (
             <EmptyState key="empty" hasSearch={catalog.search.trim() !== ''} onReset={catalog.resetFilters} />
           )}
@@ -148,7 +165,8 @@ const lastLabel = (date: DateKey) => {
 }
 
 /**
- * Catalog card. No layout animation and no hover lift: cards stay where they are, and the figure
+ * Catalog card: the figure is the picture of the exercise, so it takes the card's top half; the
+ * description waits in the detail sheet. No layout animation and no hover lift: the figure
  * demonstrating the movement on hover/focus is the only thing that moves. A locked card (guest
  * mode) keeps its figure still behind a lock and opens the upgrade sheet.
  */
@@ -164,7 +182,6 @@ function ExerciseCard({
   onClick: () => void
 }) {
   const last = sessions[0]
-  // The figure stands still in the list (calm) and only demonstrates the movement on hover/focus.
   const [hovered, setHovered] = useState(false)
   const active = hovered && !locked
   return (
@@ -177,53 +194,37 @@ function ExerciseCard({
         onFocus={() => setHovered(true)}
         onBlur={() => setHovered(false)}
         aria-label={locked ? `${exercise.name}, gesperrt im Gastmodus` : undefined}
-        className="glass flex h-full w-full flex-col rounded-3xl p-5 text-left transition-colors duration-150 hover:border-fg/25 active:bg-sunken"
+        className="glass flex h-full w-full flex-col rounded-3xl p-2 text-left transition-colors duration-150 hover:border-fg/25 active:bg-sunken"
       >
-        <div className="flex w-full gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex w-full items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium text-muted">
-                <span className={`size-2 rounded-full ${MUSCLE_GROUP_TINTS[exercise.primaryMuscle]}`} />
-                {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]}
-              </span>
-              <DifficultyMeter difficulty={exercise.difficulty} />
-            </div>
-            <h3 className={`headline mt-2.5 text-[25px] ${locked ? 'text-fg/60' : ''}`}>{exercise.name}</h3>
-            <p className="mt-1.5 line-clamp-2 min-h-[2lh] text-[14px] leading-snug text-muted">{exercise.description}</p>
-          </div>
+        <span className="relative block aspect-[5/4] w-full overflow-hidden rounded-2xl bg-sunken">
           {exercise.id in EXERCISE_ANIMATIONS && (
-            <span className="relative size-22 shrink-0 self-center overflow-hidden rounded-xl bg-sunken">
-              <span className={locked ? 'block size-full opacity-30' : 'contents'}>
-                <ExerciseAnimation exerciseId={exercise.id} playing={active} compact label={`Ausführung: ${exercise.name}`} />
-              </span>
-              {locked && (
-                <span className="absolute inset-0 grid place-items-center">
-                  <span className="grid size-9 place-items-center rounded-full bg-fg text-bg shadow-soft">
-                    <Lock className="size-4" strokeWidth={2.5} />
-                  </span>
-                </span>
-              )}
+            <span className={`block size-full ${locked ? 'opacity-30' : ''}`}>
+              <ExerciseAnimation exerciseId={exercise.id} playing={active} compact label={`Ausführung: ${exercise.name}`} />
             </span>
           )}
-        </div>
-        <div className="mt-4 flex w-full items-baseline justify-between gap-2 border-t border-line pt-3 text-[13px]">
-          <span className="flex items-baseline gap-2">
-            <span className="numeral text-[17px]">
-              {exercise.defaultSets} × {exercise.defaultReps}
-            </span>
-            <span className="text-muted">{EQUIPMENT_LABELS[exercise.equipment]}</span>
-          </span>
           {locked ? (
-            <span className="flex items-center gap-1.5 whitespace-nowrap font-medium text-muted">
-              <Lock className="size-3.5" />
-              Mit Zugang
+            <span className="absolute inset-0 grid place-items-center">
+              <span className="grid size-10 place-items-center rounded-full bg-fg text-bg shadow-soft">
+                <Lock className="size-4.5" strokeWidth={2.5} />
+              </span>
             </span>
-          ) : last ? (
-            <span className="font-medium">Zuletzt {lastLabel(last.date)}</span>
           ) : (
-            <span className="text-muted">Noch nicht trainiert</span>
+            last && (
+              <span className="absolute left-2 top-2 rounded-full bg-surface-solid/90 px-2.5 py-1 text-[12px] font-semibold">
+                Zuletzt {lastLabel(last.date)}
+              </span>
+            )
           )}
-        </div>
+        </span>
+        <span className="flex flex-1 flex-col px-2 pb-2 pt-3">
+          <h3 className={`headline text-[19px] leading-[1.1] sm:text-[22px] ${locked ? 'text-fg/60' : ''}`}>{exercise.name}</h3>
+          <span className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">
+            {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]}, {EQUIPMENT_LABELS[exercise.equipment]}
+          </span>
+          <span className="mt-auto pt-3">
+            <DifficultyMeter difficulty={exercise.difficulty} />
+          </span>
+        </span>
       </button>
     </m.li>
   )
@@ -232,23 +233,13 @@ function ExerciseCard({
 /** Same footprint as ExerciseCard, so nothing jumps when the data arrives. */
 function ExerciseCardSkeleton() {
   return (
-    <li className="glass flex flex-col rounded-3xl p-5" aria-hidden>
-      <div className="flex gap-4">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-between">
-            <span className="skeleton h-3 w-20 rounded-full" />
-            <span className="skeleton h-3.5 w-24 rounded-md" />
-          </div>
-          <span className="skeleton mt-3.5 h-4.5 w-3/5 rounded-lg" />
-          <span className="skeleton mt-3 h-3.5 w-full rounded-md" />
-          <span className="skeleton mt-2 h-3.5 w-4/5 rounded-md" />
-        </div>
-        <span className="skeleton size-22 shrink-0 rounded-2xl" />
-      </div>
-      <div className="mt-5 flex items-center justify-between border-t border-line pt-3.5">
-        <span className="skeleton h-3.5 w-28 rounded-md" />
-        <span className="skeleton h-3.5 w-16 rounded-md" />
-      </div>
+    <li className="glass flex flex-col rounded-3xl p-2" aria-hidden>
+      <span className="skeleton aspect-[5/4] w-full rounded-2xl" />
+      <span className="flex flex-col px-2 pb-2 pt-3">
+        <span className="skeleton h-4.5 w-4/5 rounded-lg" />
+        <span className="skeleton mt-2.5 h-3 w-3/5 rounded-md" />
+        <span className="skeleton mt-4 h-3.5 w-24 rounded-md" />
+      </span>
     </li>
   )
 }

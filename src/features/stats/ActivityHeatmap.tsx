@@ -12,6 +12,10 @@ interface ActivityHeatmapProps {
 }
 
 const WEEKDAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So']
+/** Smallest tappable cell, the gap between cells and the weekday column with its gap, in px. */
+const MIN_CELL = 12
+const CELL_GAP = 3
+const LABELS_WIDTH = 28
 const monthFormatter = new Intl.DateTimeFormat('de-DE', { month: 'short' })
 
 /** "Mi., 22. Okt.: 120 Wdh., 12 Sätze, 1.250 kg" – used for the native tooltip and screen readers. */
@@ -31,12 +35,30 @@ function dayDetails(day: HeatmapDay): string {
  * GitHub-style calendar: one column per week, one cell per day, intensity = quartile of the
  * selected metric. Hover/tap shows the day's value in the readout line below.
  */
-export function ActivityHeatmap({ logs, metric, weeks }: ActivityHeatmapProps) {
+export function ActivityHeatmap({ logs, metric, weeks: maxWeeks }: ActivityHeatmapProps) {
   const theme = useChartTheme()
   const today = todayKey()
-  const grid = heatmapGrid(logs, today, weeks, metric)
   const [focused, setFocused] = useState<HeatmapDay | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
+
+  // As many weeks as fit at a tappable size, so the grid never has to scroll and cut off its first
+  // month on a phone. The subtitle names the months actually shown.
+  const [fitWeeks, setFitWeeks] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const element = scroller.current
+    if (!element) return
+    const measure = () => {
+      const style = getComputedStyle(element)
+      const inner = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+      setFitWeeks(Math.max(8, Math.floor((inner - LABELS_WIDTH + CELL_GAP) / (MIN_CELL + CELL_GAP))))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+  const weeks = Math.min(maxWeeks, fitWeeks ?? maxWeeks)
+  const grid = heatmapGrid(logs, today, weeks, metric)
   const trainingDays = grid.flat().filter((day) => day.level > 0).length
 
   // On narrow screens the grid scrolls horizontally; start at the most recent weeks.

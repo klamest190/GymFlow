@@ -2,6 +2,7 @@ import { AnimatePresence, m } from 'framer-motion'
 import { CalendarDays, CloudCheck, CloudOff, LayoutList, LoaderCircle, Lock, Moon, Plus, Sun } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { EXERCISES, getExercise } from '../../data/exercises'
+import { REGION_LABELS } from '../../data/muscleGroups'
 import { Loadable } from '../../components/ui/Loadable'
 import { useToast } from '../../components/ui/toastContext'
 import { useLogsInRange } from '../../hooks/useData'
@@ -9,13 +10,15 @@ import { useDayDraft, type SyncState } from '../../hooks/useDayDraft'
 import { useSession } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
 import { settle, snap } from '../../lib/motion'
-import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
+import { formatDaysAgo, formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
 import { buildExerciseHistory } from '../../lib/exerciseHistory'
 import { lastSessionBefore, nextPlannedSet } from '../../lib/plannedSet'
+import { suggestRegion, type RegionSuggestion } from '../../lib/regionSuggestion'
 import { trainingDays } from '../../lib/stats'
 import { createEntry, NEW_ENTRY_REPS, newSetValues, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
 import { useGamification } from '../gamification/gamificationContext'
+import { FigureThumb } from '../exercises/animation/FigureThumb'
 import { useGuestGate } from '../guest/guestGate'
 import { useRestTimer } from '../rest/restTimerContext'
 import { DaySummary } from './DaySummary'
@@ -105,6 +108,19 @@ export function DailyTracker() {
   }
 
   const suggestions = EXERCISES.filter((exercise) => !addedIds.has(exercise.id) && !gate.isLocked(exercise.id)).slice(0, 5)
+  // An empty day today suggests the body region that has waited longest.
+  const regionSuggestion = isToday
+    ? suggestRegion(gamification?.logs ?? [], EXERCISES.filter((exercise) => !gate.isLocked(exercise.id)), date)
+    : null
+  const applySuggestion = (suggestion: RegionSuggestion) =>
+    applyTemplate({
+      id: `suggestion-${suggestion.region}`,
+      name: REGION_LABELS[suggestion.region],
+      exercises: suggestion.exercises.map((exercise) => ({ exerciseId: exercise.id, sets: [] })),
+      createdAt: 0,
+    })
+  // The totals only mean something once a set is logged; until then they would show zeros.
+  const hasSets = entries.some((entry) => entry.sets.length > 0)
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -145,7 +161,7 @@ export function DailyTracker() {
 
           <Loadable ready={ready} skeleton={<EntriesSkeleton />}>
             {entries.length === 0 ? (
-              <EmptyState isToday={isToday} onAdd={() => setPickerOpen(true)} onTemplates={openTemplates} templatesLocked={gate.isGuest} />
+              <EmptyState isToday={isToday} suggestion={regionSuggestion} onApply={applySuggestion} onAdd={() => setPickerOpen(true)} />
             ) : (
               <ul className="space-y-3">
                 <AnimatePresence initial={false} mode="popLayout">
@@ -193,7 +209,7 @@ export function DailyTracker() {
         {/* Mobile: summary sits above the entries. Desktop: sticky right column. */}
         <aside className="order-first space-y-4 lg:order-none lg:col-start-2 lg:row-start-1">
           <div className="space-y-4 lg:sticky lg:top-10">
-            {entries.length > 0 && <DaySummary entries={entries} pendingXP={isToday ? (gamification?.pendingXP ?? 0) : 0} />}
+            {hasSets && <DaySummary entries={entries} pendingXP={isToday ? (gamification?.pendingXP ?? 0) : 0} />}
             {suggestions.length > 0 && (
               <section className="hidden border-t border-line px-1 pt-5 lg:block">
                 <h2 className="text-[14px] font-semibold text-muted">Schnell hinzufügen</h2>
@@ -203,9 +219,10 @@ export function DailyTracker() {
                       <button
                         type="button"
                         onClick={() => addExercise(exercise)}
-                        className="group flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-sunken"
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-sunken"
                       >
-                        <span className="min-w-0">
+                        <FigureThumb exerciseId={exercise.id} className="size-11" />
+                        <span className="min-w-0 flex-1">
                           <span className="block truncate text-[15px] font-semibold tracking-tight">{exercise.name}</span>
                           <span className="text-[12px] text-muted tabular-nums">
                             Empfohlen: {exercise.defaultSets} × {exercise.defaultReps}
@@ -322,42 +339,75 @@ function SyncBadge({ state }: { state: SyncState }) {
   )
 }
 
+/** "Zuletzt gestern trainiert", "Zuletzt vor 4 Tagen trainiert", "Zuletzt am 12. Okt. trainiert". */
+function lastTrainedText(suggestion: RegionSuggestion) {
+  if (!suggestion.lastDate) return `Noch nicht trainiert: ${suggestion.muscles}.`
+  const label = formatDaysAgo(suggestion.lastDate)
+  if (label === 'Gestern') return 'Zuletzt gestern trainiert.'
+  return label.startsWith('vor') ? `Zuletzt ${label} trainiert.` : `Zuletzt am ${label} trainiert.`
+}
+
+/**
+ * An empty day. Today it is an invitation with a concrete start: the region that has waited
+ * longest, with three exercises to enter in one tap. An earlier day just offers catching up.
+ */
 function EmptyState({
   isToday,
+  suggestion,
+  onApply,
   onAdd,
-  onTemplates,
-  templatesLocked,
 }: {
   isToday: boolean
+  suggestion: RegionSuggestion | null
+  onApply: (suggestion: RegionSuggestion) => void
   onAdd: () => void
-  onTemplates: () => void
-  templatesLocked: boolean
 }) {
-  const TemplateIcon = templatesLocked ? Lock : LayoutList
-  return (
-    <div className="glass flex flex-col items-center rounded-3xl px-6 py-12 text-center">
-      <h3 className="headline text-[31px]">
-        {isToday ? 'Bereit fürs Training?' : 'An diesem Tag ist nichts eingetragen'}
-      </h3>
-      <p className="mt-1.5 max-w-xs text-[15px] text-muted">
-        {isToday ? 'Füge deine erste Übung hinzu und tracke Sätze und Wiederholungen.' : 'Trage dein Training einfach nachträglich ein.'}
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-2">
+  if (!isToday || !suggestion) {
+    return (
+      <div className="glass rounded-3xl p-5 sm:p-6">
+        <h3 className="headline text-[31px]">{isToday ? 'Bereit fürs Training?' : 'An diesem Tag ist nichts eingetragen'}</h3>
+        <p className="mt-1 text-[15px] text-muted">{isToday ? 'Füge deine erste Übung hinzu.' : 'Trag dein Training nachträglich ein.'}</p>
         <button
           type="button"
           onClick={onAdd}
-          className="flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink transition active:scale-95"
+          className="mt-5 flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink transition active:scale-95"
         >
           <Plus className="size-4.5" strokeWidth={3} />
           Übung hinzufügen
         </button>
+      </div>
+    )
+  }
+
+  const region = REGION_LABELS[suggestion.region]
+  return (
+    <div className="glass rounded-3xl p-5 sm:p-6">
+      <h3 className="headline text-[31px]">Heute dran: {region}</h3>
+      <p className="mt-1 text-[15px] text-muted">{lastTrainedText(suggestion)}</p>
+      <ul className="mt-4 grid grid-cols-3 gap-2.5">
+        {suggestion.exercises.map((exercise) => (
+          <li key={exercise.id}>
+            <FigureThumb exerciseId={exercise.id} className="aspect-square w-full" />
+            <p className="mt-1.5 line-clamp-2 text-[13px] font-semibold leading-snug">{exercise.name}</p>
+          </li>
+        ))}
+      </ul>
+      {/* Stacked at full width on phones, side by side from sm. */}
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
         <button
           type="button"
-          onClick={onTemplates}
-          className="flex items-center gap-2 rounded-xl bg-sunken px-5 py-3 text-[15px] font-semibold transition hover:bg-surface-solid active:scale-95"
+          onClick={() => onApply(suggestion)}
+          className="flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink transition active:scale-95"
         >
-          <TemplateIcon className="size-4.5" strokeWidth={2.5} />
-          Vorlage verwenden
+          <Plus className="size-4.5" strokeWidth={3} />
+          {region} eintragen
+        </button>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="rounded-xl bg-sunken px-5 py-3 text-[15px] font-semibold transition hover:bg-surface-solid active:scale-95"
+        >
+          Andere Übung
         </button>
       </div>
     </div>

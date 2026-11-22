@@ -28,12 +28,12 @@ export function ExportRow({ bodyWeights }: { bodyWeights: BodyWeightEntry[] | nu
   return (
     <SettingRow title="Daten exportieren" description="Als CSV-Datei, als Sicherung oder für Excel und Google Tabellen. Eine Zeile pro Satz.">
       <div className="grid gap-2 sm:grid-cols-2">
-        <ExportButton onClick={exportWorkouts} disabled={!logs || logs.length === 0} label="Trainingsdaten" detail={logs ? `${logs.length} Tage` : '…'} />
+        <ExportButton onClick={exportWorkouts} disabled={!logs || logs.length === 0} label="Trainingsdaten" detail={logs ? `${logs.length} ${logs.length === 1 ? 'Tag' : 'Tage'}` : '…'} />
         <ExportButton
           onClick={exportBodyWeights}
           disabled={!bodyWeights || bodyWeights.length === 0}
           label="Körpergewicht"
-          detail={bodyWeights ? `${bodyWeights.length} Einträge` : '…'}
+          detail={bodyWeights ? `${bodyWeights.length} ${bodyWeights.length === 1 ? 'Eintrag' : 'Einträge'}` : '…'}
         />
       </div>
     </SettingRow>

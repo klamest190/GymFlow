@@ -53,7 +53,7 @@ export function DaySummary({ entries, pendingXP = 0 }: { entries: WorkoutEntry[]
             />
           ))}
         </div>
-        {regions.length > 0 ? (
+        {regions.length > 0 && (
           <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
             {regions.map((region) => (
               <li key={region} className="flex items-center gap-1.5 text-[13px] text-muted">
@@ -63,15 +63,12 @@ export function DaySummary({ entries, pendingXP = 0 }: { entries: WorkoutEntry[]
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="mt-2.5 text-[13px] text-muted">Hier siehst du, welche Körperregionen du heute trainiert hast.</p>
         )}
       </div>
 
       {pendingXP > 0 && (
         <p className="mt-3 text-[13px] text-muted">
-          <span className="font-semibold text-accent-fg tabular-nums">+{xpFormatter.format(pendingXP)} XP</span> für heute. Gutgeschrieben
-          werden sie morgen, wenn der Trainingstag abgeschlossen ist.
+          <span className="font-semibold text-accent-fg tabular-nums">+{xpFormatter.format(pendingXP)} XP</span> für heute, gutgeschrieben morgen.
         </p>
       )}
     </section>

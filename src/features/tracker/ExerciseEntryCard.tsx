@@ -10,6 +10,7 @@ import { nextPlannedSet } from '../../lib/plannedSet'
 import type { WavePlan } from '../../lib/tempoWave'
 import { createSet } from '../../lib/workoutMath'
 import { LazyExerciseAnimation } from '../exercises/animation/lazyFigures'
+import { InstructionSteps } from '../exercises/InstructionSteps'
 import { WavePreview, WaveRun } from './TrainingWave'
 import { useSetDraft } from './useSetDraft'
 import { useWaveTempo } from './useWaveTempo'
@@ -155,8 +156,9 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                       <LazyExerciseAnimation exerciseId={exercise.id} compact label={`Ausführung: ${exercise.name}`} />
                     </Suspense>
                   </span>
-                  <p className="min-w-0 text-fg/85">{exercise.instructions}</p>
+                  <p className="min-w-0 self-center font-medium">{exercise.description}</p>
                 </div>
+                <InstructionSteps instructions={exercise.instructions} className="mt-3 text-fg/85" />
                 <ul className="mt-3 space-y-1.5">
                   {exercise.formCues.map((cue) => (
                     <li key={cue} className="flex items-start gap-2 text-[13px] text-muted">

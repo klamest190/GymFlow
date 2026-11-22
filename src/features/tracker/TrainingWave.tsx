@@ -67,8 +67,9 @@ function WaveTrack({ plan, seconds, anchorSeconds }: { plan: WavePlan; seconds: 
 }
 
 const tempoText = (plan: WavePlan) => {
-  const lift = `${plan.tempo.liftSeconds} s heben`
-  const lower = `${plan.tempo.lowerSeconds} s senken`
+  // No-break spaces: a narrow row wraps after the comma, never inside "3 s senken".
+  const lift = `${plan.tempo.liftSeconds}\u00A0s\u00A0heben`
+  const lower = `${plan.tempo.lowerSeconds}\u00A0s\u00A0senken`
   return plan.lowersFirst ? `${lower}, ${lift}` : `${lift}, ${lower}`
 }
 
@@ -103,12 +104,15 @@ export function WavePreview({ plan, exercise, onStart }: { plan: WavePlan; exerc
   })
   return (
     <div className="mt-3 border-t border-line pt-2">
-      <WaveTrack plan={plan} seconds={seconds} anchorSeconds={0} />
-      <div className="mt-1 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          {exercise && <FigureFrame exercise={exercise} plan={demoPlan} seconds={demo} className="size-14" />}
-          <p className="min-w-0 text-[13px] font-medium text-muted">{tempoText(plan)}</p>
+      {/* The figure beside the wave it follows; below, the tempo and the start keep the full width. */}
+      <div className="flex items-center gap-3">
+        {exercise && <FigureFrame exercise={exercise} plan={demoPlan} seconds={demo} className="size-16" />}
+        <div className="min-w-0 flex-1">
+          <WaveTrack plan={plan} seconds={seconds} anchorSeconds={0} />
         </div>
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <p className="min-w-0 text-[13px] font-medium text-muted">{tempoText(plan)}</p>
         <m.button
           type="button"
           whileTap={{ scale: 0.95 }}

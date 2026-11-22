@@ -102,7 +102,8 @@ export function AdminDashboard() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Name, Benutzername oder E-Mail suchen"
+                placeholder="Nutzer suchen"
+                aria-label="Nach Name, Benutzername oder E-Mail suchen"
                 type="search"
                 className="w-full bg-transparent text-[16px] outline-none placeholder:text-muted"
               />

@@ -14,6 +14,7 @@ import { formatDaysAgo } from '../../lib/dates'
 import { bestReps, bestWeight, formatKg, summarizeSets, type ExerciseSession } from '../../lib/exerciseHistory'
 import type { Exercise } from '../../types/models'
 import { ExerciseAnimation } from './animation/ExerciseAnimation'
+import { InstructionSteps } from './InstructionSteps'
 import { EXERCISE_ANIMATIONS, hasSecondaryHighlight, type ExerciseAnimationSpec } from './animation/poses'
 
 interface ExerciseDetailSheetProps {
@@ -89,7 +90,7 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
 
         <Section title="Ausführung">
           <p className="text-[15px] font-medium leading-relaxed">{shown.description}</p>
-          <p className="mt-2 text-[15px] leading-relaxed text-fg/80">{shown.instructions}</p>
+          <InstructionSteps instructions={shown.instructions} className="mt-3 text-[15px] leading-relaxed text-fg/85" />
         </Section>
 
         <Section title="Technik-Hinweise">

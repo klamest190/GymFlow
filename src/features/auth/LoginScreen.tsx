@@ -119,8 +119,8 @@ function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginC
 
   return (
     <form onSubmit={submit} noValidate>
-      <h1 className="headline text-[39px]">Willkommen zurück</h1>
-      <p className="mt-1 text-[15px] text-muted">Melde dich mit deinem GymFlow-Zugang an.</p>
+      <h1 className="headline text-[39px]">Anmelden</h1>
+      <p className="mt-1 text-[15px] text-muted">Mit dem Zugang, den dir dein Admin gegeben hat.</p>
 
       <div className="mt-7 space-y-3">
         <LoginField value={login} onChange={onLoginChange} />

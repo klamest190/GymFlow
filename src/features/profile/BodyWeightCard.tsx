@@ -76,7 +76,7 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 inputMode="decimal"
-                placeholder={todayEntry ? `Heute: ${kg.format(todayEntry.weightKg)}` : 'Gewicht heute, z. B. 82,4'}
+                placeholder={todayEntry ? `Heute: ${kg.format(todayEntry.weightKg)}` : 'z. B. 82,4'}
                 className="min-w-0 flex-1 bg-transparent px-4 py-3 text-[16px] outline-none placeholder:text-muted/70"
               />
               <span className="text-[14px] font-semibold text-muted">kg</span>

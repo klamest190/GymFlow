@@ -158,8 +158,8 @@ function RankLadder({ current }: { current: RankDefinition }) {
             >
               <Icon className="size-4" strokeWidth={2.4} />
             </span>
-            <span className={`w-full truncate text-[10px] font-semibold leading-tight ${rank === current ? 'text-fg' : 'text-muted'}`}>
-              {rank.label}
+            <span className={`w-full hyphens-manual text-[10px] font-semibold leading-tight ${rank === current ? 'text-fg' : 'text-muted'}`}>
+              {rank.ladderLabel ?? rank.label}
             </span>
             <span className="hidden text-[10px] leading-none text-muted tabular-nums sm:block">Lv {rank.minLevel}</span>
           </li>

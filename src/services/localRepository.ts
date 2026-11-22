@@ -15,13 +15,22 @@ import type { GymflowRepository } from './repository'
  * localStorage so the UI behaves identically. Passwords are not checked; the first login
  * becomes the demo admin, later logins must use an e-mail or username the admin created.
  */
-const KEYS = {
-  logs: 'gymflow:workout_logs',
-  users: 'gymflow:users',
-  session: 'gymflow:session',
-  templates: 'gymflow:templates',
-  bodyWeights: 'gymflow:body_weights',
-} as const
+const keysFor = (prefix: string) =>
+  ({
+    logs: `${prefix}:workout_logs`,
+    users: `${prefix}:users`,
+    session: `${prefix}:session`,
+    templates: `${prefix}:templates`,
+    bodyWeights: `${prefix}:body_weights`,
+  }) as const
+
+/** The demo store plus what the guest mode needs on top (see services/repository.ts). */
+export interface LocalRepository extends GymflowRepository {
+  /** Signs in as this account, creating its document on the first start; keeps existing data. */
+  startSession(profile: UserProfile): void
+  /** Deletes every record of this store, the session included. */
+  clear(): void
+}
 
 /** Per-user records stored as `{ "<userId>/<id>": value }`, like the logs. */
 type UserScoped<T> = Record<string, T>
@@ -48,19 +57,25 @@ function write(key: string, value: unknown) {
 /** Demo-mode error with a Firebase-style code, so the UI's error mapping works unchanged. */
 const demoError = (code: string) => Object.assign(new Error(code), { code })
 
-/** Stored accounts; demo accounts from before the dumbbell setting get the default. */
-const readUsers = () =>
-  Object.fromEntries(
-    Object.entries(read<Record<string, UserProfile>>(KEYS.users, {})).map(([id, user]) => [id, { ...user, dumbbellKg: user.dumbbellKg ?? DEFAULT_DUMBBELL_KG }]),
-  )
+/**
+ * @param prefix namespace of the localStorage keys: `gymflow` for the demo mode, a separate
+ * one for the guest mode, so neither can see or delete the other's data.
+ */
+export function createLocalRepository(prefix = 'gymflow'): LocalRepository {
+  const KEYS = keysFor(prefix)
 
-/** Finds an account by e-mail or username (demo data from before usernames has none). */
-const findUser = (login: string) => {
-  const value = login.trim().toLowerCase()
-  return Object.values(readUsers()).find((user) => (isEmailLogin(value) ? user.email === value : user.username === value))
-}
+  /** Stored accounts; demo accounts from before the dumbbell setting get the default. */
+  const readUsers = () =>
+    Object.fromEntries(
+      Object.entries(read<Record<string, UserProfile>>(KEYS.users, {})).map(([id, user]) => [id, { ...user, dumbbellKg: user.dumbbellKg ?? DEFAULT_DUMBBELL_KG }]),
+    )
 
-export function createLocalRepository(): GymflowRepository {
+  /** Finds an account by e-mail or username (demo data from before usernames has none). */
+  const findUser = (login: string) => {
+    const value = login.trim().toLowerCase()
+    return Object.values(readUsers()).find((user) => (isEmailLogin(value) ? user.email === value : user.username === value))
+  }
+
   const listeners = new Set<() => void>()
   const notify = () => listeners.forEach((listener) => listener())
   const listen = (listener: () => void) => {
@@ -80,6 +95,17 @@ export function createLocalRepository(): GymflowRepository {
 
   return {
     mode: 'local',
+
+    startSession(profile) {
+      if (!readUsers()[profile.id]) write(KEYS.users, { ...readUsers(), [profile.id]: profile })
+      write(KEYS.session, { uid: profile.id, email: profile.email || null } satisfies AuthUser)
+      notify()
+    },
+
+    clear() {
+      for (const key of Object.values(KEYS)) write(key, null)
+      notify()
+    },
 
     onAuthChange(onChange) {
       return listen(() => onChange(read<AuthUser | null>(KEYS.session, null)))

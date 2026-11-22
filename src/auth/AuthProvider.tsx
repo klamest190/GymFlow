@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { isGuestUid } from '../data/guest'
 import { repository } from '../services/repository'
 import type { AuthState, AuthUser, UserProfile } from '../types/models'
 import { AuthContext, type AuthContextValue } from './authContext'
@@ -38,7 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { profile } = account
     if (!profile) return { status: 'no-access', user: authUser, reason: 'missing-profile' }
     if (profile.status !== 'active') return { status: 'no-access', user: authUser, reason: 'disabled' }
-    return { status: 'signed-in', user: authUser, profile, isAdmin: profile.role === 'admin' }
+    const isGuest = isGuestUid(authUser.uid)
+    return { status: 'signed-in', user: authUser, profile, isAdmin: !isGuest && profile.role === 'admin', isGuest }
   }, [authUser, account])
 
   // "Zuletzt aktiv" for the admin list: once per app start and account.
@@ -51,10 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback((login: string, password: string) => repository.signIn(login, password), [])
   const signOut = useCallback(() => repository.signOut(), [])
   const sendPasswordReset = useCallback((login: string) => repository.sendPasswordReset(login), [])
+  const startGuest = useCallback(() => repository.startGuest(), [])
+  const resetGuest = useCallback(() => repository.resetGuest(), [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ state, signIn, signOut, sendPasswordReset }),
-    [state, signIn, signOut, sendPasswordReset],
+    () => ({ state, signIn, signOut, sendPasswordReset, startGuest, resetGuest }),
+    [state, signIn, signOut, sendPasswordReset, startGuest, resetGuest],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

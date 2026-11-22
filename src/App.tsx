@@ -7,6 +7,8 @@ import type { TabId } from './components/layout/tabs'
 import { LoginScreen } from './features/auth/LoginScreen'
 import { NoAccessScreen } from './features/auth/NoAccessScreen'
 import { GamificationProvider } from './features/gamification/GamificationProvider'
+import { GuestGateProvider } from './features/guest/GuestGateProvider'
+import { LockedStats } from './features/guest/LockedStats'
 import { OnboardingContext } from './features/onboarding/onboardingContext'
 import { RestTimerProvider } from './features/rest/RestTimerProvider'
 import { DailyTracker } from './features/tracker/DailyTracker'
@@ -64,7 +66,7 @@ export default function App() {
 }
 
 function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
-  const { user, profile } = useSession()
+  const { user, profile, isGuest } = useSession()
   const [tab, setTab] = useState<TabId>('today')
   // A demoted admin must not stay on the admin tab.
   const activeTab = tab === 'admin' && !isAdmin ? 'today' : tab
@@ -89,13 +91,15 @@ function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
   return (
     // Above the tabs, so a level-up is celebrated right where the set was logged.
     <GamificationProvider>
+      {/* Above the tracker and the catalog, which both open its upgrade sheet. */}
+      <GuestGateProvider>
       <OnboardingContext.Provider value={replayOnboarding}>
         <RestTimerProvider>
           <AppShell tab={activeTab} onTabChange={setTab}>
             <Suspense fallback={<TabSkeleton />}>
               {activeTab === 'today' && <DailyTracker />}
               {activeTab === 'exercises' && <ExerciseCatalog />}
-              {activeTab === 'stats' && <StatsDashboard />}
+              {activeTab === 'stats' && (isGuest ? <LockedStats /> : <StatsDashboard />)}
               {activeTab === 'admin' && <AdminDashboard />}
               {activeTab === 'profile' && <ProfilePage />}
             </Suspense>
@@ -105,6 +109,7 @@ function SignedInApp({ isAdmin }: { isAdmin: boolean }) {
           <AnimatePresence>{showOnboarding && <Onboarding key="onboarding" onDone={finishOnboarding} />}</AnimatePresence>
         </Suspense>
       </OnboardingContext.Provider>
+      </GuestGateProvider>
     </GamificationProvider>
   )
 }

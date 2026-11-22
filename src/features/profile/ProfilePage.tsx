@@ -1,5 +1,5 @@
 import { m } from 'framer-motion'
-import { Check, Download, KeyRound, LoaderCircle, LogOut, PlayCircle, Share, Smartphone } from 'lucide-react'
+import { Check, Download, KeyRound, LoaderCircle, Lock, LogIn, LogOut, PlayCircle, Share, Smartphone, Trash2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { snap } from '../../lib/motion'
 import { useBodyWeights } from '../../hooks/useData'
@@ -18,6 +18,7 @@ import { useWaveTempo } from '../tracker/useWaveTempo'
 import { repository } from '../../services/repository'
 import { RoleBadge, UserAvatar } from '../admin/UserBadges'
 import { GamificationDashboard } from '../gamification/GamificationDashboard'
+import { useGuestGate } from '../guest/guestGate'
 import { useReplayOnboarding } from '../onboarding/onboardingContext'
 import { BodyWeightCard } from './BodyWeightCard'
 import { ExportRow } from './ExportCard'
@@ -26,8 +27,9 @@ import { ProfileSection, SettingRow, SettingsList } from './ProfileCard'
 const GOAL_OPTIONS = [1, 2, 3, 4, 5, 6, 7]
 
 export function ProfilePage() {
-  const { user, profile } = useSession()
+  const { user, profile, isGuest } = useSession()
   const { preference, setPreference } = useTheme()
+  const gate = useGuestGate()
   const toast = useToast()
   const replayOnboarding = useReplayOnboarding()
   // One subscription for the weight card and the export.
@@ -47,7 +49,7 @@ export function ProfilePage() {
       </header>
 
       <div className="mt-6 space-y-4 lg:mt-8">
-        <AccountCard />
+        {isGuest ? <GuestCard /> : <AccountCard />}
 
         <GamificationDashboard />
 
@@ -98,7 +100,20 @@ export function ProfilePage() {
                 />
               </div>
             </SettingRow>
-            <ExportRow bodyWeights={bodyWeights} />
+            {isGuest ? (
+              <SettingRow title="Daten exportieren" description="Als CSV-Datei für Excel und Google Tabellen, mit eigenem Zugang." inline>
+                <button
+                  type="button"
+                  onClick={() => gate.showUpgrade({ kind: 'export' })}
+                  className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold text-muted transition hover:text-fg"
+                >
+                  <Lock className="size-4" />
+                  Gesperrt
+                </button>
+              </SettingRow>
+            ) : (
+              <ExportRow bodyWeights={bodyWeights} />
+            )}
             <InstallRow />
             <SettingRow title="Einführung" description="Die kurze Tour zu Tracker, Übungen, Level und Wochenziel." inline>
               <button
@@ -115,7 +130,7 @@ export function ProfilePage() {
 
         <p className="px-1 pt-2 text-center text-[12px] text-muted">
           GymFlow mit {EXERCISES.length} Übungen im Katalog.{' '}
-          {repository.mode === 'firebase' ? 'Cloud-Sync aktiv' : 'Demo-Modus (lokal)'}
+          {isGuest ? 'Gastmodus, nur auf diesem Gerät' : repository.mode === 'firebase' ? 'Cloud-Sync aktiv' : 'Demo-Modus (lokal)'}
         </p>
       </div>
     </div>
@@ -168,6 +183,50 @@ function AccountCard() {
           danger
         >
           Abmelden
+        </ActionButton>
+      </div>
+    </section>
+  )
+}
+
+/**
+ * The guest's account card: what the mode is, the way to an account, and leaving it. Leaving keeps
+ * the data on this device for the next guest visit; deleting takes a second tap.
+ */
+function GuestCard() {
+  const { profile } = useSession()
+  const { signOut, resetGuest } = useAuth()
+  const gate = useGuestGate()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  return (
+    <section className="glass rounded-3xl p-4 sm:p-5">
+      <div className="flex items-center gap-4">
+        <UserAvatar user={profile} size="lg" />
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-[19px] font-semibold tracking-tight">Gastmodus</h2>
+          <p className="text-[14px] text-muted">Ohne Zugang, deine Daten bleiben auf diesem Gerät.</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => gate.showUpgrade({ kind: 'all' })}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-[15px] font-semibold text-accent-ink transition active:scale-[0.98]"
+      >
+        <LogIn className="size-4.5" strokeWidth={2.5} />
+        Alles freischalten
+      </button>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <ActionButton onClick={() => void signOut()} busy={false} icon={<LogOut className="size-4.5" />}>
+          Gastmodus beenden
+        </ActionButton>
+        <ActionButton
+          onClick={() => (confirmDelete ? resetGuest() : setConfirmDelete(true))}
+          busy={false}
+          icon={<Trash2 className="size-4.5" />}
+          danger
+        >
+          {confirmDelete ? 'Wirklich alles löschen?' : 'Gast-Daten löschen'}
         </ActionButton>
       </div>
     </section>

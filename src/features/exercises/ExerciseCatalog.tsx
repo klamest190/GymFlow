@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { RotateCcw, Search, X } from 'lucide-react'
+import { Lock, RotateCcw, Search, X } from 'lucide-react'
 import { useState } from 'react'
 import { useSession } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
@@ -7,6 +7,7 @@ import { FilterPills, type FilterOption } from '../../components/ui/FilterPills'
 import { Loadable } from '../../components/ui/Loadable'
 import { useToast } from '../../components/ui/toastContext'
 import { getExercise } from '../../data/exercises'
+import { GUEST_EXERCISE_IDS } from '../../data/guest'
 import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { EXERCISE_HISTORY_DAYS, FILTERABLE_MUSCLES, useExercises, type MuscleFilter } from '../../hooks/useExercises'
 import { formatDaysAgo, todayKey } from '../../lib/dates'
@@ -15,6 +16,7 @@ import type { ExerciseSession } from '../../lib/exerciseHistory'
 import { nextPlannedSet } from '../../lib/plannedSet'
 import { newSetValues } from '../../lib/workoutMath'
 import type { DateKey, Exercise } from '../../types/models'
+import { useGuestGate } from '../guest/guestGate'
 import { openSetDraft } from '../tracker/useSetDraft'
 import { ExerciseAnimation } from './animation/ExerciseAnimation'
 import { EXERCISE_ANIMATIONS } from './animation/poses'
@@ -33,6 +35,7 @@ export function ExerciseCatalog() {
   const catalog = useExercises(user.uid)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const toast = useToast()
+  const gate = useGuestGate()
   const selected = selectedId ? (getExercise(selectedId) ?? null) : null
 
   const addToToday = (exercise: Exercise) => {
@@ -53,6 +56,7 @@ export function ExerciseCatalog() {
         <h1 className="headline text-[39px] lg:text-[49px]">Übungen</h1>
         <p className="mt-2 text-[15px] text-muted">
           {catalog.isFiltered ? `${catalog.exercises.length} von ${catalog.totalCount}` : catalog.totalCount} Übungen im Katalog
+          {gate.isGuest && `, ${GUEST_EXERCISE_IDS.size} davon im Gastmodus`}
         </p>
       </header>
 
@@ -106,14 +110,18 @@ export function ExerciseCatalog() {
         <AnimatePresence mode="wait" initial={false}>
           {catalog.exercises.length > 0 ? (
             <m.ul key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fade} className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {catalog.exercises.map((exercise) => (
-                <ExerciseCard
-                  key={exercise.id}
-                  exercise={exercise}
-                  sessions={catalog.sessionsOf(exercise.id)}
-                  onClick={() => setSelectedId(exercise.id)}
-                />
-              ))}
+              {catalog.exercises.map((exercise) => {
+                const locked = gate.isLocked(exercise.id)
+                return (
+                  <ExerciseCard
+                    key={exercise.id}
+                    exercise={exercise}
+                    sessions={catalog.sessionsOf(exercise.id)}
+                    locked={locked}
+                    onClick={() => (locked ? gate.showUpgrade({ kind: 'exercise', exercise }) : setSelectedId(exercise.id))}
+                  />
+                )
+              })}
             </m.ul>
           ) : (
             <EmptyState key="empty" hasSearch={catalog.search.trim() !== ''} onReset={catalog.resetFilters} />
@@ -141,21 +149,34 @@ const lastLabel = (date: DateKey) => {
 
 /**
  * Catalog card. No layout animation and no hover lift: cards stay where they are, and the figure
- * demonstrating the movement on hover/focus is the only thing that moves.
+ * demonstrating the movement on hover/focus is the only thing that moves. A locked card (guest
+ * mode) keeps its figure still behind a lock and opens the upgrade sheet.
  */
-function ExerciseCard({ exercise, sessions, onClick }: { exercise: Exercise; sessions: ExerciseSession[]; onClick: () => void }) {
+function ExerciseCard({
+  exercise,
+  sessions,
+  locked,
+  onClick,
+}: {
+  exercise: Exercise
+  sessions: ExerciseSession[]
+  locked: boolean
+  onClick: () => void
+}) {
   const last = sessions[0]
   // The figure stands still in the list (calm) and only demonstrates the movement on hover/focus.
-  const [active, setActive] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const active = hovered && !locked
   return (
     <m.li initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={fade}>
       <button
         type="button"
         onClick={onClick}
-        onPointerEnter={(event) => event.pointerType === 'mouse' && setActive(true)}
-        onPointerLeave={() => setActive(false)}
-        onFocus={() => setActive(true)}
-        onBlur={() => setActive(false)}
+        onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
+        aria-label={locked ? `${exercise.name}, gesperrt im Gastmodus` : undefined}
         className="glass flex h-full w-full flex-col rounded-3xl p-5 text-left transition-colors duration-150 hover:border-fg/25 active:bg-sunken"
       >
         <div className="flex w-full gap-4">
@@ -167,12 +188,21 @@ function ExerciseCard({ exercise, sessions, onClick }: { exercise: Exercise; ses
               </span>
               <DifficultyMeter difficulty={exercise.difficulty} />
             </div>
-            <h3 className="headline mt-2.5 text-[25px]">{exercise.name}</h3>
+            <h3 className={`headline mt-2.5 text-[25px] ${locked ? 'text-fg/60' : ''}`}>{exercise.name}</h3>
             <p className="mt-1.5 line-clamp-2 min-h-[2lh] text-[14px] leading-snug text-muted">{exercise.description}</p>
           </div>
           {exercise.id in EXERCISE_ANIMATIONS && (
             <span className="relative size-22 shrink-0 self-center overflow-hidden rounded-xl bg-sunken">
-              <ExerciseAnimation exerciseId={exercise.id} playing={active} compact label={`Ausführung: ${exercise.name}`} />
+              <span className={locked ? 'block size-full opacity-30' : 'contents'}>
+                <ExerciseAnimation exerciseId={exercise.id} playing={active} compact label={`Ausführung: ${exercise.name}`} />
+              </span>
+              {locked && (
+                <span className="absolute inset-0 grid place-items-center">
+                  <span className="grid size-9 place-items-center rounded-full bg-fg text-bg shadow-soft">
+                    <Lock className="size-4" strokeWidth={2.5} />
+                  </span>
+                </span>
+              )}
             </span>
           )}
         </div>
@@ -183,7 +213,12 @@ function ExerciseCard({ exercise, sessions, onClick }: { exercise: Exercise; ses
             </span>
             <span className="text-muted">{EQUIPMENT_LABELS[exercise.equipment]}</span>
           </span>
-          {last ? (
+          {locked ? (
+            <span className="flex items-center gap-1.5 whitespace-nowrap font-medium text-muted">
+              <Lock className="size-3.5" />
+              Mit Zugang
+            </span>
+          ) : last ? (
             <span className="font-medium">Zuletzt {lastLabel(last.date)}</span>
           ) : (
             <span className="text-muted">Noch nicht trainiert</span>

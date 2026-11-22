@@ -1,9 +1,10 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowLeft, CircleUser, Eye, EyeOff, LoaderCircle, Lock, Mail, MailCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CircleUser, Eye, EyeOff, LoaderCircle, Lock, Mail, MailCheck } from 'lucide-react'
 import { lazy, Suspense, useState, type FormEvent, type ReactNode } from 'react'
 import { useAuth } from '../../auth/authContext'
 import { authErrorMessage } from '../../auth/authErrors'
 import { Wordmark } from '../../components/ui/Wordmark'
+import { GUEST_EXERCISE_IDS } from '../../data/guest'
 import { fade } from '../../lib/motion'
 import { repository } from '../../services/repository'
 
@@ -18,6 +19,7 @@ export function LoginScreen() {
   const [mode, setMode] = useState<Mode>('login')
   // Username or e-mail, shared by the login and reset forms.
   const [login, setLogin] = useState('')
+  const { startGuest } = useAuth()
 
   return (
     <div className="relative min-h-dvh overflow-hidden">
@@ -60,9 +62,20 @@ export function LoginScreen() {
               </AnimatePresence>
             </div>
 
-            <p className="mt-6 text-center text-[13px] text-muted">
-              Noch keinen Zugang? GymFlow ist ein geschlossenes System. Zugänge vergibt dein Admin.
-            </p>
+            <div className="mt-6 text-center">
+              <p className="text-[13px] text-muted">Noch keinen Zugang? GymFlow ist ein geschlossenes System. Zugänge vergibt dein Admin.</p>
+              <button
+                type="button"
+                onClick={startGuest}
+                className="group mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-line py-3.5 text-[15px] font-semibold transition hover:bg-sunken active:scale-[0.98]"
+              >
+                Als Gast ausprobieren
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2.5} />
+              </button>
+              <p className="mt-2 text-[12px] text-muted">
+                {GUEST_EXERCISE_IDS.size} Übungen ohne Anmeldung, gespeichert nur auf diesem Gerät.
+              </p>
+            </div>
             {repository.mode === 'local' && (
               <p className="mt-3 rounded-xl bg-sunken px-4 py-3 text-center text-[12px] text-muted">
                 Demo-Modus: Die erste Anmeldung mit beliebigem Benutzernamen oder E-Mail wird Admin. Passwörter werden nicht geprüft.

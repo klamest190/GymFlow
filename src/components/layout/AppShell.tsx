@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { LogOut, Moon, Sun } from 'lucide-react'
+import { Lock, LogOut, Moon, Sun } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useAuth, useSession } from '../../auth/authContext'
 import { REST_BAR_HEIGHT, RestTimerBar } from '../../features/rest/RestTimerBar'
@@ -49,8 +49,9 @@ export function AppShell({ tab, onTabChange, children }: AppShellProps) {
 
 function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
   const { isDark, toggle } = useTheme()
-  const { profile, isAdmin } = useSession()
+  const { profile, isAdmin, isGuest } = useSession()
   const { signOut } = useAuth()
+  const signOutLabel = isGuest ? 'Gastmodus beenden' : 'Abmelden'
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col border-r border-line px-4 py-8 lg:flex">
@@ -79,6 +80,7 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
               )}
               <Icon className="size-5" strokeWidth={active ? 2.5 : 2} />
               {label}
+              {isGuest && id === 'stats' && <Lock className="ml-auto size-3.5 text-muted" aria-label="gesperrt" />}
             </button>
           )
         })}
@@ -96,15 +98,15 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-[14px] font-semibold">{profile.displayName}</p>
             <p className="truncate text-[12px] text-muted">
-              {repository.mode === 'firebase' ? profile.email : 'Demo-Modus (lokal)'}
+              {isGuest ? 'Nur auf diesem Gerät' : repository.mode === 'firebase' ? profile.email : 'Demo-Modus (lokal)'}
             </p>
           </div>
           <button
             type="button"
             onClick={() => void signOut()}
             className="grid size-9 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-sunken hover:text-danger"
-            aria-label="Abmelden"
-            title="Abmelden"
+            aria-label={signOutLabel}
+            title={signOutLabel}
           >
             <LogOut className="size-4.5" />
           </button>
@@ -115,7 +117,7 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
 }
 
 function TabBar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
-  const { isAdmin } = useSession()
+  const { isAdmin, isGuest } = useSession()
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface-solid pb-[env(safe-area-inset-bottom)] lg:hidden">
       <div className="mx-auto flex max-w-md items-stretch justify-between px-2">
@@ -138,8 +140,13 @@ function TabBar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
                   transition={snap}
                 />
               )}
-              <m.span whileTap={{ scale: 0.85 }}>
+              <m.span whileTap={{ scale: 0.85 }} className="relative">
                 <Icon className="size-[22px]" strokeWidth={active ? 2.5 : 2} />
+                {isGuest && id === 'stats' && (
+                  <span className="absolute -right-2 -top-1 grid size-4 place-items-center rounded-full bg-surface-solid" aria-label="gesperrt">
+                    <Lock className="size-2.5" strokeWidth={3} />
+                  </span>
+                )}
               </m.span>
               {label}
             </button>

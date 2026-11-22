@@ -258,4 +258,4 @@ export type AuthState =
   | { status: 'signed-out' }
   /** Signed in, but without an active account document: deleted or disabled by an admin, or never provisioned. */
   | { status: 'no-access'; user: AuthUser; reason: NoAccessReason }
-  | { status: 'signed-in'; user: AuthUser; profile: UserProfile; isAdmin: boolean }
+  | { status: 'signed-in'; user: AuthUser; profile: UserProfile; isAdmin: boolean; isGuest: boolean }

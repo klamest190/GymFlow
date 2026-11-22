@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { CalendarDays, CloudCheck, CloudOff, LayoutList, LoaderCircle, Moon, Plus, Sun } from 'lucide-react'
+import { CalendarDays, CloudCheck, CloudOff, LayoutList, LoaderCircle, Lock, Moon, Plus, Sun } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { EXERCISES, getExercise } from '../../data/exercises'
 import { Loadable } from '../../components/ui/Loadable'
@@ -16,6 +16,7 @@ import { trainingDays } from '../../lib/stats'
 import { createEntry, NEW_ENTRY_REPS, newSetValues, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
 import { useGamification } from '../gamification/gamificationContext'
+import { useGuestGate } from '../guest/guestGate'
 import { useRestTimer } from '../rest/restTimerContext'
 import { DaySummary } from './DaySummary'
 import { ExerciseEntryCard } from './ExerciseEntryCard'
@@ -38,6 +39,10 @@ export function DailyTracker() {
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const toast = useToast()
   const gamification = useGamification()
+  const gate = useGuestGate()
+  // Guests get no templates: the buttons show a lock and explain it.
+  const openTemplates = () => (gate.isGuest ? gate.showUpgrade({ kind: 'templates' }) : setTemplatesOpen(true))
+  const TemplateIcon = gate.isGuest ? Lock : LayoutList
 
   const week = weekDays(date)
   const { logs, ready } = useLogsInRange(userId, week[0], week[6])
@@ -99,7 +104,7 @@ export function DailyTracker() {
     toast({ tone: 'success', title: `„${template.name}“ eingetragen`, description: `${added.length} ${added.length === 1 ? 'Übung' : 'Übungen'} hinzugefügt.` })
   }
 
-  const suggestions = EXERCISES.filter((exercise) => !addedIds.has(exercise.id)).slice(0, 5)
+  const suggestions = EXERCISES.filter((exercise) => !addedIds.has(exercise.id) && !gate.isLocked(exercise.id)).slice(0, 5)
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -121,10 +126,10 @@ export function DailyTracker() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setTemplatesOpen(true)}
+                onClick={openTemplates}
                 className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-surface-solid active:scale-95"
               >
-                <LayoutList className="size-4" strokeWidth={2.5} />
+                <TemplateIcon className="size-4" strokeWidth={2.5} />
                 Vorlagen
               </button>
               <button
@@ -140,7 +145,7 @@ export function DailyTracker() {
 
           <Loadable ready={ready} skeleton={<EntriesSkeleton />}>
             {entries.length === 0 ? (
-              <EmptyState isToday={isToday} onAdd={() => setPickerOpen(true)} onTemplates={() => setTemplatesOpen(true)} />
+              <EmptyState isToday={isToday} onAdd={() => setPickerOpen(true)} onTemplates={openTemplates} templatesLocked={gate.isGuest} />
             ) : (
               <ul className="space-y-3">
                 <AnimatePresence initial={false} mode="popLayout">
@@ -317,7 +322,18 @@ function SyncBadge({ state }: { state: SyncState }) {
   )
 }
 
-function EmptyState({ isToday, onAdd, onTemplates }: { isToday: boolean; onAdd: () => void; onTemplates: () => void }) {
+function EmptyState({
+  isToday,
+  onAdd,
+  onTemplates,
+  templatesLocked,
+}: {
+  isToday: boolean
+  onAdd: () => void
+  onTemplates: () => void
+  templatesLocked: boolean
+}) {
+  const TemplateIcon = templatesLocked ? Lock : LayoutList
   return (
     <div className="glass flex flex-col items-center rounded-3xl px-6 py-12 text-center">
       <h3 className="headline text-[31px]">
@@ -340,7 +356,7 @@ function EmptyState({ isToday, onAdd, onTemplates }: { isToday: boolean; onAdd: 
           onClick={onTemplates}
           className="flex items-center gap-2 rounded-xl bg-sunken px-5 py-3 text-[15px] font-semibold transition hover:bg-surface-solid active:scale-95"
         >
-          <LayoutList className="size-4.5" strokeWidth={2.5} />
+          <TemplateIcon className="size-4.5" strokeWidth={2.5} />
           Vorlage verwenden
         </button>
       </div>

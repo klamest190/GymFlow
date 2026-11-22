@@ -1,10 +1,11 @@
 import { AnimatePresence, m } from 'framer-motion'
-import { Check, ChevronDown, Plus, Search } from 'lucide-react'
+import { Check, ChevronDown, Lock, Plus, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
 import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { haptic } from '../../hooks/useUi'
 import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../../types/models'
+import { useGuestGate } from '../guest/guestGate'
 
 interface ExercisePickerProps {
   open: boolean
@@ -19,6 +20,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
   const [search, setSearch] = useState('')
   const [muscle, setMuscle] = useState<MuscleGroup | 'all'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const gate = useGuestGate()
 
   // In body order like the catalog filter, independent of the order of the exercises.
   const availableMuscles = useMemo(
@@ -84,6 +86,25 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
         {filtered.map((exercise) => {
           const added = addedIds.has(exercise.id)
           const expanded = expandedId === exercise.id
+          // Guest mode: the row explains the lock instead of opening or adding.
+          const locked = gate.isLocked(exercise.id)
+          const showLock = () => gate.showUpgrade({ kind: 'exercise', exercise })
+          if (locked) {
+            return (
+              <li key={exercise.id} className="rounded-2xl transition-colors hover:bg-sunken/60">
+                <button type="button" onClick={showLock} className="flex w-full items-center gap-3 px-2 py-2.5 text-left">
+                  <span className={`size-2.5 shrink-0 rounded-full opacity-50 ${MUSCLE_GROUP_TINTS[exercise.primaryMuscle]}`} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[16px] font-semibold tracking-tight text-fg/60">{exercise.name}</span>
+                    <span className="block truncate text-[13px] text-muted">Mit eigenem Zugang</span>
+                  </span>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sunken text-muted" aria-label={`${exercise.name} ist gesperrt`}>
+                    <Lock className="size-4" strokeWidth={2.5} />
+                  </span>
+                </button>
+              </li>
+            )
+          }
           return (
             <li key={exercise.id} className="rounded-2xl transition-colors hover:bg-sunken/60">
               <div className="flex items-center gap-3 px-2 py-2.5">

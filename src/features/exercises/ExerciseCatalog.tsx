@@ -7,7 +7,7 @@ import { FilterPills, type FilterOption } from '../../components/ui/FilterPills'
 import { Loadable } from '../../components/ui/Loadable'
 import { useToast } from '../../components/ui/toastContext'
 import { getExercise } from '../../data/exercises'
-import { DIFFICULTY_LABELS, EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
+import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { EXERCISE_HISTORY_DAYS, FILTERABLE_MUSCLES, useExercises, type MuscleFilter } from '../../hooks/useExercises'
 import { formatDaysAgo, todayKey } from '../../lib/dates'
 import { fade } from '../../lib/motion'
@@ -18,6 +18,7 @@ import type { DateKey, Exercise } from '../../types/models'
 import { openSetDraft } from '../tracker/useSetDraft'
 import { ExerciseAnimation } from './animation/ExerciseAnimation'
 import { EXERCISE_ANIMATIONS } from './animation/poses'
+import { DifficultyMeter } from './DifficultyMeter'
 import { ExerciseDetailSheet } from './ExerciseDetailSheet'
 
 const MUSCLE_OPTIONS: FilterOption<MuscleFilter>[] = [
@@ -160,13 +161,11 @@ function ExerciseCard({ exercise, sessions, onClick }: { exercise: Exercise; ses
         <div className="flex w-full gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex w-full items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-[13px] font-medium text-muted">
+              <span className="flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium text-muted">
                 <span className={`size-2 rounded-full ${MUSCLE_GROUP_TINTS[exercise.primaryMuscle]}`} />
                 {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]}
               </span>
-              <span className="rounded-md bg-sunken px-2 py-0.5 text-[12px] font-medium text-muted">
-                {DIFFICULTY_LABELS[exercise.difficulty]}
-              </span>
+              <DifficultyMeter difficulty={exercise.difficulty} />
             </div>
             <h3 className="headline mt-2.5 text-[25px]">{exercise.name}</h3>
             <p className="mt-1.5 line-clamp-2 min-h-[2lh] text-[14px] leading-snug text-muted">{exercise.description}</p>
@@ -203,7 +202,7 @@ function ExerciseCardSkeleton() {
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-center justify-between">
             <span className="skeleton h-3 w-20 rounded-full" />
-            <span className="skeleton h-5.5 w-16 rounded-full" />
+            <span className="skeleton h-3.5 w-24 rounded-md" />
           </div>
           <span className="skeleton mt-3.5 h-4.5 w-3/5 rounded-lg" />
           <span className="skeleton mt-3 h-3.5 w-full rounded-md" />

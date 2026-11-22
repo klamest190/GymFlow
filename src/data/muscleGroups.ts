@@ -81,3 +81,10 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   intermediate: 'Fortgeschritten',
   advanced: 'Profi',
 }
+
+/** Position on the three-step difficulty scale (1 = easiest). */
+export const DIFFICULTY_LEVELS: Record<Difficulty, number> = {
+  beginner: 1,
+  intermediate: 2,
+  advanced: 3,
+}

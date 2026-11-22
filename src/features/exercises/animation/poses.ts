@@ -1,5 +1,6 @@
 import type { Camera } from './camera'
 import {
+  HIP_HALF_WIDTH,
   LENGTH,
   add,
   distance,
@@ -11,6 +12,7 @@ import {
   seg,
   solvePose,
   sub,
+  withFeet,
   withHands,
   type PartProgress,
   type Pose,
@@ -37,7 +39,13 @@ export interface ExerciseAnimationSpec {
    * are at progress `t` (+x side first) and which way the elbows point (side-relative).
    * Keeps a bar on a straight path or the hands on the head while the body moves.
    */
-  grip?: { at: (skeleton: Skeleton, t: number) => readonly [Vec3, Vec3]; elbows: readonly [Vec3, Vec3] }
+  grip?: { at: (skeleton: Skeleton, t: number) => readonly [Vec3, Vec3]; elbows: Poles }
+  /**
+   * Ankles placed by inverse kinematics (+x side first, `null` keeps the pose's leg), applied
+   * before the grip. Keeps a foot on the floor or the bench while the body moves. When standing,
+   * the +x ankle is the root and already stays put: give `null` for it.
+   */
+  stance?: { at: (skeleton: Skeleton, t: number) => readonly [Vec3 | null, Vec3 | null]; knees: readonly [Vec3, Vec3] }
   /**
    * The share of the repetition (start, end of the progress 0–1) in which a body part moves;
    * default all of it. Real joints don't move in lockstep: the head tucks before the back rolls
@@ -47,7 +55,7 @@ export interface ExerciseAnimationSpec {
   /** Seconds for from → to and back; slow on the lowering (eccentric) part. */
   tempo: readonly [number, number]
   highlight: { primary: BodyPart[]; secondary?: BodyPart[] }
-  /** Every catalog exercise is done with two light dumbbells, one per hand. */
+  /** Two light dumbbells, one per hand, or none for bodyweight exercises. */
   equipment: 'none' | 'dumbbells'
   /**
    * Dumbbell handle direction in the torso frame [outward, up the spine, out of the chest]; default
@@ -76,12 +84,20 @@ export function partProgress(spec: ExerciseAnimationSpec, t: number): PartProgre
   return Object.fromEntries(entries) as Record<PosePart, number>
 }
 
+/**
+ * Which way the elbows point (side-relative, +x side first): fixed, or changing over the
+ * repetition (progress `t`) when the arm swings from in front of the body out to the side.
+ */
+type Poles = readonly [Vec3, Vec3] | ((t: number) => readonly [Vec3, Vec3])
+
 /** The figure at progress `t` of the repetition. */
 export function skeletonAt(spec: ExerciseAnimationSpec, t: number): Skeleton {
-  const pose = interpolatePose(spec.from, spec.to, partProgress(spec, t))
+  let pose = interpolatePose(spec.from, spec.to, partProgress(spec, t))
+  if (spec.stance) pose = withFeet(spec.setup, pose, spec.stance.at(solvePose(spec.setup, pose), t), spec.stance.knees)
   if (!spec.grip) return solvePose(spec.setup, pose)
   const targets = spec.grip.at(solvePose(spec.setup, pose), t)
-  return solvePose(spec.setup, withHands(spec.setup, pose, targets, spec.grip.elbows))
+  const { elbows } = spec.grip
+  return solvePose(spec.setup, withHands(spec.setup, pose, targets, typeof elbows === 'function' ? elbows(t) : elbows))
 }
 
 /** A point in the torso frame of `s` (sideways, up the spine, out of the chest), on both sides. */
@@ -188,6 +204,53 @@ const onThighs = (s: Skeleton): [Vec3, Vec3] => {
   }
   return [hand(0), hand(1)]
 }
+
+/** Ankle height when the toes are tucked under on the floor (push-up positions). */
+const TUCKED_ANKLE = 12
+/** Feet on the balls, toes tucked under: down and a little toward the head. */
+const TUCKED_FEET = both(seg(22))
+/** Hand resting on the floor (fist radius), or holding a dumbbell that stands on the floor. */
+const HAND_ON_FLOOR = 4.1
+const HAND_ON_DUMBBELL = 5
+
+/**
+ * Prone plank on the hands: the body is one straight line from the +x ankle (root, toes tucked)
+ * up to the head, rising at `angle` degrees above the floor. `spread` opens the legs (degrees).
+ */
+const plank = (angle: number, spread = 0): Pose => ({
+  root: [HIP_HALF_WIDTH + Math.sin((spread * Math.PI) / 180) * 71, TUCKED_ANKLE, -60],
+  torso: seg(90 + angle),
+  head: seg(90 + angle),
+  arms: both(limb(0, 0)),
+  legs: both(limb([angle - 90, spread], [angle - 90, spread])),
+  feet: TUCKED_FEET,
+})
+
+/**
+ * Upside-down V on the hands and the tucked toes (+x ankle as root): `legs` and `torso` are the
+ * `seg` angles of the straight legs (hip → ankle) and of the torso, the head in line with it.
+ */
+const pike = (legs: number, torso: number): Pose => ({
+  root: [HIP_HALF_WIDTH, TUCKED_ANKLE, -60],
+  torso: seg(torso),
+  head: seg(torso),
+  arms: both(limb(0, 0)),
+  legs: both(limb(legs, legs)),
+  feet: TUCKED_FEET,
+})
+/** From the side and a little above: shows the line of the body and the bend of the elbows. */
+const PLANK_VIEW: Camera = { yaw: -70, pitch: 16 }
+
+/** A sub-phase of the repetition: 0 before `start`, 1 after `end`, eased in between. */
+const stage = (t: number, start: number, end: number) => smoothstep(Math.min(1, Math.max(0, (t - start) / (end - start))))
+
+/** Hands planted on the floor at a fixed spot ([half width, height, z]), mirrored on both sides. */
+const planted =
+  ([x, y, z]: Vec3) =>
+  (): [Vec3, Vec3] => [
+    [x, y, z],
+    [-x, y, z],
+  ]
 
 /** Whether the exercise also lights up supporting muscles (for the legend). */
 export const hasSecondaryHighlight = (exerciseId: string) => Boolean(EXERCISE_ANIMATIONS[exerciseId]?.highlight.secondary?.length)
@@ -505,5 +568,174 @@ export const EXERCISE_ANIMATIONS: Record<string, ExerciseAnimationSpec> = {
     ground: 'floor',
     still: 1,
     camera: { yaw: -80, pitch: 6 },
+  },
+  'push-ups': {
+    // The body stays one straight line and pivots around the tucked toes; the hands stay planted
+    // a little wider than the shoulders, the elbows travel back at about 45°.
+    setup: STANDING,
+    from: plank(20),
+    to: plank(5),
+    grip: { at: planted([20, HAND_ON_FLOOR, 54]), elbows: both([0.4, 0.8, -1]) },
+    tempo: [1.6, 1],
+    highlight: { primary: ['chest'], secondary: ['upperArms', 'shoulders'] },
+    equipment: 'none',
+    ground: 'floor',
+    still: 0,
+    camera: PLANK_VIEW,
+  },
+  'diamond-push-ups': {
+    // Hands together under the chest (thumbs and index fingers form a diamond), elbows close to the body.
+    setup: STANDING,
+    from: plank(20),
+    to: plank(5),
+    grip: { at: planted([4.5, HAND_ON_FLOOR, 47]), elbows: both([0.05, 0.6, -1]) },
+    tempo: [1.6, 1],
+    highlight: { primary: ['upperArms'], secondary: ['chest', 'shoulders'] },
+    equipment: 'none',
+    ground: 'floor',
+    still: 0,
+    camera: PLANK_VIEW,
+  },
+  'pike-push-ups': {
+    // Hips high in an upside-down V; the head travels down toward the floor just behind the hands,
+    // like an overhead press upside down.
+    setup: STANDING,
+    from: pike(-36, 48),
+    to: pike(-52, 50),
+    grip: { at: planted([17, HAND_ON_FLOOR, 58]), elbows: both([0.6, 0.5, -0.8]) },
+    tempo: [1.6, 1],
+    highlight: { primary: ['shoulders'], secondary: ['upperArms'] },
+    equipment: 'none',
+    ground: 'floor',
+    still: 0,
+    camera: PLANK_VIEW,
+  },
+  'v-ups': {
+    // From lying flat with the arms overhead, legs and torso rise together into a V balanced on the
+    // seat; the straight arms sweep forward and reach for the shins.
+    setup: GROUNDED,
+    from: { root: [0, 9, 0], torso: seg(-90), head: seg(-90), arms: both(limb(0, 0)), legs: both(limb([90, 3], [90, 3])), feet: both(seg(95)) },
+    to: { root: [0, 9, 0], torso: seg(-140), head: seg(-150), arms: both(limb(0, 0)), legs: both(limb([140, 3], [140, 3])), feet: both(seg(150)) },
+    grip: {
+      at: (s, t) => {
+        const angle = (118 * t * Math.PI) / 180
+        const offset: Vec3 = [3, Math.cos(angle) * HANGING_ARM, Math.sin(angle) * HANGING_ARM]
+        return [inTorso(s, s.shoulders[0], offset)[0], inTorso(s, s.shoulders[1], offset)[1]]
+      },
+      elbows: both([1, 0, 0]),
+    },
+    tempo: [1, 1.4],
+    highlight: { primary: ['abs'], secondary: ['thighs'] },
+    equipment: 'none',
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -70, pitch: 16 },
+  },
+  'bulgarian-split-squat': {
+    // The +x foot is planted in front (root), the -x instep rests on the bench behind; the rear knee
+    // sinks toward the floor while the torso leans slightly forward. Dumbbells hang at the sides.
+    setup: STANDING,
+    from: {
+      ...standing,
+      root: [9, 4, 74],
+      torso: seg(172),
+      head: seg(176),
+      legs: [limb([15, 2], [-10, 2]), limb(0, 0)],
+      feet: [seg(90, 8), seg(-80)],
+    },
+    to: {
+      ...standing,
+      root: [9, 4, 74],
+      torso: seg(160),
+      head: seg(166),
+      legs: [limb([80, 2], [-20, 2]), limb(0, 0)],
+      feet: [seg(90, 8), seg(-80)],
+    },
+    stance: { at: () => [null, [-9, 42.5, 14]], knees: both([0, -1, 0.6]) },
+    grip: { at: (s) => [add(s.shoulders[0], [6, -49, 0]), add(s.shoulders[1], [-6, -49, 0])], elbows: both([0.3, 0, -1]) },
+    tempo: [1.6, 1],
+    highlight: { primary: ['thighs'], secondary: ['lowerBack'] },
+    equipment: 'dumbbells',
+    handle: FORWARD,
+    ground: 'bench',
+    still: 1,
+    camera: { yaw: -72, pitch: 12 },
+  },
+  thrusters: {
+    // A front squat flowing straight into an overhead press: the legs drive first, the dumbbells
+    // leave the shoulders once the hips are nearly straight.
+    setup: STANDING,
+    // Both legs keep the same sideways reach (36·sin 18° + 35·sin 8° = 36·sin 14° + 35·sin 12°), so
+    // the -x foot stays planted and the hips stay centered between the feet.
+    from: {
+      ...standing,
+      root: [24, 4, 0],
+      torso: seg(145),
+      head: seg(165),
+      legs: both(limb([80, 18], [-25, 8])),
+      feet: both(seg(90, 18)),
+    },
+    to: { ...standing, root: [24, 4, 0], legs: both(limb([0, 14], [0, 12])), feet: both(seg(90, 18)) },
+    // Between the end poses the reach differs a little: the -x foot is pinned, too.
+    stance: { at: () => [null, [-24, 4, 0]], knees: both([0.3, 0, 1]) },
+    grip: {
+      at: (s, t) => inTorso(s, s.shoulderCenter, lerp3([16, 6, 13], [20, 50, 2], stage(t, 0.45, 1))),
+      elbows: (t) => both(lerp3([0.3, -1, 0.6], [0.8, -1, 0.3], stage(t, 0.45, 1))),
+    },
+    phases: { torso: [0, 0.55], legs: [0, 0.6] },
+    tempo: [1.4, 1.8],
+    highlight: { primary: ['thighs', 'shoulders'], secondary: ['upperArms'] },
+    equipment: 'dumbbells',
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -38, pitch: 12 },
+  },
+  'renegade-rows': {
+    // High plank on two dumbbells, feet wide; the -x arm rows to the ribs while the hips stay square
+    // and the +x arm holds the body up.
+    setup: STANDING,
+    from: { ...plank(21, 8), forearmRoll: 0 },
+    to: { ...plank(21, 8), twist: 8, forearmRoll: 0 },
+    grip: {
+      at: (s, t) => {
+        const pulled = inTorso(s, s.shoulderCenter, [17, -32, 0])[1]
+        return [
+          [18, HAND_ON_DUMBBELL, 53],
+          lerp3([-18, HAND_ON_DUMBBELL, 53], pulled, t),
+        ]
+      },
+      elbows: [[0.3, 0.2, -1], [0.05, 0.7, -0.8]],
+    },
+    tempo: [1, 1.6],
+    highlight: { primary: ['back'], secondary: ['abs', 'upperArms', 'shoulders'] },
+    equipment: 'dumbbells',
+    ground: 'floor',
+    still: 1,
+    camera: { yaw: -128, pitch: 22 },
+  },
+  'arnold-press': {
+    // Starts like the top of a curl, palms facing the face and elbows in front; the arms open out to
+    // the sides while the wrists turn, and the press ends overhead with the palms facing forward.
+    setup: STANDING,
+    from: { ...standing, forearmRoll: 90 },
+    to: { ...standing, forearmRoll: -90 },
+    grip: {
+      at: (s, t) => {
+        const [start, bend, end]: Vec3[] = [
+          [8, 4, 15],
+          [27, 18, 10],
+          [20, 50, 2],
+        ]
+        return inTorso(s, s.shoulderCenter, lerp3(lerp3(start, bend, t), lerp3(bend, end, t), t))
+      },
+      elbows: (t) => both(lerp3([0.1, -1, 0.9], [0.8, -1, 0.3], t)),
+    },
+    phases: { forearms: [0.1, 0.8] },
+    tempo: [1.2, 1.8],
+    highlight: { primary: ['shoulders'], secondary: ['upperArms'] },
+    equipment: 'dumbbells',
+    ground: 'floor',
+    still: 0.5,
+    camera: { yaw: -35, pitch: 10 },
   },
 }

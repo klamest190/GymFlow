@@ -238,3 +238,20 @@ export function withHands(setup: RigSetup, pose: Pose, targets: readonly [Vec3, 
   }
   return { ...pose, arms: [arm(0), arm(1)] }
 }
+
+/**
+ * Returns `pose` with the legs solved so the ankles land on `targets` (+x side first; `null`
+ * keeps that leg); the knees bend toward the side-relative `poles`. With the ankle as root the +x
+ * leg carries the whole body, so only the -x leg can be placed.
+ */
+export function withFeet(setup: RigSetup, pose: Pose, targets: readonly [Vec3 | null, Vec3 | null], poles: readonly [Vec3, Vec3]): Pose {
+  if (setup.root === 'ankle' && targets[0]) throw new Error('withFeet: the root ankle stays where the pose puts it')
+  const { hips } = solvePose(setup, pose)
+  const leg = (side: Side): Limb => {
+    const target = targets[side]
+    if (!target) return pose.legs[side]
+    const [upper, lower] = reach(hips[side], target, LENGTH.thigh, LENGTH.shin, sided(poles[side], side))
+    return [sided(upper, side), sided(lower, side)]
+  }
+  return { ...pose, legs: [leg(0), leg(1)] }
+}

@@ -61,4 +61,10 @@ export function bestWeight(sessions: ExerciseSession[]): number | null {
   return best
 }
 
+/** Most reps in one set: the record for bodyweight exercises, which have no weight to beat. */
+export function bestReps(sessions: ExerciseSession[]): number | null {
+  const reps = sessions.flatMap(({ entry }) => entry.sets.map((set) => set.reps))
+  return reps.length > 0 ? Math.max(...reps) : null
+}
+
 export const formatKg = (value: number) => `${kg.format(value)} kg`

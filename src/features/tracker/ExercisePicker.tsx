@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
 import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { haptic } from '../../hooks/useUi'
-import type { Exercise, MuscleGroup } from '../../types/models'
+import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../../types/models'
 
 interface ExercisePickerProps {
   open: boolean
@@ -20,8 +20,9 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
   const [muscle, setMuscle] = useState<MuscleGroup | 'all'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  // In body order like the catalog filter, independent of the order of the exercises.
   const availableMuscles = useMemo(
-    () => [...new Set(exercises.map((exercise) => exercise.primaryMuscle))],
+    () => MUSCLE_GROUPS.filter((group) => exercises.some((exercise) => exercise.primaryMuscle === group)),
     [exercises],
   )
 

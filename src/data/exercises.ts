@@ -397,6 +397,181 @@ const DEFINITIONS: ExerciseDefinition[] = [
     defaultSets: 3,
     defaultReps: 15,
   },
+  {
+    id: 'push-ups',
+    name: 'Liegestütze',
+    aliases: ['push ups', 'pushups', 'push-up', 'liegestütz', 'liegestuetze', 'liegestützen'],
+    description: 'Die Grundübung ohne Gerät für Brust, Schultern und Trizeps – der Körper bleibt ein festes Brett.',
+    instructions:
+      'Die Hände etwas breiter als schulterbreit auf den Boden setzen, die Finger zeigen nach vorn, die ' +
+      'Füße stehen hüftbreit auf den Zehenballen. Bauch und Gesäß anspannen, sodass Kopf, Rumpf und Beine ' +
+      'eine Linie bilden. Die Ellbogen im Winkel von etwa 45° nach hinten beugen und die Brust bis knapp ' +
+      'über den Boden absenken. Kraftvoll vom Boden wegdrücken, bis die Arme fast gestreckt sind.',
+    formCues: ['Körper bleibt eine gerade Linie', 'Ellbogen etwa 45° vom Körper', 'Hüfte weder durchhängen lassen noch hochschieben'],
+    breathing: 'Beim Absenken einatmen, beim Hochdrücken ausatmen.',
+    primaryMuscle: 'chest',
+    secondaryMuscles: ['triceps', 'shoulders', 'core'],
+    category: 'strength',
+    equipment: 'bodyweight',
+    difficulty: 'intermediate',
+    usesWeight: false,
+    lowersFirst: true,
+    defaultSets: 3,
+    defaultReps: 12,
+  },
+  {
+    id: 'diamond-push-ups',
+    name: 'Diamond-Liegestütze',
+    aliases: ['diamond push ups', 'diamond pushups', 'diamant liegestütze', 'enge liegestütze', 'trizeps liegestütze', 'close grip push ups'],
+    description: 'Liegestütze mit eng zusammengeführten Händen – deutlich schwerer und mit klarem Fokus auf den Trizeps.',
+    instructions:
+      'In die Liegestützposition gehen und die Hände unter der Brust zusammenführen, sodass Daumen und ' +
+      'Zeigefinger eine Raute bilden. Bauch und Gesäß anspannen. Die Brust kontrolliert zu den Händen ' +
+      'absenken und die Ellbogen dabei eng am Oberkörper nach hinten führen. Aus dem Trizeps heraus wieder ' +
+      'hochdrücken, ohne die Ellbogen nach außen klappen zu lassen.',
+    formCues: ['Ellbogen eng am Körper', 'Hände unter der Brust, nicht unter dem Gesicht', 'Schultern weg von den Ohren'],
+    breathing: 'Beim Absenken einatmen, beim Hochdrücken ausatmen.',
+    primaryMuscle: 'triceps',
+    secondaryMuscles: ['chest', 'shoulders'],
+    category: 'strength',
+    equipment: 'bodyweight',
+    difficulty: 'advanced',
+    usesWeight: false,
+    lowersFirst: true,
+    defaultSets: 3,
+    defaultReps: 8,
+  },
+  {
+    id: 'pike-push-ups',
+    name: 'Pike-Liegestütze',
+    aliases: ['pike push ups', 'pike pushups', 'hecht liegestütze', 'schulter liegestütze', 'umgekehrtes v'],
+    description: 'Liegestütze im umgekehrten V – trainiert die Schultern wie Überkopfdrücken mit dem eigenen Körpergewicht.',
+    instructions:
+      'Aus dem Liegestütz die Hüfte weit nach oben schieben, bis der Körper ein umgekehrtes V bildet. Die ' +
+      'Hände stehen schulterbreit, die Beine bleiben möglichst gestreckt, das Gewicht liegt über den Händen. ' +
+      'Die Ellbogen schräg nach hinten beugen und den Kopf kontrolliert zum Boden zwischen den Händen ' +
+      'absenken. Kraftvoll zurück in die Ausgangsposition drücken.',
+    formCues: ['Hüfte bleibt hoch', 'Ellbogen schräg nach hinten, nicht zur Seite', 'Kopf kurz vor dem Boden stoppen'],
+    breathing: 'Beim Absenken des Kopfes einatmen, beim Hochdrücken ausatmen.',
+    primaryMuscle: 'shoulders',
+    secondaryMuscles: ['triceps'],
+    category: 'strength',
+    equipment: 'bodyweight',
+    difficulty: 'advanced',
+    usesWeight: false,
+    lowersFirst: true,
+    defaultSets: 3,
+    defaultReps: 8,
+  },
+  {
+    id: 'v-ups',
+    name: 'V-Ups',
+    aliases: ['v up', 'v-sit ups', 'klappmesser', 'taschenmesser', 'jackknife', 'jack knife'],
+    description: 'Anspruchsvolle Bauchübung: Oberkörper und gestreckte Beine kommen gleichzeitig zum V nach oben.',
+    instructions:
+      'Flach auf den Rücken legen, die Arme gestreckt über dem Kopf, die Beine gestreckt und geschlossen. ' +
+      'Den Bauch anspannen und den unteren Rücken in den Boden drücken. Oberkörper und Beine gleichzeitig ' +
+      'anheben und mit den Händen Richtung Schienbeine greifen, bis du auf dem Gesäß balancierst. Langsam ' +
+      'und kontrolliert in die Ausgangslage zurück absenken.',
+    formCues: ['Beine bleiben gestreckt', 'Bewegung aus dem Bauch, nicht mit Schwung', 'Unteren Rücken beim Absenken kontrollieren'],
+    breathing: 'Beim Hochkommen ausatmen, beim Absenken einatmen.',
+    primaryMuscle: 'core',
+    secondaryMuscles: ['obliques', 'quads'],
+    category: 'core',
+    equipment: 'bodyweight',
+    difficulty: 'advanced',
+    usesWeight: false,
+    defaultSets: 3,
+    defaultReps: 10,
+  },
+  {
+    id: 'bulgarian-split-squat',
+    name: 'Bulgarische Kniebeugen',
+    aliases: ['bulgarian split squat', 'bulgarian split squats', 'split squats', 'bulgarische split squats', 'ausfallschritt bank'],
+    description: 'Einbeinige Kniebeuge mit dem hinteren Fuß auf der Bank – fordert Beine, Gesäß und Gleichgewicht.',
+    instructions:
+      'Mit dem Rücken zur Bank stehen, je eine Kurzhantel seitlich in den Händen. Einen großen Schritt nach ' +
+      'vorn machen und den Spann des hinteren Fußes auf die Bank legen. Das hintere Knie gerade nach unten ' +
+      'Richtung Boden sinken lassen, bis der vordere Oberschenkel etwa waagerecht ist; der Oberkörper neigt ' +
+      'sich dabei leicht nach vorn. Über die Ferse des vorderen Beins wieder hochdrücken. Erst alle ' +
+      'Wiederholungen auf einer Seite, dann wechseln.',
+    formCues: ['Vorderes Knie zeigt über die Zehen, nicht nach innen', 'Gewicht auf dem vorderen Bein', 'Hüfte bleibt gerade'],
+    breathing: 'Beim Absenken einatmen, beim Hochdrücken ausatmen.',
+    primaryMuscle: 'quads',
+    secondaryMuscles: ['glutes', 'hamstrings'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'advanced',
+    usesWeight: true,
+    lowersFirst: true,
+    defaultSets: 3,
+    defaultReps: 8,
+  },
+  {
+    id: 'thrusters',
+    name: 'Thrusters',
+    aliases: ['thruster', 'kurzhantel thrusters', 'dumbbell thrusters', 'squat press', 'kniebeuge mit drücken'],
+    description: 'Kniebeuge und Überkopfdrücken in einer fließenden Bewegung – Ganzkörperübung mit hohem Puls.',
+    instructions:
+      'Hüftbreit stehen, die Kurzhanteln vor den Schultern, die Ellbogen zeigen nach vorn unten. In eine ' +
+      'tiefe Kniebeuge sinken, die Brust bleibt aufrecht, die Fersen am Boden. Explosiv aus den Beinen ' +
+      'hochdrücken und den Schwung nutzen, um die Hanteln ohne Pause über den Kopf zu drücken, bis die Arme ' +
+      'gestreckt sind. Die Hanteln kontrolliert zurück auf die Schultern führen und direkt in die nächste ' +
+      'Kniebeuge gehen.',
+    formCues: ['Erst die Beine, dann die Arme', 'Fersen bleiben am Boden', 'Oben kein Hohlkreuz'],
+    breathing: 'Unten einatmen, beim Hochdrücken über den Kopf ausatmen.',
+    primaryMuscle: 'quads',
+    secondaryMuscles: ['shoulders', 'glutes', 'triceps'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'intermediate',
+    usesWeight: true,
+    lowersFirst: true,
+    defaultSets: 3,
+    defaultReps: 10,
+  },
+  {
+    id: 'renegade-rows',
+    name: 'Renegade Rows',
+    aliases: ['renegade row', 'plank rudern', 'rudern im liegestütz', 'liegestütz rudern', 'plank row'],
+    description: 'Rudern aus dem hohen Liegestütz auf zwei Kurzhanteln – Rücken und Rumpf arbeiten zusammen.',
+    instructions:
+      'In den hohen Liegestütz gehen, die Hände umfassen zwei Kurzhanteln unter den Schultern, die Füße ' +
+      'stehen etwas breiter als hüftbreit. Bauch und Gesäß fest anspannen. Eine Hantel zur unteren Rippe ' +
+      'rudern, der Ellbogen streicht dabei eng am Körper nach hinten, ohne dass sich die Hüfte mitdreht. ' +
+      'Kontrolliert absetzen und die Seite wechseln.',
+    formCues: ['Hüfte bleibt parallel zum Boden', 'Breiter Fußstand für mehr Halt', 'Nur Hanteln verwenden, die nicht wegrollen'],
+    breathing: 'Beim Rudern ausatmen, beim Absetzen einatmen.',
+    primaryMuscle: 'back',
+    secondaryMuscles: ['core', 'biceps', 'shoulders'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'advanced',
+    usesWeight: true,
+    defaultSets: 3,
+    defaultReps: 8,
+  },
+  {
+    id: 'arnold-press',
+    name: 'Arnold Press',
+    aliases: ['arnold presse', 'arnold drücken', 'arnold dumbbell press', 'schulterdrücken mit drehung'],
+    description: 'Schulterdrücken mit Drehung der Handgelenke – trifft alle drei Anteile des Deltamuskels.',
+    instructions:
+      'Aufrecht stehen, die Kurzhanteln vor dem Gesicht auf Kinnhöhe, die Handflächen zeigen zu dir, die ' +
+      'Ellbogen nach vorn. Beim Hochdrücken die Arme zur Seite öffnen und die Handgelenke nach außen drehen, ' +
+      'sodass die Handflächen oben nach vorn zeigen. Über dem Kopf die Arme fast strecken, dann die Bewegung ' +
+      'genau rückwärts ausführen.',
+    formCues: ['Drehen und Drücken in einer Bewegung', 'Rumpf fest, kein Hohlkreuz', 'Oben nicht ganz durchstrecken'],
+    breathing: 'Beim Hochdrücken ausatmen, beim Absenken einatmen.',
+    primaryMuscle: 'shoulders',
+    secondaryMuscles: ['triceps'],
+    category: 'strength',
+    equipment: 'dumbbell',
+    difficulty: 'intermediate',
+    usesWeight: true,
+    defaultSets: 3,
+    defaultReps: 10,
+  },
 ]
 
 /** Holds for every exercise; shown next to each exercise's own breathing cue. */
@@ -405,11 +580,55 @@ export const BREATHING_RULE = 'Grundregel: bei der Anstrengung ausatmen, beim Na
 const buildSearchTerms = (name: string, aliases: string[]) =>
   [...new Set([name, ...aliases].map((term) => term.toLowerCase().trim()).filter(Boolean))]
 
-/** All exercises, sorted by name. */
+/**
+ * Order in the catalog, the picker and the tracker's suggestions: most worth doing first, i.e. a
+ * big training effect for little technique. Easy staples lead (one per body region), then the
+ * basic compound lifts, then isolation and accessory work, and the advanced exercises close the
+ * list. A new exercise must be placed here (a test checks the list matches the catalog).
+ */
+export const CATALOG_ORDER = [
+  // Easy and effective: learned in minutes, train a lot.
+  'bicep-curls',
+  'one-arm-dumbbell-row',
+  'lunges',
+  'lateral-raises',
+  // Basic compound lifts: a little more technique, the most effect.
+  'wide-grip-bench-press',
+  'squats',
+  'military-press',
+  'romanian-deadlift',
+  'bent-over-row',
+  'push-ups',
+  // Isolation and accessory exercises.
+  'butterflies',
+  'overhead-triceps-extension',
+  'hammer-curls',
+  'reverse-flys',
+  'crunches',
+  'close-grip-bench-press',
+  'front-raises',
+  'russian-twists',
+  'calf-raises',
+  // More coordination, then the advanced exercises.
+  'arnold-press',
+  'thrusters',
+  'bulgarian-split-squat',
+  'renegade-rows',
+  'diamond-push-ups',
+  'pike-push-ups',
+  'v-ups',
+] as const
+
+const catalogRank = (id: string) => {
+  const rank = (CATALOG_ORDER as readonly string[]).indexOf(id)
+  return rank === -1 ? CATALOG_ORDER.length : rank
+}
+
+/** All exercises in catalog order (see `CATALOG_ORDER`). */
 export const EXERCISES: Exercise[] = DEFINITIONS.map(({ aliases, ...definition }) => ({
   ...definition,
   searchTerms: buildSearchTerms(definition.name, aliases),
-})).sort((a, b) => a.name.localeCompare(b.name, 'de'))
+})).sort((a, b) => catalogRank(a.id) - catalogRank(b.id) || a.name.localeCompare(b.name, 'de'))
 
 const EXERCISES_BY_ID = new Map(EXERCISES.map((exercise) => [exercise.id, exercise]))
 

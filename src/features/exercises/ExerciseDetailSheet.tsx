@@ -11,7 +11,7 @@ import {
   MUSCLE_GROUP_TINTS,
 } from '../../data/muscleGroups'
 import { formatDaysAgo } from '../../lib/dates'
-import { bestWeight, formatKg, summarizeSets, type ExerciseSession } from '../../lib/exerciseHistory'
+import { bestReps, bestWeight, formatKg, summarizeSets, type ExerciseSession } from '../../lib/exerciseHistory'
 import type { Exercise } from '../../types/models'
 import { ExerciseAnimation } from './animation/ExerciseAnimation'
 import { EXERCISE_ANIMATIONS, hasSecondaryHighlight, type ExerciseAnimationSpec } from './animation/poses'
@@ -32,6 +32,7 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
   if (!shown) return null
 
   const best = bestWeight(sessions)
+  const bestSet = bestReps(sessions)
   const meta = [
     MUSCLE_GROUP_LABELS[shown.primaryMuscle],
     EQUIPMENT_LABELS[shown.equipment],
@@ -79,7 +80,11 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
         <div className="grid grid-cols-3 gap-2">
           <Stat value={`${shown.defaultSets} × ${shown.defaultReps}`} label="Empfohlen" />
           <Stat value={String(sessions.length)} label={`Mal in ${historyDays} T.`} />
-          <Stat value={best !== null ? formatKg(best) : '–'} label="Best je Hantel" />
+          {shown.usesWeight ? (
+            <Stat value={best !== null ? formatKg(best) : '–'} label="Best je Hantel" />
+          ) : (
+            <Stat value={bestSet !== null ? `${bestSet} Wdh.` : '–'} label="Bester Satz" />
+          )}
         </div>
 
         <Section title="Ausführung">

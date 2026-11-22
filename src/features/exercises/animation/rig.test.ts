@@ -100,6 +100,64 @@ describe('new movement details', () => {
     }
   })
 
+  it.each(['push-ups', 'diamond-push-ups', 'pike-push-ups'])('%s keep the hands and toes planted', (id) => {
+    const spec = EXERCISE_ANIMATIONS[id]
+    const start = skeletonAt(spec, 0)
+    for (const t of STEPS) {
+      const s = skeletonAt(spec, t)
+      for (const side of [0, 1] as const) {
+        expect(distance(s.hands[side], start.hands[side])).toBeLessThan(0.5)
+        expect(distance(s.toes[side], start.toes[side])).toBeLessThan(0.5)
+      }
+    }
+    expect(start.hands[0][1]).toBeLessThan(5)
+  })
+
+  it('push-ups lower the chest close to the floor, the body staying one line', () => {
+    const spec = EXERCISE_ANIMATIONS['push-ups']
+    const top = skeletonAt(spec, 0)
+    const bottom = skeletonAt(spec, 1)
+    expect(top.shoulderCenter[1] - bottom.shoulderCenter[1]).toBeGreaterThan(25)
+    for (const s of [top, bottom]) {
+      // Hips on the line from the ankles to the shoulders: no sagging, no piking.
+      const line = normalize(sub(s.shoulderCenter, s.ankles[0]))
+      const hip = sub(s.pelvis, s.ankles[0])
+      expect(Math.abs(hip[1] - line[1] * dot(hip, line))).toBeLessThan(1)
+    }
+  })
+
+  it('Bulgarian split squats keep the rear foot on the bench and lower the rear knee', () => {
+    const spec = EXERCISE_ANIMATIONS['bulgarian-split-squat']
+    const start = skeletonAt(spec, 0)
+    for (const t of STEPS) {
+      const s = skeletonAt(spec, t)
+      expect(distance(s.ankles[1], start.ankles[1])).toBeLessThan(0.5)
+      expect(distance(s.ankles[0], start.ankles[0])).toBeLessThan(0.5)
+    }
+    expect(start.ankles[1][1]).toBeGreaterThan(39)
+    expect(skeletonAt(spec, 1).knees[1][1]).toBeLessThan(20)
+  })
+
+  it('thrusters keep both feet planted and finish with the dumbbells overhead', () => {
+    const spec = EXERCISE_ANIMATIONS.thrusters
+    const start = skeletonAt(spec, 0)
+    for (const t of STEPS) {
+      const s = skeletonAt(spec, t)
+      for (const side of [0, 1] as const) expect(distance(s.ankles[side], start.ankles[side])).toBeLessThan(0.5)
+    }
+    const top = skeletonAt(spec, 1)
+    for (const side of [0, 1] as const) expect(top.hands[side][1]).toBeGreaterThan(top.head[1] + 20)
+  })
+
+  it('renegade rows keep the supporting dumbbell on the floor while the other rows to the ribs', () => {
+    const spec = EXERCISE_ANIMATIONS['renegade-rows']
+    const top = skeletonAt(spec, 1)
+    expect(top.hands[0][1]).toBeCloseTo(skeletonAt(spec, 0).hands[0][1], 5)
+    const elbow = sub(top.elbows[1], top.shoulderCenter)
+    expect(dot(elbow, top.forward)).toBeLessThan(0)
+    expect(top.hands[1][1]).toBeGreaterThan(30)
+  })
+
   it('only splits the torso into front and back when the back works', () => {
     const torsoHulls = (id: string) => {
       const count = (shape: Shape): number => (shape.kind === 'hull' ? 1 : shape.kind === 'seam' ? count(shape.shapes[0]) + count(shape.shapes[1]) : 0)

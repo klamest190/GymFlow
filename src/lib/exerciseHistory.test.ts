@@ -1,11 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { entry } from '../test/fixtures'
-import { formatLastTime } from './exerciseHistory'
+import { bestReps, formatLastTime } from './exerciseHistory'
 
 const withSets = (sets: [number, number | null][]) => {
   const base = entry('curls', 0, 0, sets[0][1])
   return { ...base, sets: sets.map(([reps, weightKg], index) => ({ id: String(index), reps, weightKg })) }
 }
+
+describe('bestReps', () => {
+  it('finds the best single set across sessions', () => {
+    const sessions = [
+      { date: '2026-11-20', entry: withSets([[12, null], [10, null]]) },
+      { date: '2026-11-18', entry: withSets([[15, null]]) },
+    ]
+    expect(bestReps(sessions)).toBe(15)
+  })
+
+  it('is empty without any set', () => {
+    expect(bestReps([])).toBeNull()
+    expect(bestReps([{ date: '2026-11-20', entry: { ...withSets([[1, null]]), sets: [] } }])).toBeNull()
+  })
+})
 
 describe('formatLastTime', () => {
   it('names every rep count, since reps are what a fixed pair of dumbbells progresses by', () => {

@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/useUi'
 import { repository } from '../../services/repository'
 import { tabsFor, type TabId } from './tabs'
 import { snap } from '../../lib/motion'
+import { useT } from '../../i18n'
 
 interface AppShellProps {
   tab: TabId
@@ -51,7 +52,8 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
   const { isDark, toggle } = useTheme()
   const { profile, isAdmin, isGuest } = useSession()
   const { signOut } = useAuth()
-  const signOutLabel = isGuest ? 'Gastmodus beenden' : 'Abmelden'
+  const t = useT()
+  const signOutLabel = isGuest ? t.shell.endGuest : t.shell.signOut
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col border-r border-line px-4 py-8 lg:flex">
@@ -59,7 +61,7 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
         <Wordmark />
       </div>
       <nav className="mt-10 flex flex-col gap-0.5">
-        {tabsFor(isAdmin).map(({ id, label, icon: Icon }) => {
+        {tabsFor(isAdmin).map(({ id, icon: Icon }) => {
           const active = id === tab
           return (
             <button
@@ -79,8 +81,8 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
                 />
               )}
               <Icon className="size-5" strokeWidth={active ? 2.5 : 2} />
-              {label}
-              {isGuest && id === 'stats' && <Lock className="ml-auto size-3.5 text-muted" aria-label="gesperrt" />}
+              {t.shell.tabs[id]}
+              {isGuest && id === 'stats' && <Lock className="ml-auto size-3.5 text-muted" aria-label={t.shell.locked} />}
             </button>
           )
         })}
@@ -91,14 +93,14 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
           onClick={toggle}
           className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-medium text-muted transition hover:bg-sunken hover:text-fg"
         >
-          {isDark ? 'Dunkel' : 'Hell'}
+          {isDark ? t.shell.dark : t.shell.light}
           {isDark ? <Moon className="size-5" /> : <Sun className="size-5" />}
         </button>
         <div className="flex items-center gap-3 border-t border-line px-3 pt-4">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-semibold">{profile.displayName}</p>
+            <p className="truncate text-[14px] font-semibold">{isGuest ? t.guest.name : profile.displayName}</p>
             <p className="truncate text-[12px] text-muted">
-              {isGuest ? 'Nur auf diesem Gerät' : repository.mode === 'firebase' ? profile.email : 'Demo-Modus (lokal)'}
+              {isGuest ? t.shell.guestDevice : repository.mode === 'firebase' ? profile.email : t.shell.demoMode}
             </p>
           </div>
           <button
@@ -118,10 +120,11 @@ function Sidebar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
 
 function TabBar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
   const { isAdmin, isGuest } = useSession()
+  const t = useT()
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface-solid pb-[env(safe-area-inset-bottom)] lg:hidden">
       <div className="mx-auto flex max-w-md items-stretch justify-between px-2">
-        {tabsFor(isAdmin).map(({ id, label, icon: Icon }) => {
+        {tabsFor(isAdmin).map(({ id, icon: Icon }) => {
           const active = id === tab
           return (
             <button
@@ -143,12 +146,12 @@ function TabBar({ tab, onTabChange }: Omit<AppShellProps, 'children'>) {
               <m.span whileTap={{ scale: 0.85 }} className="relative">
                 <Icon className="size-[22px]" strokeWidth={active ? 2.5 : 2} />
                 {isGuest && id === 'stats' && (
-                  <span className="absolute -right-2 -top-1 grid size-4 place-items-center rounded-full bg-surface-solid" aria-label="gesperrt">
+                  <span className="absolute -right-2 -top-1 grid size-4 place-items-center rounded-full bg-surface-solid" aria-label={t.shell.locked}>
                     <Lock className="size-2.5" strokeWidth={3} />
                   </span>
                 )}
               </m.span>
-              {label}
+              {t.shell.tabs[id]}
             </button>
           )
         })}

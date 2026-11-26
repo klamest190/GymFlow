@@ -2,15 +2,9 @@ import { animate, useReducedMotion, type AnimationPlaybackControls } from 'frame
 import { Check, Pause, Play, Plus, Rotate3d } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
-import { BREATHING_RULE } from '../../data/exercises'
-import {
-  CATEGORY_LABELS,
-  DIFFICULTY_LABELS,
-  EQUIPMENT_LABELS,
-  MUSCLE_GROUP_LABELS,
-  MUSCLE_GROUP_TINTS,
-} from '../../data/muscleGroups'
+import { MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { formatDaysAgo } from '../../lib/dates'
+import { useT } from '../../i18n'
 import { bestReps, bestWeight, formatKg, summarizeSets, type ExerciseSession } from '../../lib/exerciseHistory'
 import type { Exercise } from '../../types/models'
 import { ExerciseAnimation } from './animation/ExerciseAnimation'
@@ -29,16 +23,17 @@ interface ExerciseDetailSheetProps {
 export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, addedToday, onAddToToday }: ExerciseDetailSheetProps) {
   // Keep the last exercise around while the sheet animates out.
   const [shown, setShown] = useState(exercise)
+  const t = useT()
   if (exercise && exercise !== shown) setShown(exercise)
   if (!shown) return null
 
   const best = bestWeight(sessions)
   const bestSet = bestReps(sessions)
   const meta = [
-    MUSCLE_GROUP_LABELS[shown.primaryMuscle],
-    EQUIPMENT_LABELS[shown.equipment],
-    CATEGORY_LABELS[shown.category],
-    DIFFICULTY_LABELS[shown.difficulty],
+    t.catalog.muscles[shown.primaryMuscle],
+    t.catalog.equipment[shown.equipment],
+    t.catalog.categories[shown.category],
+    t.catalog.difficulty[shown.difficulty],
   ]
 
   return (
@@ -55,45 +50,45 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
         >
           {addedToday ? <Check className="size-4.5" strokeWidth={3} /> : <Plus className="size-4.5" strokeWidth={3} />}
-          {addedToday ? 'Heute eingetragen' : 'Zu heute hinzufügen'}
+          {addedToday ? t.exercises.addedToday : t.exercises.addToToday}
         </button>
       }
     >
       <div className="space-y-6 pb-2">
         <AnimationStage key={shown.id} exercise={shown} />
 
-        <Section title="Muskelgruppen">
+        <Section title={t.exercises.muscleGroups}>
           <div className="flex flex-wrap gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-sunken px-3 py-1.5 text-[13px] font-semibold">
               <span className={`size-2 rounded-full ${MUSCLE_GROUP_TINTS[shown.primaryMuscle]}`} />
-              {MUSCLE_GROUP_LABELS[shown.primaryMuscle]}
-              <span className="font-medium text-muted">primär</span>
+              {t.catalog.muscles[shown.primaryMuscle]}
+              <span className="font-medium text-muted">{t.exercises.primary}</span>
             </span>
             {shown.secondaryMuscles.map((muscle) => (
               <span key={muscle} className="flex items-center gap-1.5 rounded-full bg-sunken px-3 py-1.5 text-[13px] font-medium text-muted">
                 <span className={`size-2 rounded-full opacity-60 ${MUSCLE_GROUP_TINTS[muscle]}`} />
-                {MUSCLE_GROUP_LABELS[muscle]}
+                {t.catalog.muscles[muscle]}
               </span>
             ))}
           </div>
         </Section>
 
         <div className="grid grid-cols-3 gap-2">
-          <Stat value={`${shown.defaultSets} × ${shown.defaultReps}`} label="Empfohlen" />
-          <Stat value={String(sessions.length)} label={`Mal in ${historyDays} T.`} />
+          <Stat value={`${shown.defaultSets} × ${shown.defaultReps}`} label={t.exercises.recommended} />
+          <Stat value={String(sessions.length)} label={t.exercises.timesInDays(historyDays)} />
           {shown.usesWeight ? (
-            <Stat value={best !== null ? formatKg(best) : '–'} label="Best je Hantel" />
+            <Stat value={best !== null ? formatKg(best) : '–'} label={t.exercises.bestPerDumbbell} />
           ) : (
-            <Stat value={bestSet !== null ? `${bestSet} Wdh.` : '–'} label="Bester Satz" />
+            <Stat value={bestSet !== null ? t.common.repsValue(bestSet) : '–'} label={t.exercises.bestSet} />
           )}
         </div>
 
-        <Section title="Ausführung">
+        <Section title={t.exercises.execution}>
           <p className="text-[15px] font-medium leading-relaxed">{shown.description}</p>
           <InstructionSteps instructions={shown.instructions} className="mt-3 text-[15px] leading-relaxed text-fg/85" />
         </Section>
 
-        <Section title="Technik-Hinweise">
+        <Section title={t.exercises.formCues}>
           <ul className="space-y-2">
             {shown.formCues.map((cue) => (
               <li key={cue} className="flex items-start gap-2.5 text-[15px]">
@@ -106,14 +101,14 @@ export function ExerciseDetailSheet({ exercise, onClose, sessions, historyDays, 
           </ul>
         </Section>
 
-        <Section title="Atmung">
+        <Section title={t.exercises.breathing}>
           <p className="text-[15px] font-medium leading-relaxed">{shown.breathing}</p>
-          <p className="mt-2 text-[15px] leading-relaxed text-fg/80">{BREATHING_RULE}</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-fg/80">{t.catalog.breathingRule}</p>
         </Section>
 
-        <Section title="Verlauf">
+        <Section title={t.exercises.history}>
           {sessions.length === 0 ? (
-            <p className="text-[15px] text-muted">In den letzten {historyDays} Tagen noch nicht trainiert.</p>
+            <p className="text-[15px] text-muted">{t.exercises.notTrainedInDays(historyDays)}</p>
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-sunken">
               {sessions.slice(0, 6).map(({ date, entry }) => (
@@ -148,13 +143,14 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
   const drag = useRef<{ x: number; yaw: number } | null>(null)
   const glide = useRef<AnimationPlaybackControls | null>(null)
   const reduceMotion = useReducedMotion()
+  const t = useT()
   useEffect(() => () => glide.current?.stop(), [])
   if (!spec) return null
 
   const views = [
-    { label: 'Schräg', yaw: spec.camera.yaw },
-    { label: 'Vorne', yaw: 0 },
-    { label: 'Seite', yaw: -90 },
+    { id: 'angled', label: t.exercises.viewAngled, yaw: spec.camera.yaw },
+    { id: 'front', label: t.exercises.viewFront, yaw: 0 },
+    { id: 'side', label: t.exercises.viewSide, yaw: -90 },
   ]
   const turnTo = (target: number) => {
     glide.current?.stop()
@@ -171,12 +167,12 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
   return (
     <div className="relative overflow-hidden rounded-3xl bg-sunken">
       <div className="relative flex justify-center px-4 pt-3">
-        <div role="group" aria-label="Blickwinkel" className="flex rounded-full bg-surface-solid/70 p-0.5 text-[12px] font-semibold shadow-soft">
+        <div role="group" aria-label={t.exercises.viewAngle} className="flex rounded-full bg-surface-solid/70 p-0.5 text-[12px] font-semibold shadow-soft">
           {views.map((view) => {
             const active = Math.abs(turn(yaw, view.yaw)) < 1
             return (
               <button
-                key={view.label}
+                key={view.id}
                 type="button"
                 onClick={() => turnTo(view.yaw)}
                 aria-pressed={active}
@@ -190,7 +186,7 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
       </div>
       <div
         tabIndex={0}
-        aria-label="Figur drehen: ziehen oder Pfeiltasten"
+        aria-label={t.exercises.rotateFigure}
         className="relative mx-auto aspect-square w-full max-w-72 cursor-grab touch-pan-y rounded-3xl outline-none select-none focus-visible:ring-2 focus-visible:ring-fg/40 active:cursor-grabbing"
         onPointerDown={(event) => {
           glide.current?.stop()
@@ -210,14 +206,14 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
           if (event.key === 'ArrowRight') rotateBy(-15)
         }}
       >
-        <ExerciseAnimation exerciseId={exercise.id} playing={!paused} camera={{ yaw, pitch: spec.camera.pitch }} label={`Animation: ${exercise.name}`} />
+        <ExerciseAnimation exerciseId={exercise.id} playing={!paused} camera={{ yaw, pitch: spec.camera.pitch }} label={t.exercises.animation(exercise.name)} />
         <span
           aria-hidden
           className={`pointer-events-none absolute inset-x-0 bottom-1 flex justify-center transition-opacity duration-500 ${turned ? 'opacity-0' : 'opacity-100'}`}
         >
           <span className="flex items-center gap-1.5 rounded-full bg-surface-solid/80 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-soft">
             <Rotate3d className="size-3.5" />
-            Zum Drehen ziehen
+            {t.exercises.dragToRotate}
           </span>
         </span>
       </div>
@@ -225,12 +221,12 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-medium text-muted">
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full bg-(--figure-highlight)" />
-            Zielmuskel
+            {t.exercises.targetMuscle}
           </span>
           {hasSecondaryHighlight(exercise.id) && (
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-(--figure-highlight-soft)" />
-              Unterstützend
+              {t.exercises.supporting}
             </span>
           )}
         </div>
@@ -238,8 +234,8 @@ function AnimationStage({ exercise }: { exercise: Exercise }) {
           type="button"
           onClick={() => setPaused((value) => !value)}
           className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-solid text-fg shadow-soft transition hover:scale-105 active:scale-95"
-          aria-label={paused ? 'Animation abspielen' : 'Animation anhalten'}
-          title={paused ? 'Abspielen' : 'Anhalten'}
+          aria-label={paused ? t.exercises.playAnimation : t.exercises.pauseAnimation}
+          title={paused ? t.exercises.play : t.exercises.pause}
         >
           {paused ? <Play className="size-4 translate-x-px" fill="currentColor" /> : <Pause className="size-4" fill="currentColor" />}
         </button>

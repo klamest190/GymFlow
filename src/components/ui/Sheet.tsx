@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useIsDesktop } from '../../hooks/useUi'
 import { easeOut, fade, settle } from '../../lib/motion'
+import { useT } from '../../i18n'
 
 interface SheetProps {
   open: boolean
@@ -19,6 +20,7 @@ interface SheetProps {
 export function Sheet({ open, onClose, title, subtitle, children, footer }: SheetProps) {
   const isDesktop = useIsDesktop()
   const dragControls = useDragControls()
+  const t = useT()
 
   useEffect(() => {
     if (!open) return
@@ -73,7 +75,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: Shee
                   type="button"
                   onClick={onClose}
                   className="grid size-9 shrink-0 place-items-center rounded-xl bg-sunken text-muted transition hover:text-fg active:scale-90"
-                  aria-label="Schließen"
+                  aria-label={t.common.close}
                 >
                   <X className="size-4.5" strokeWidth={2.5} />
                 </button>

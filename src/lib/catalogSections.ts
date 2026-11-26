@@ -1,4 +1,5 @@
-import { MUSCLE_GROUP_LABELS, MUSCLE_REGION, type BodyRegion } from '../data/muscleGroups'
+import { MUSCLE_REGION, type BodyRegion } from '../data/muscleGroups'
+import { messages } from '../i18n'
 import { MUSCLE_GROUPS, type Exercise } from '../types/models'
 
 export interface RegionSection {
@@ -13,6 +14,7 @@ export interface RegionSection {
  * first exercise, so the easy and effective start (Bizeps-Curls) stays at the top.
  */
 export function groupByRegion(exercises: Exercise[]): RegionSection[] {
+  const muscleNames = messages().catalog.muscles
   const sections = new Map<BodyRegion, Exercise[]>()
   for (const exercise of exercises) {
     const region = MUSCLE_REGION[exercise.primaryMuscle]
@@ -21,7 +23,7 @@ export function groupByRegion(exercises: Exercise[]): RegionSection[] {
   return [...sections].map(([region, list]) => ({
     region,
     muscles: MUSCLE_GROUPS.filter((group) => list.some((exercise) => exercise.primaryMuscle === group))
-      .map((group) => MUSCLE_GROUP_LABELS[group])
+      .map((group) => muscleNames[group])
       .join(', '),
     exercises: list,
   }))

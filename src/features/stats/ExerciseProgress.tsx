@@ -6,6 +6,7 @@ import { getExercise } from '../../data/exercises'
 import { MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
 import { formatDayMonth, formatDaysAgo, formatWeekdayDate } from '../../lib/dates'
 import { formatKg } from '../../lib/exerciseHistory'
+import { useT } from '../../i18n'
 import { exerciseProgress, formatCompact, percentChange, trainedExercises, type ProgressPoint } from '../../lib/stats'
 import type { WorkoutLog } from '../../types/models'
 import { ChartCard, ChartEmpty, TooltipCard, TooltipRow } from './ChartCard'
@@ -16,6 +17,7 @@ type ProgressDatum = ProgressPoint & { value: number }
 /** Line of the heaviest set (or total reps for bodyweight exercises) per session. */
 export function ExerciseProgress({ logs, className = '' }: { logs: WorkoutLog[]; className?: string }) {
   const theme = useChartTheme()
+  const t = useT()
   const trained = useMemo(() => trainedExercises(logs).filter(({ exerciseId }) => getExercise(exerciseId)), [logs])
   const [picked, setPicked] = useState<string | null>(null)
   const selectedId = picked && trained.some(({ exerciseId }) => exerciseId === picked) ? picked : trained[0]?.exerciseId
@@ -26,50 +28,50 @@ export function ExerciseProgress({ logs, className = '' }: { logs: WorkoutLog[];
   const first = data[0]
   const latest = data.at(-1)
   const change = first && latest && data.length > 1 ? percentChange(latest.value, first.value) : null
-  const format = (value: number) => (byWeight ? formatKg(value) : `${value} Wdh.`)
+  const format = (value: number) => (byWeight ? formatKg(value) : t.common.repsValue(value))
 
   const options: SelectOption<string>[] = trained.map(({ exerciseId, sessions }) => {
     const item = getExercise(exerciseId)!
     return {
       value: exerciseId,
       label: item.name,
-      hint: `${sessions} ${sessions === 1 ? 'Training' : 'Trainings'}`,
+      hint: t.stats.sessions(sessions),
       leading: <span className={`size-2.5 shrink-0 rounded-full ${MUSCLE_GROUP_TINTS[item.primaryMuscle]}`} />,
     }
   })
 
   return (
     <ChartCard
-      title="Fortschritt pro Übung"
-      subtitle={exercise ? (byWeight ? 'Schwerster Satz pro Training' : 'Wiederholungen pro Training') : undefined}
+      title={t.stats.progressPerExercise}
+      subtitle={exercise ? (byWeight ? t.stats.heaviestSetPerSession : t.stats.repsPerSession) : undefined}
       // Lifts the card above later cards, so the open dropdown isn't covered on phones.
       className={`relative z-10 ${className}`}
       actions={
         selectedId && (
-          <Select label="Übung auswählen" value={selectedId} onChange={setPicked} options={options} className="w-full sm:w-60" />
+          <Select label={t.stats.pickExercise} value={selectedId} onChange={setPicked} options={options} className="w-full sm:w-60" />
         )
       }
     >
       {!selectedId || !first || !latest ? (
-        <ChartEmpty>Sobald du trainierst, siehst du hier deinen Verlauf.</ChartEmpty>
+        <ChartEmpty>{t.stats.progressEmpty}</ChartEmpty>
       ) : (
         <>
           <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span className="numeral text-[31px] leading-none">{format(latest.value)}</span>
-            <span className="text-[13px] text-muted">Letztes Training: {formatDaysAgo(latest.date)}</span>
+            <span className="text-[13px] text-muted">{t.stats.lastSession(formatDaysAgo(latest.date))}</span>
             {change !== null && change !== 0 && (
               <span
-                title={`Erstes Training im Zeitraum: ${format(first.value)}`}
+                title={t.stats.firstSession(format(first.value))}
                 className={`ml-auto rounded-full px-2 py-0.5 text-[12px] font-semibold tabular-nums ${
                   change > 0 ? 'bg-accent/25 text-accent-fg' : 'bg-danger/12 text-danger'
                 }`}
               >
                 {change > 0 ? '+' : ''}
-                {change} % seit Start
+                {t.common.percent(change)}{t.stats.sinceStart}
               </span>
             )}
           </div>
-          <div className="h-56 w-full lg:h-auto lg:min-h-60 lg:flex-1" role="img" aria-label={`Verlauf ${exercise?.name ?? ''}`}>
+          <div className="h-56 w-full lg:h-auto lg:min-h-60 lg:flex-1" role="img" aria-label={t.stats.history(exercise?.name ?? '')}>
             <ResponsiveContainer width="100%" height="100%">
               {/* Keyed by exercise: switching remounts the chart, so the line draws in again. */}
               <ComposedChart key={selectedId} data={data} margin={{ top: 10, right: 12, bottom: 0, left: -12 }}>
@@ -105,12 +107,12 @@ export function ExerciseProgress({ logs, className = '' }: { logs: WorkoutLog[];
                     return (
                       <TooltipCard title={formatWeekdayDate(point.date)}>
                         <TooltipRow
-                          label={byWeight ? 'Schwerster Satz' : 'Wiederholungen'}
+                          label={byWeight ? t.stats.heaviestSet : t.stats.reps}
                           value={format(point.value)}
                           highlight
                           swatch={theme.accent}
                         />
-                        {byWeight && <TooltipRow label="Wdh. gesamt" value={point.totalReps} />}
+                        {byWeight && <TooltipRow label={t.stats.totalReps} value={point.totalReps} />}
                       </TooltipCard>
                     )
                   }}
@@ -148,6 +150,7 @@ export function ExerciseProgress({ logs, className = '' }: { logs: WorkoutLog[];
 
 /** Best weight (or best single-set reps for bodyweight exercises) per exercise. */
 export function PersonalRecords({ logs, className }: { logs: WorkoutLog[]; className?: string }) {
+  const t = useT()
   const records = trainedExercises(logs)
     .map(({ exerciseId }) => {
       const exercise = getExercise(exerciseId)
@@ -172,9 +175,9 @@ export function PersonalRecords({ logs, className }: { logs: WorkoutLog[]; class
     .slice(0, 6)
 
   return (
-    <ChartCard title="Bestleistungen" subtitle="Letzte 12 Monate" className={className}>
+    <ChartCard title={t.stats.records} subtitle={t.stats.recordsPeriod} className={className}>
       {records.length === 0 ? (
-        <ChartEmpty>Noch keine Bestleistungen.</ChartEmpty>
+        <ChartEmpty>{t.stats.noRecords}</ChartEmpty>
       ) : (
         <ul className="divide-y divide-line">
           {records.map(({ exercise, best, date }) => (
@@ -187,7 +190,7 @@ export function PersonalRecords({ logs, className }: { logs: WorkoutLog[]; class
                 <span className="text-[12px] text-muted">{formatDaysAgo(date)}</span>
               </span>
               <span className="text-[15px] font-bold tabular-nums">
-                {exercise.usesWeight ? formatKg(best) : `${best} Wdh.`}
+                {exercise.usesWeight ? formatKg(best) : t.common.repsValue(best)}
               </span>
             </li>
           ))}

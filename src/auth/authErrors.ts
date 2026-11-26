@@ -1,40 +1,41 @@
-/** German messages for the Firebase error codes users can actually run into. */
-const MESSAGES: Record<string, string> = {
+import { messages, type Messages } from '../i18n'
+
+type ErrorKey = Exclude<keyof Messages['auth']['errors'], 'generic' | 'withCode'>
+
+/** Messages for the Firebase error codes users can actually run into. */
+const CODES: Record<string, ErrorKey> = {
   // Sign-in
-  'auth/invalid-credential': 'Benutzername/E-Mail oder Passwort ist falsch.',
-  'auth/wrong-password': 'Benutzername/E-Mail oder Passwort ist falsch.',
-  'auth/user-not-found': 'Benutzername/E-Mail oder Passwort ist falsch.',
-  'auth/invalid-email': 'Bitte gib eine gültige E-Mail-Adresse ein.',
-  'auth/user-disabled': 'Dieser Zugang wurde gesperrt.',
-  'auth/too-many-requests': 'Zu viele Versuche. Bitte warte kurz und versuche es dann erneut.',
-  'auth/network-request-failed': 'Keine Verbindung. Bitte prüfe deine Internetverbindung.',
-  'auth/operation-not-allowed': 'Die Anmeldung per E-Mail ist in Firebase noch nicht aktiviert.',
-  'auth/missing-password': 'Bitte gib dein Passwort ein.',
+  'auth/invalid-credential': 'wrongCredentials',
+  'auth/wrong-password': 'wrongCredentials',
+  'auth/user-not-found': 'wrongCredentials',
+  'auth/invalid-email': 'invalidEmail',
+  'auth/user-disabled': 'userDisabled',
+  'auth/too-many-requests': 'tooManyRequests',
+  'auth/network-request-failed': 'network',
+  'auth/operation-not-allowed': 'notEnabled',
+  'auth/missing-password': 'missingPassword',
   // Deployment configuration (e.g. missing or mistyped environment variables on the host)
-  'auth/invalid-api-key': 'Die Firebase-Konfiguration dieser Installation ist ungültig (API-Key). Bitte die Umgebungsvariablen prüfen.',
-  'auth/api-key-not-valid.-please-pass-a-valid-api-key.':
-    'Die Firebase-Konfiguration dieser Installation ist ungültig (API-Key). Bitte die Umgebungsvariablen prüfen.',
-  'auth/configuration-not-found': 'Für dieses Firebase-Projekt ist die Anmeldung nicht eingerichtet. Bitte die Projekt-ID in den Umgebungsvariablen prüfen.',
-  'auth/unauthorized-domain':
-    'Diese Domain ist in Firebase nicht freigegeben (Authentication → Einstellungen → Autorisierte Domains).',
+  'auth/invalid-api-key': 'invalidApiKey',
+  'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'invalidApiKey',
+  'auth/configuration-not-found': 'configurationNotFound',
+  'auth/unauthorized-domain': 'unauthorizedDomain',
   // Account creation (admin)
-  'auth/email-already-in-use':
-    'Für diese E-Mail existiert bereits ein Login. Falls das Konto gelöscht wurde, entferne den Login zuerst in der Firebase Console (Authentication → Nutzer).',
-  'auth/weak-password': 'Das Passwort muss mindestens 6 Zeichen lang sein.',
-  'username-taken': 'Dieser Benutzername ist schon vergeben.',
+  'auth/email-already-in-use': 'emailInUse',
+  'auth/weak-password': 'weakPassword',
+  'username-taken': 'usernameTaken',
   // Firestore
-  'permission-denied': 'Dafür fehlen dir die Berechtigungen.',
-  unavailable: 'Der Server ist gerade nicht erreichbar. Bitte versuche es später erneut.',
+  'permission-denied': 'permissionDenied',
+  unavailable: 'unavailable',
 }
 
-export function authErrorMessage(error: unknown, fallback = 'Etwas ist schiefgelaufen. Bitte versuche es erneut.'): string {
+export function authErrorMessage(error: unknown, fallback?: string): string {
+  const texts = messages().auth.errors
   const code = (error as { code?: string } | null)?.code ?? ''
-  if (MESSAGES[code]) return MESSAGES[code]
+  if (CODES[code]) return texts[CODES[code]]
   // An API key restricted to other websites (Google Cloud → API keys → website restrictions).
-  if (code.startsWith('auth/requests-from-referer-')) {
-    return 'Der Firebase-API-Key ist für diese Domain gesperrt (Google Cloud Console → API-Schlüssel → Website-Einschränkungen).'
-  }
+  if (code.startsWith('auth/requests-from-referer-')) return texts.refererBlocked
   console.error('[GymFlow] unmapped error', error)
+  const message = fallback ?? texts.generic
   // Show the raw code so unexpected problems can be diagnosed without dev tools.
-  return code ? `${fallback} (Fehlercode: ${code})` : fallback
+  return code ? texts.withCode(message, code) : message
 }

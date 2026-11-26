@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { EXERCISES } from '../data/exercises'
+import { getExercises } from '../data/exercises'
 import { GUEST_EXERCISE_IDS } from '../data/guest'
 import type { MuscleGroup, WorkoutLog } from '../types/models'
 import { suggestRegion } from './regionSuggestion'
+
+const EXERCISES = getExercises('de')
 
 const log = (date: string, muscle: MuscleGroup, sets = 1) =>
   ({ date, entries: [{ primaryMuscle: muscle, sets: Array.from({ length: sets }, () => ({})) }] }) as unknown as WorkoutLog

@@ -1,53 +1,58 @@
-import { MUSCLE_GROUP_LABELS } from '../data/muscleGroups'
+import { exerciseName } from '../data/exercises'
+import { messages } from '../i18n'
+import { numberFormat } from '../i18n/format'
+import { getLocale, type Locale } from '../i18n/locale'
 import type { BodyWeightEntry, WorkoutLog } from '../types/models'
 import { setLoadKg } from './workoutMath'
 
 /**
- * CSV for German Excel: semicolon separator, decimal comma, UTF-8 with BOM (so umlauts show
- * correctly when the file is opened by double-click).
+ * CSV the way Excel opens it by double-click in the app language: German with semicolons and a
+ * decimal comma, English with commas and a decimal point. UTF-8 with BOM, so umlauts show
+ * correctly.
  */
-const SEPARATOR = ';'
+const SEPARATORS: Record<Locale, string> = { de: ';', en: ',' }
 const BOM = '﻿'
 
-const decimal = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2, useGrouping: false })
-
-function cell(value: string | number | null): string {
+function cell(value: string | number | null, locale: Locale): string {
   if (value === null) return ''
-  const text = typeof value === 'number' ? decimal.format(value) : value
+  const text = typeof value === 'number' ? numberFormat({ maximumFractionDigits: 2, useGrouping: false }, locale).format(value) : value
   // Quote cells containing the separator, quotes or line breaks; double embedded quotes.
-  return /[";\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+  const needsQuotes = text.includes(SEPARATORS[locale]) || /["\r\n]/.test(text)
+  return needsQuotes ? `"${text.replaceAll('"', '""')}"` : text
 }
 
-export function toCsv(header: string[], rows: (string | number | null)[][]): string {
-  return BOM + [header, ...rows].map((row) => row.map(cell).join(SEPARATOR)).join('\r\n') + '\r\n'
+export function toCsv(header: string[], rows: (string | number | null)[][], locale: Locale = getLocale()): string {
+  return BOM + [header, ...rows].map((row) => row.map((value) => cell(value, locale)).join(SEPARATORS[locale])).join('\r\n') + '\r\n'
 }
 
 /** One row per set, oldest day first: the most flexible layout for pivot tables. */
-export function workoutsToCsv(logs: WorkoutLog[]): string {
+export function workoutsToCsv(logs: WorkoutLog[], locale: Locale = getLocale()): string {
+  const texts = messages(locale)
   const rows: (string | number | null)[][] = []
   for (const log of [...logs].sort((a, b) => a.date.localeCompare(b.date))) {
     for (const entry of [...log.entries].sort((a, b) => a.position - b.position)) {
       entry.sets.forEach((set, index) => {
         rows.push([
           log.date,
-          entry.exerciseName,
-          MUSCLE_GROUP_LABELS[entry.primaryMuscle],
+          exerciseName(entry.exerciseId, entry.exerciseName),
+          texts.catalog.muscles[entry.primaryMuscle],
           index + 1,
           set.reps,
           set.weightKg,
-          set.weightKg === null ? null : entry.perDumbbell ? 'je Hantel' : 'gesamt',
+          set.weightKg === null ? null : entry.perDumbbell ? texts.csv.perDumbbell : texts.csv.total,
           set.weightKg === null ? null : set.reps * setLoadKg(entry, set),
         ])
       })
     }
   }
-  return toCsv(['Datum', 'Übung', 'Muskelgruppe', 'Satz', 'Wiederholungen', 'Gewicht (kg)', 'Gewicht gilt', 'Volumen (kg)'], rows)
+  return toCsv(texts.csv.workoutHeader, rows, locale)
 }
 
-export function bodyWeightsToCsv(entries: BodyWeightEntry[]): string {
+export function bodyWeightsToCsv(entries: BodyWeightEntry[], locale: Locale = getLocale()): string {
   return toCsv(
-    ['Datum', 'Körpergewicht (kg)'],
+    messages(locale).csv.bodyWeightHeader,
     [...entries].sort((a, b) => a.date.localeCompare(b.date)).map((entry) => [entry.date, entry.weightKg]),
+    locale,
   )
 }
 

@@ -1,20 +1,9 @@
+import { formatNumber } from '../i18n/format'
 import type { DateKey, MuscleGroup, WorkoutLog, WorkoutTotals } from '../types/models'
 import { addDays, daysBetween, startOfWeek } from './dates'
 
-/** The measure a chart plots. Volume = reps × kg (bodyweight sets count 0). */
+/** The measure a chart plots. Volume = reps × kg (bodyweight sets count 0). Names: `messages().stats.metrics`. */
 export type Metric = 'reps' | 'sets' | 'volumeKg'
-
-export const METRIC_LABELS: Record<Metric, string> = {
-  reps: 'Wiederholungen',
-  sets: 'Sätze',
-  volumeKg: 'Volumen (kg)',
-}
-
-export const METRIC_SHORT_LABELS: Record<Metric, string> = {
-  reps: 'Wdh.',
-  sets: 'Sätze',
-  volumeKg: 'Volumen',
-}
 
 /**
  * Days with at least one logged set. The tracker stores an exercise as soon as it is added, so a
@@ -22,13 +11,10 @@ export const METRIC_SHORT_LABELS: Record<Metric, string> = {
  */
 export const trainingDays = (logs: WorkoutLog[]) => logs.filter((log) => log.totals.sets > 0)
 
-const integer = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
-const compactOne = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 })
-
-/** 1.284 → "1.284", 12.900 → "12,9k"; used by stat tiles and axis ticks. */
+/** 1.284 → "1.284", 12.900 → "12,9k" (English: "1,284", "12.9k"); used by stat tiles and axis ticks. */
 export function formatCompact(value: number): string {
-  if (Math.abs(value) >= 10_000) return `${compactOne.format(value / 1000)}k`
-  return integer.format(value)
+  if (Math.abs(value) >= 10_000) return `${formatNumber(value / 1000, 1)}k`
+  return formatNumber(value)
 }
 
 export function formatMetric(value: number, metric: Metric): string {

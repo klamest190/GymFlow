@@ -8,7 +8,8 @@ import { authErrorMessage } from '../../auth/authErrors'
 import { NumberStepper } from '../../components/ui/NumberStepper'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { useToast } from '../../components/ui/toastContext'
-import { EXERCISES } from '../../data/exercises'
+import { EXERCISE_COUNT } from '../../data/exercises'
+import { LOCALES, setLocale, useLocale, useT, type Locale } from '../../i18n'
 import { haptic, useTheme, type ThemePreference } from '../../hooks/useUi'
 import { useInstallState } from '../../lib/pwa'
 import { formatRestClock, MAX_REST_SECONDS, MIN_REST_SECONDS, REST_STEP_SECONDS } from '../../lib/restTimer'
@@ -32,20 +33,21 @@ export function ProfilePage() {
   const gate = useGuestGate()
   const toast = useToast()
   const replayOnboarding = useReplayOnboarding()
+  const t = useT()
   // One subscription for the weight card and the export.
   const bodyWeights = useBodyWeights(user.uid)
 
   const setGoal = (weeklyGoalDays: number) => {
     haptic()
     repository.saveProfile(user.uid, { weeklyGoalDays }).catch((error) =>
-      toast({ tone: 'error', title: 'Wochenziel nicht gespeichert', description: authErrorMessage(error) }),
+      toast({ tone: 'error', title: t.profile.goalNotSaved, description: authErrorMessage(error) }),
     )
   }
 
   return (
     <div className="mx-auto max-w-3xl">
       <header>
-        <h1 className="headline text-[39px] lg:text-[49px]">Profil</h1>
+        <h1 className="headline text-[39px] lg:text-[49px]">{t.profile.title}</h1>
       </header>
 
       <div className="mt-6 space-y-4 lg:mt-8">
@@ -53,10 +55,10 @@ export function ProfilePage() {
 
         <GamificationDashboard />
 
-        <ProfileSection title="Training">
+        <ProfileSection title={t.profile.training}>
           <SettingsList>
-            <SettingRow title="Wochenziel" description="Trainingstage pro Woche. Deinen Fortschritt zeigt die Statistik.">
-              <div className="grid grid-cols-7 gap-1.5 rounded-xl bg-sunken p-1" role="radiogroup" aria-label="Trainingstage pro Woche">
+            <SettingRow title={t.profile.weeklyGoal} description={t.profile.weeklyGoalText}>
+              <div className="grid grid-cols-7 gap-1.5 rounded-xl bg-sunken p-1" role="radiogroup" aria-label={t.profile.daysPerWeek}>
                 {GOAL_OPTIONS.map((days) => {
                   const active = profile.weeklyGoalDays === days
                   return (
@@ -65,7 +67,7 @@ export function ProfilePage() {
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      aria-label={`${days} ${days === 1 ? 'Tag' : 'Tage'}`}
+                      aria-label={t.common.days(days)}
                       onClick={() => setGoal(days)}
                       className={`numeral relative rounded-lg py-2 text-[20px] transition-colors ${active ? 'text-bg' : 'text-muted hover:text-fg'}`}
                     >
@@ -83,54 +85,55 @@ export function ProfilePage() {
           <BodyWeightCard entries={bodyWeights} />
         </ProfileSection>
 
-        <ProfileSection title="App">
+        <ProfileSection title={t.profile.app}>
           <SettingsList>
-            <SettingRow title="Darstellung" description="„System“ folgt deinem Gerät." inline>
+            <SettingRow title={t.profile.appearance} description={t.profile.appearanceText} inline>
               <div className="w-64">
                 <SegmentedControl<ThemePreference>
-                  label="Farbschema"
+                  label={t.profile.colorScheme}
                   size="sm"
                   value={preference}
                   onChange={setPreference}
                   options={[
-                    { value: 'light', label: 'Hell' },
-                    { value: 'dark', label: 'Dunkel' },
-                    { value: 'system', label: 'System' },
+                    { value: 'light', label: t.profile.light },
+                    { value: 'dark', label: t.profile.dark },
+                    { value: 'system', label: t.profile.system },
                   ]}
                 />
               </div>
             </SettingRow>
             {isGuest ? (
-              <SettingRow title="Daten exportieren" description="Als CSV-Datei für Excel und Google Tabellen, mit eigenem Zugang." inline>
+              <SettingRow title={t.profile.exportData} description={t.profile.exportGuestText} inline>
                 <button
                   type="button"
                   onClick={() => gate.showUpgrade({ kind: 'export' })}
                   className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold text-muted transition hover:text-fg"
                 >
                   <Lock className="size-4" />
-                  Gesperrt
+                  {t.profile.locked}
                 </button>
               </SettingRow>
             ) : (
               <ExportRow bodyWeights={bodyWeights} />
             )}
+            <LanguageRow />
             <InstallRow />
-            <SettingRow title="Einführung" description="Die kurze Tour zu Tracker, Übungen, Level und Wochenziel." inline>
+            <SettingRow title={t.profile.intro} description={t.profile.introText} inline>
               <button
                 type="button"
                 onClick={replayOnboarding}
                 className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-fg hover:text-bg"
               >
                 <PlayCircle className="size-4" />
-                Ansehen
+                {t.profile.watch}
               </button>
             </SettingRow>
           </SettingsList>
         </ProfileSection>
 
         <p className="px-1 pt-2 text-center text-[12px] text-muted">
-          GymFlow mit {EXERCISES.length} Übungen im Katalog.{' '}
-          {isGuest ? 'Gastmodus, nur auf diesem Gerät' : repository.mode === 'firebase' ? 'Cloud-Sync aktiv' : 'Demo-Modus (lokal)'}
+          {t.profile.footer(EXERCISE_COUNT)}{' '}
+          {isGuest ? t.profile.footerGuest : repository.mode === 'firebase' ? t.profile.footerCloud : t.profile.footerDemo}
         </p>
       </div>
     </div>
@@ -142,6 +145,7 @@ function AccountCard() {
   const { signOut, sendPasswordReset } = useAuth()
   const toast = useToast()
   const [busy, setBusy] = useState<'reset' | 'signout' | null>(null)
+  const t = useT()
 
   const changePassword = async () => {
     setBusy('reset')
@@ -149,11 +153,11 @@ function AccountCard() {
       await sendPasswordReset(profile.email)
       toast({
         tone: 'success',
-        title: 'E-Mail ist unterwegs',
-        description: `Über den Link in der Mail an ${profile.email} legst du ein neues Passwort fest.`,
+        title: t.profile.mailSent,
+        description: t.profile.mailSentText(profile.email),
       })
     } catch (error) {
-      toast({ tone: 'error', title: 'E-Mail nicht gesendet', description: authErrorMessage(error) })
+      toast({ tone: 'error', title: t.profile.mailNotSent, description: authErrorMessage(error) })
     }
     setBusy(null)
   }
@@ -171,7 +175,7 @@ function AccountCard() {
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <ActionButton onClick={changePassword} busy={busy === 'reset'} icon={<KeyRound className="size-4.5" />}>
-          Passwort ändern
+          {t.profile.changePassword}
         </ActionButton>
         <ActionButton
           onClick={() => {
@@ -182,7 +186,7 @@ function AccountCard() {
           icon={<LogOut className="size-4.5" />}
           danger
         >
-          Abmelden
+          {t.profile.signOut}
         </ActionButton>
       </div>
     </section>
@@ -198,14 +202,15 @@ function GuestCard() {
   const { signOut, resetGuest } = useAuth()
   const gate = useGuestGate()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const t = useT()
 
   return (
     <section className="glass rounded-3xl p-4 sm:p-5">
       <div className="flex items-center gap-4">
         <UserAvatar user={profile} size="lg" />
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[19px] font-semibold tracking-tight">Gastmodus</h2>
-          <p className="text-[14px] text-muted">Ohne Zugang, deine Daten bleiben auf diesem Gerät.</p>
+          <h2 className="truncate text-[19px] font-semibold tracking-tight">{t.profile.guestMode}</h2>
+          <p className="text-[14px] text-muted">{t.profile.guestModeText}</p>
         </div>
       </div>
       <button
@@ -214,11 +219,11 @@ function GuestCard() {
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-[15px] font-semibold text-accent-ink transition active:scale-[0.98]"
       >
         <LogIn className="size-4.5" strokeWidth={2.5} />
-        Alles freischalten
+        {t.profile.unlockAll}
       </button>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         <ActionButton onClick={() => void signOut()} busy={false} icon={<LogOut className="size-4.5" />}>
-          Gastmodus beenden
+          {t.profile.endGuest}
         </ActionButton>
         <ActionButton
           onClick={() => (confirmDelete ? resetGuest() : setConfirmDelete(true))}
@@ -226,7 +231,7 @@ function GuestCard() {
           icon={<Trash2 className="size-4.5" />}
           danger
         >
-          {confirmDelete ? 'Wirklich alles löschen?' : 'Gast-Daten löschen'}
+          {confirmDelete ? t.profile.confirmDeleteGuest : t.profile.deleteGuestData}
         </ActionButton>
       </div>
     </section>
@@ -264,19 +269,20 @@ function ActionButton({
 /** The user's dumbbell weight: where new exercises start, so it needn't be typed every time. */
 function DumbbellRow() {
   const { user, profile } = useSession()
+  const t = useT()
   const toast = useToast()
 
   const save = (dumbbellKg: number | null) => {
     if (dumbbellKg === null || dumbbellKg === profile.dumbbellKg) return
     repository.saveProfile(user.uid, { dumbbellKg }).catch((error) =>
-      toast({ tone: 'error', title: 'Hantelgewicht nicht gespeichert', description: authErrorMessage(error) }),
+      toast({ tone: 'error', title: t.profile.dumbbellNotSaved, description: authErrorMessage(error) }),
     )
   }
 
   return (
-    <SettingRow title="Meine Kurzhanteln" description="Kilo je Hantel, mit denen neue Übungen starten. Pro Satz änderst du es im Tracker." inline>
+    <SettingRow title={t.profile.myDumbbells} description={t.profile.myDumbbellsText} inline>
       <div className="flex items-center gap-2">
-        <NumberStepper label="Gewicht je Hantel" value={profile.dumbbellKg} step={1} min={0.5} max={50} onChange={save} />
+        <NumberStepper label={t.profile.weightPerDumbbell} value={profile.dumbbellKg} step={1} min={0.5} max={50} onChange={save} />
         <span className="text-[14px] font-medium text-muted">kg</span>
       </div>
     </SettingRow>
@@ -286,11 +292,12 @@ function DumbbellRow() {
 /** Rest between sets; stored per device like the theme, so it needs no account field. */
 function RestRow() {
   const { restSeconds, setRestSeconds } = useRestTimer()
+  const t = useT()
   return (
-    <SettingRow title="Pausenzeit" description="Startet nach jedem abgehakten Satz. Während der Pause änderst du sie mit ±15 Sekunden." inline>
+    <SettingRow title={t.profile.restTime} description={t.profile.restTimeText} inline>
       <div className="flex items-center gap-2">
         <NumberStepper
-          label="Pausenzeit in Sekunden"
+          label={t.profile.restTimeSeconds}
           value={restSeconds}
           step={REST_STEP_SECONDS}
           min={MIN_REST_SECONDS}
@@ -306,18 +313,19 @@ function RestRow() {
 /** Pace of the training wave; stored per device like the rest time. */
 function WaveTempoRow() {
   const [tempo, setTempo] = useWaveTempo()
+  const t = useT()
   const phases = [
-    { key: 'liftSeconds', label: 'Heben' },
-    { key: 'lowerSeconds', label: 'Senken' },
+    { key: 'liftSeconds', label: t.profile.lift },
+    { key: 'lowerSeconds', label: t.profile.lower },
   ] as const
   return (
-    <SettingRow title="Trainingswelle" description="So viele Sekunden gibt die Welle fürs Heben und fürs Senken vor. Langsamer senken als heben ist sinnvoll, für Maximalkraft 1 Sekunde heben." inline>
+    <SettingRow title={t.profile.wave} description={t.profile.waveText} inline>
       <div className="grid gap-2">
         {phases.map(({ key, label }) => (
           <div key={key} className="flex items-center gap-2">
             <span className="w-14 text-[14px] font-medium text-muted">{label}</span>
             <NumberStepper
-              label={`${label} in Sekunden`}
+              label={t.profile.inSeconds(label)}
               value={tempo[key]}
               step={1}
               min={MIN_TEMPO_SECONDS}
@@ -335,13 +343,14 @@ function WaveTempoRow() {
 function InstallRow() {
   const install = useInstallState()
   const [installing, setInstalling] = useState(false)
+  const t = useT()
 
   return (
-    <SettingRow title="App installieren" description="GymFlow läuft auch als App vom Homescreen, im Vollbild und offline.">
+    <SettingRow title={t.profile.installApp} description={t.profile.installAppText}>
       {install.kind === 'installed' && (
         <p className="flex items-center gap-2 text-[14px] font-medium text-accent-fg">
           <Check className="size-4" strokeWidth={3} />
-          GymFlow ist als App installiert.
+          {t.profile.installed}
         </p>
       )}
       {install.kind === 'prompt' && (
@@ -356,21 +365,43 @@ function InstallRow() {
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-[15px] font-semibold text-accent-ink transition active:scale-[0.98]"
         >
           <Download className="size-4.5" strokeWidth={2.5} />
-          Als App installieren
+          {t.profile.installAsApp}
         </button>
       )}
       {install.kind === 'ios' && (
         <p className="flex items-start gap-2 rounded-xl bg-sunken p-4 text-[14px] leading-relaxed">
           <Share className="mt-0.5 size-4 shrink-0 text-accent-fg" />
-          In Safari unten auf „Teilen“ tippen und dann „Zum Home-Bildschirm“ wählen.
+          {t.profile.installIos}
         </p>
       )}
       {install.kind === 'unavailable' && (
         <p className="flex items-start gap-2 rounded-xl bg-sunken p-4 text-[14px] leading-relaxed text-muted">
           <Smartphone className="mt-0.5 size-4 shrink-0" />
-          Öffne GymFlow in Chrome, Edge oder Safari auf dem Handy, um es zum Homescreen hinzuzufügen.
+          {t.profile.installUnavailable}
         </p>
       )}
+    </SettingRow>
+  )
+}
+
+/** Each language in its own name, so it can be found whichever one is showing. */
+const LANGUAGE_NAMES: Record<Locale, string> = { de: 'Deutsch', en: 'English' }
+
+/** App language; stored per device like the theme. */
+function LanguageRow() {
+  const t = useT()
+  const locale = useLocale()
+  return (
+    <SettingRow title={t.profile.language} description={t.profile.languageText} inline>
+      <div className="w-64">
+        <SegmentedControl<Locale>
+          label={t.profile.language}
+          size="sm"
+          value={locale}
+          onChange={setLocale}
+          options={LOCALES.map((value) => ({ value, label: LANGUAGE_NAMES[value] }))}
+        />
+      </div>
     </SettingRow>
   )
 }

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { isExerciseLockedFor } from '../features/guest/guestGate'
 import { EXERCISE_ANIMATIONS } from '../features/exercises/animation/poses'
-import { EXERCISES } from './exercises'
+import { getExercises } from './exercises'
 import { GUEST_EXERCISE_IDS } from './guest'
+
+const EXERCISES = getExercises('de')
 
 describe('guest exercises', () => {
   it('are catalog exercises with an animation, none of them advanced', () => {

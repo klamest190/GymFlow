@@ -3,6 +3,8 @@ import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { haptic } from '../../hooks/useUi'
 import { easeOut, snap } from '../../lib/motion'
+import { useT } from '../../i18n'
+import { useLocale, type Locale } from '../../i18n/locale'
 
 interface NumberStepperProps {
   value: number | null
@@ -18,7 +20,7 @@ interface NumberStepperProps {
   size?: 'md' | 'lg'
 }
 
-const format = (value: number | null) => (value === null ? '' : String(value).replace('.', ','))
+const format = (value: number | null, locale: Locale) => (value === null ? '' : locale === 'de' ? String(value).replace('.', ',') : String(value))
 
 const SIZES = {
   md: {
@@ -39,7 +41,9 @@ export function NumberStepper({ value, onChange, step, min = 0, max = 9999, null
   const [scope, animate] = useAnimate<HTMLInputElement>()
   // Free text only while the field is being edited; otherwise always mirror `value`.
   const [draft, setDraft] = useState<string | null>(null)
-  const text = draft ?? format(value)
+  const t = useT()
+  const locale = useLocale()
+  const text = draft ?? format(value, locale)
   const styles = SIZES[size]
 
   const clamp = (next: number) => Math.min(max, Math.max(min, Math.round(next * 100) / 100))
@@ -76,7 +80,7 @@ export function NumberStepper({ value, onChange, step, min = 0, max = 9999, null
         className={buttonClass}
         onClick={() => nudge(-1)}
         disabled={value === null || (!nullable && value <= min)}
-        aria-label={`${label} verringern`}
+        aria-label={t.common.decrease(label)}
       >
         <Minus className={styles.icon} strokeWidth={3} />
       </m.button>
@@ -87,7 +91,7 @@ export function NumberStepper({ value, onChange, step, min = 0, max = 9999, null
         inputMode="decimal"
         aria-label={label}
         onFocus={(event) => {
-          setDraft(format(value))
+          setDraft(format(value, locale))
           event.target.select()
         }}
         onChange={(event) => setDraft(event.target.value)}
@@ -102,7 +106,7 @@ export function NumberStepper({ value, onChange, step, min = 0, max = 9999, null
         className={buttonClass}
         onClick={() => nudge(1)}
         disabled={value !== null && value >= max}
-        aria-label={`${label} erhöhen`}
+        aria-label={t.common.increase(label)}
       >
         <Plus className={styles.icon} strokeWidth={3} />
       </m.button>

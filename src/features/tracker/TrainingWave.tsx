@@ -6,6 +6,7 @@ import { haptic } from '../../hooks/useUi'
 import { useWakeLock } from '../../hooks/useWakeLock'
 import { snap } from '../../lib/motion'
 import { playCountdownTick, playWaveDone, playWaveStart, playWaveTurn, unlockAudio } from '../../lib/sound'
+import { useT, type Messages } from '../../i18n'
 import {
   completedReps,
   COUNTDOWN_SECONDS,
@@ -66,19 +67,20 @@ function WaveTrack({ plan, seconds, anchorSeconds }: { plan: WavePlan; seconds: 
   )
 }
 
-const tempoText = (plan: WavePlan) => {
+const tempoText = (plan: WavePlan, texts: Messages['tracker']) => {
   // No-break spaces: a narrow row wraps after the comma, never inside "3 s senken".
-  const lift = `${plan.tempo.liftSeconds}\u00A0s\u00A0heben`
-  const lower = `${plan.tempo.lowerSeconds}\u00A0s\u00A0senken`
+  const lift = texts.lift(plan.tempo.liftSeconds)
+  const lower = texts.lower(plan.tempo.lowerSeconds)
   return plan.lowersFirst ? `${lower}, ${lift}` : `${lift}, ${lower}`
 }
 
 /** The figure of the exercise in a small frame, moving with `seconds` of the wave. */
 function FigureFrame({ exercise, plan, seconds, className }: { exercise: WaveExercise; plan: WavePlan; seconds: MotionValue<number>; className: string }) {
+  const t = useT()
   return (
     <span className={`relative shrink-0 overflow-hidden rounded-xl bg-sunken ${className}`}>
       <Suspense fallback={null}>
-        <LazyWaveFigure exerciseId={exercise.id} plan={plan} seconds={seconds} label={`${exercise.name} im Tempo der Welle`} />
+        <LazyWaveFigure exerciseId={exercise.id} plan={plan} seconds={seconds} label={t.tracker.waveFigure(exercise.name)} />
       </Suspense>
     </span>
   )
@@ -97,6 +99,7 @@ export interface WaveExercise {
 export function WavePreview({ plan, exercise, onStart }: { plan: WavePlan; exercise?: WaveExercise; onStart: () => void }) {
   const seconds = useMotionValue(0)
   const demo = useMotionValue(0)
+  const t = useT()
   const demoPlan = useMemo(() => ({ ...plan, reps: 1 }), [plan])
   const reduceMotion = useReducedMotion()
   useAnimationFrame((time) => {
@@ -112,7 +115,7 @@ export function WavePreview({ plan, exercise, onStart }: { plan: WavePlan; exerc
         </div>
       </div>
       <div className="mt-1 flex items-center justify-between gap-3">
-        <p className="min-w-0 text-[13px] font-medium text-muted">{tempoText(plan)}</p>
+        <p className="min-w-0 text-[13px] font-medium text-muted">{tempoText(plan, t.tracker)}</p>
         <m.button
           type="button"
           whileTap={{ scale: 0.95 }}
@@ -127,7 +130,7 @@ export function WavePreview({ plan, exercise, onStart }: { plan: WavePlan; exerc
           className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-sunken px-4 text-[14px] font-semibold transition-colors hover:bg-fg hover:text-bg disabled:opacity-40 disabled:hover:bg-sunken disabled:hover:text-fg"
         >
           <Play className="size-4" strokeWidth={2.75} />
-          Welle starten
+          {t.tracker.startWave}
         </m.button>
       </div>
     </div>
@@ -176,6 +179,7 @@ export function WaveRun({
   onStop: (completedReps: number) => void
 }) {
   const seconds = useMotionValue(-COUNTDOWN_SECONDS)
+  const t = useT()
   const [moment, setMoment] = useState<WaveMoment>(() => waveMoment(plan, 0))
   const shown = useRef(moment)
   const finish = useRef(onFinish)
@@ -210,11 +214,11 @@ export function WaveRun({
   return (
     <div ref={panel} className="knurl my-2 rounded-xl border border-line p-3">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[13px] font-semibold">Satz {number}</span>
-        <span className="text-[13px] font-medium text-muted">{tempoText(plan)}</span>
+        <span className="text-[13px] font-semibold">{t.tracker.set(number)}</span>
+        <span className="text-[13px] font-medium text-muted">{tempoText(plan, t.tracker)}</span>
       </div>
       <div className="mt-2 flex items-center gap-3">
-        <p role="timer" aria-label={counting ? 'Start in Sekunden' : `Wiederholung ${rep} von ${plan.reps}`} className="numeral text-[49px] leading-none">
+        <p role="timer" aria-label={counting ? t.tracker.startsIn : t.tracker.repOf(rep, plan.reps)} className="numeral text-[49px] leading-none">
           {counting ? (
             moment.secondsLeft
           ) : (
@@ -226,7 +230,7 @@ export function WaveRun({
         </p>
         <div className="min-w-0">
           <p className="text-[16px] font-semibold">
-            {counting ? 'Position einnehmen' : moment.phase === 'lift' ? 'Heben' : moment.phase === 'lower' ? 'Senken' : 'Geschafft'}
+            {counting ? t.tracker.getReady : moment.phase === 'lift' ? t.tracker.phaseLift : moment.phase === 'lower' ? t.tracker.phaseLower : t.tracker.phaseDone}
           </p>
           {/* Breathing follows the effort: out while lifting, in while lowering. */}
           <p className="text-[14px] font-medium text-muted">
@@ -250,7 +254,7 @@ export function WaveRun({
         className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-sunken py-3.5 text-[15px] font-semibold transition-colors hover:bg-fg hover:text-bg"
       >
         <Square className="size-4" strokeWidth={2.75} />
-        {counting ? 'Abbrechen' : 'Vorzeitig beenden'}
+        {counting ? t.common.cancel : t.tracker.endEarly}
       </m.button>
     </div>
   )

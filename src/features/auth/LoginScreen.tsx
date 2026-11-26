@@ -7,6 +7,7 @@ import { Wordmark } from '../../components/ui/Wordmark'
 import { GUEST_EXERCISE_IDS } from '../../data/guest'
 import { fade } from '../../lib/motion'
 import { repository } from '../../services/repository'
+import { setLocale, useLocale, useT } from '../../i18n'
 
 type Mode = 'login' | 'reset' | 'reset-sent'
 
@@ -20,6 +21,7 @@ export function LoginScreen() {
   // Username or e-mail, shared by the login and reset forms.
   const [login, setLogin] = useState('')
   const { startGuest } = useAuth()
+  const t = useT()
 
   return (
     <div className="relative min-h-dvh overflow-hidden">
@@ -32,13 +34,13 @@ export function LoginScreen() {
               <div className="glass size-24 shrink-0 overflow-hidden rounded-2xl">
                 <div className="size-full bg-sunken">
                   <Suspense fallback={null}>
-                    <ExerciseAnimation exerciseId="military-press" compact label="Schulterdrücken mit zwei Kurzhanteln" />
+                    <ExerciseAnimation exerciseId="military-press" compact label={t.auth.figureLabel} />
                   </Suspense>
                 </div>
               </div>
               <div className="min-w-0">
                 <Wordmark size="lg" />
-                <p className="mt-2 text-[15px] text-muted">Dein Training. Präzise erfasst.</p>
+                <p className="mt-2 text-[15px] text-muted">{t.auth.tagline}</p>
               </div>
             </div>
 
@@ -63,24 +65,25 @@ export function LoginScreen() {
             </div>
 
             <div className="mt-6 text-center">
-              <p className="text-[13px] text-muted">Noch keinen Zugang? GymFlow ist ein geschlossenes System. Zugänge vergibt dein Admin.</p>
+              <p className="text-[13px] text-muted">{t.auth.noAccount}</p>
               <button
                 type="button"
                 onClick={startGuest}
                 className="group mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-line py-3.5 text-[15px] font-semibold transition hover:bg-sunken active:scale-[0.98]"
               >
-                Als Gast ausprobieren
+                {t.auth.tryAsGuest}
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2.5} />
               </button>
               <p className="mt-2 text-[12px] text-muted">
-                {GUEST_EXERCISE_IDS.size} Übungen ohne Anmeldung, gespeichert nur auf diesem Gerät.
+                {t.auth.guestHint(GUEST_EXERCISE_IDS.size)}
               </p>
             </div>
             {repository.mode === 'local' && (
               <p className="mt-3 rounded-xl bg-sunken px-4 py-3 text-center text-[12px] text-muted">
-                Demo-Modus: Die erste Anmeldung mit beliebigem Benutzernamen oder E-Mail wird Admin. Passwörter werden nicht geprüft.
+                {t.auth.demoHint}
               </p>
             )}
+            <LanguageSwitch />
           </div>
         </main>
       </div>
@@ -98,6 +101,7 @@ function Panel({ children }: { children: ReactNode }) {
 
 function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginChange: (login: string) => void; onForgot: () => void }) {
   const { signIn } = useAuth()
+  const t = useT()
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -119,18 +123,18 @@ function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginC
 
   return (
     <form onSubmit={submit} noValidate>
-      <h1 className="headline text-[39px]">Anmelden</h1>
-      <p className="mt-1 text-[15px] text-muted">Mit dem Zugang, den dir dein Admin gegeben hat.</p>
+      <h1 className="headline text-[39px]">{t.auth.signIn}</h1>
+      <p className="mt-1 text-[15px] text-muted">{t.auth.signInHint}</p>
 
       <div className="mt-7 space-y-3">
         <LoginField value={login} onChange={onLoginChange} />
-        <Field icon={Lock} label="Passwort">
+        <Field icon={Lock} label={t.auth.password}>
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
-            placeholder="Passwort"
+            placeholder={t.auth.password}
             required
             className="w-full bg-transparent py-3.5 text-[16px] outline-none placeholder:text-muted/70"
           />
@@ -138,7 +142,7 @@ function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginC
             type="button"
             onClick={() => setShowPassword((value) => !value)}
             className="grid size-9 shrink-0 place-items-center rounded-full text-muted transition hover:bg-surface-solid hover:text-fg"
-            aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+            aria-label={showPassword ? t.auth.hidePassword : t.auth.showPassword}
           >
             {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
           </button>
@@ -147,7 +151,7 @@ function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginC
 
       <div className="mt-3 flex justify-end">
         <button type="button" onClick={onForgot} className="text-[14px] font-semibold text-accent-fg transition hover:opacity-80">
-          Passwort vergessen?
+          {t.auth.forgotPassword}
         </button>
       </div>
 
@@ -159,7 +163,7 @@ function LoginForm({ login, onLoginChange, onForgot }: { login: string; onLoginC
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-4 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
       >
         {busy && <LoaderCircle className="size-5 animate-spin" />}
-        {busy ? 'Anmelden …' : 'Anmelden'}
+        {busy ? t.auth.signingIn : t.auth.signIn}
       </button>
     </form>
   )
@@ -177,6 +181,7 @@ function ResetForm({
   onSent: () => void
 }) {
   const { sendPasswordReset } = useAuth()
+  const t = useT()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -199,9 +204,9 @@ function ResetForm({
   return (
     <form onSubmit={submit} noValidate>
       <BackButton onClick={onBack} />
-      <h1 className="headline mt-4 text-[39px]">Passwort zurücksetzen</h1>
+      <h1 className="headline mt-4 text-[39px]">{t.auth.resetTitle}</h1>
       <p className="mt-1 text-[15px] text-muted">
-        Wir schicken einen Link an die hinterlegte E-Mail-Adresse, mit dem du ein neues Passwort festlegst.
+        {t.auth.resetHint}
       </p>
       <div className="mt-7">
         <LoginField value={login} onChange={onLoginChange} />
@@ -213,29 +218,29 @@ function ResetForm({
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-4 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
       >
         {busy && <LoaderCircle className="size-5 animate-spin" />}
-        Link senden
+        {t.auth.sendLink}
       </button>
     </form>
   )
 }
 
 function ResetSent({ login, onBack }: { login: string; onBack: () => void }) {
+  const t = useT()
   return (
     <div className="text-center">
       <span className="mx-auto grid size-16 place-items-center rounded-full bg-accent text-accent-ink">
         <MailCheck className="size-7" strokeWidth={2.25} />
       </span>
-      <h1 className="headline mt-5 text-[31px]">Prüfe dein Postfach</h1>
+      <h1 className="headline mt-5 text-[31px]">{t.auth.checkInbox}</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
-        Falls für <span className="font-semibold text-fg">{login.trim()}</span> ein Zugang existiert, ist der Link an die
-        hinterlegte E-Mail-Adresse unterwegs. Schau auch im Spam-Ordner nach.
+        {t.auth.resetSentBefore}<span className="font-semibold text-fg">{login.trim()}</span>{t.auth.resetSentAfter}
       </p>
       <button
         type="button"
         onClick={onBack}
         className="mt-6 w-full rounded-xl bg-sunken py-3.5 text-[15px] font-semibold transition hover:bg-surface-solid"
       >
-        Zurück zur Anmeldung
+        {t.auth.backToSignIn}
       </button>
     </div>
   )
@@ -243,8 +248,9 @@ function ResetSent({ login, onBack }: { login: string; onBack: () => void }) {
 
 /** Username or e-mail. Plain text input, so mobile keyboards don't force e-mail mode or capitalize. */
 function LoginField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const t = useT()
   return (
-    <Field icon={value.includes('@') ? Mail : CircleUser} label="Benutzername oder E-Mail">
+    <Field icon={value.includes('@') ? Mail : CircleUser} label={t.auth.login}>
       <input
         type="text"
         value={value}
@@ -253,7 +259,7 @@ function LoginField({ value, onChange }: { value: string; onChange: (value: stri
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
-        placeholder="Benutzername oder E-Mail"
+        placeholder={t.auth.login}
         required
         autoFocus
         className="w-full bg-transparent py-3.5 text-[16px] outline-none placeholder:text-muted/70"
@@ -291,34 +297,55 @@ function FormError({ message }: { message: string | null }) {
 }
 
 function BackButton({ onClick }: { onClick: () => void }) {
+  const t = useT()
   return (
     <button type="button" onClick={onClick} className="-ml-1 flex items-center gap-1 text-[14px] font-semibold text-muted transition hover:text-fg">
       <ArrowLeft className="size-4" strokeWidth={2.5} />
-      Zurück
+      {t.auth.back}
     </button>
   )
 }
 
 /** Desktop-only brand side: the dumbbell figure pressing overhead, and what the app is for. */
 function BrandPanel() {
+  const t = useT()
   return (
     <aside className="hidden flex-col justify-center py-12 lg:flex">
       <Wordmark />
       <div className="glass mt-10 aspect-[4/3] w-full max-w-[460px] overflow-hidden rounded-3xl">
         <div className="size-full bg-sunken">
           <Suspense fallback={null}>
-            <ExerciseAnimation exerciseId="military-press" label="Schulterdrücken mit zwei Kurzhanteln" />
+            <ExerciseAnimation exerciseId="military-press" label={t.auth.figureLabel} />
           </Suspense>
         </div>
       </div>
       <h2 className="headline mt-10 text-[61px]">
-        Dein Training.
+        {t.auth.taglineFirst}
         <br />
-        Präzise erfasst.
+        {t.auth.taglineSecond}
       </h2>
       <p className="mt-4 max-w-sm text-[17px] leading-relaxed text-muted">
-        Sätze, Wiederholungen und Gewicht je Hantel festhalten und sehen, wie du stärker wirst. Zugang nur auf Einladung.
+        {t.auth.pitch}
       </p>
     </aside>
+  )
+}
+
+/** Before signing in there is no profile page yet, so the login screen offers the other language. */
+function LanguageSwitch() {
+  const t = useT()
+  const locale = useLocale()
+  return (
+    <div className="mt-4 text-center">
+      <button
+        type="button"
+        onClick={() => setLocale(locale === 'de' ? 'en' : 'de')}
+        lang={locale === 'de' ? 'en' : 'de'}
+        aria-label={t.shell.switchLanguageLabel}
+        className="rounded-lg px-3 py-1.5 text-[13px] font-semibold text-muted transition hover:bg-sunken hover:text-fg"
+      >
+        {t.shell.switchLanguage}
+      </button>
+    </div>
   )
 }

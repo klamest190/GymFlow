@@ -9,15 +9,19 @@ import { parseWeight, weightChartPoints, weightTrend } from '../../lib/bodyWeigh
 import { repository } from '../../services/repository'
 import type { BodyWeightEntry } from '../../types/models'
 import { Card } from './ProfileCard'
+import { useT } from '../../i18n'
+import { numberFormat } from '../../i18n/format'
 
 const CHART_WIDTH = 300
 const CHART_HEIGHT = 84
-const kg = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+/** Body weight always with one decimal ("82,0"), so the figure doesn't jump between entries. */
+const formatWeight = (value: number) => numberFormat({ minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)
 
 /** Today's weigh-in, the change over ~30 days and a 90-day line. */
 export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null }) {
   const userId = useUserId()
   const toast = useToast()
+  const t = useT()
   const today = todayKey()
   const todayEntry = entries?.find((entry) => entry.date === today) ?? null
   const [input, setInput] = useState('')
@@ -35,7 +39,7 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
       await repository.saveBodyWeight(userId, today, parsed)
       setInput('')
     } catch (error) {
-      toast({ tone: 'error', title: 'Gewicht nicht gespeichert', description: authErrorMessage(error) })
+      toast({ tone: 'error', title: t.profile.weightNotSaved, description: authErrorMessage(error) })
     }
     setSaving(false)
   }
@@ -43,10 +47,10 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
   const removeToday = () =>
     repository
       .deleteBodyWeight(userId, today)
-      .catch((error) => toast({ tone: 'error', title: 'Löschen fehlgeschlagen', description: authErrorMessage(error) }))
+      .catch((error) => toast({ tone: 'error', title: t.profile.deleteFailed, description: authErrorMessage(error) }))
 
   return (
-    <Card title="Körpergewicht" description="Einmal pro Tag eintragen, am besten morgens. Ein zweiter Eintrag am selben Tag ersetzt den ersten.">
+    <Card title={t.profile.bodyWeight} description={t.profile.bodyWeightText}>
       {entries === null ? (
         <div className="skeleton h-32 rounded-2xl" />
       ) : (
@@ -55,7 +59,7 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="numeral text-[39px] leading-none">
-                  {kg.format(trend.latest.weightKg)}
+                  {formatWeight(trend.latest.weightKg)}
                   <span className="ml-1 text-[20px] text-muted">kg</span>
                 </p>
                 <p className="mt-1 text-[13px] text-muted">{formatDaysAgo(trend.latest.date)}</p>
@@ -68,7 +72,7 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
 
           <form onSubmit={save} className="mt-4 flex gap-2">
             <label htmlFor={inputId} className="sr-only">
-              Gewicht heute in kg
+              {t.profile.weightToday}
             </label>
             <div className="flex min-w-0 flex-1 items-center rounded-xl bg-sunken pr-4 ring-fg/40 focus-within:ring-2">
               <input
@@ -76,7 +80,7 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 inputMode="decimal"
-                placeholder={todayEntry ? `Heute: ${kg.format(todayEntry.weightKg)}` : 'z. B. 82,4'}
+                placeholder={todayEntry ? t.profile.todayValue(formatWeight(todayEntry.weightKg)) : t.profile.weightPlaceholder}
                 className="min-w-0 flex-1 bg-transparent px-4 py-3 text-[16px] outline-none placeholder:text-muted/70"
               />
               <span className="text-[14px] font-semibold text-muted">kg</span>
@@ -87,13 +91,13 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
               className="flex items-center gap-2 rounded-xl bg-accent px-4 text-[15px] font-semibold text-accent-ink transition active:scale-95 disabled:opacity-40 disabled:shadow-none"
             >
               {saving ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" strokeWidth={3} />}
-              {todayEntry ? 'Ersetzen' : 'Speichern'}
+              {todayEntry ? t.profile.replace : t.profile.save}
             </button>
           </form>
-          {input.trim() !== '' && parsed === null && <p className="mt-1.5 px-1 text-[13px] font-medium text-danger">Bitte ein Gewicht zwischen 20 und 400 kg eingeben.</p>}
+          {input.trim() !== '' && parsed === null && <p className="mt-1.5 px-1 text-[13px] font-medium text-danger">{t.profile.weightRange}</p>}
           {todayEntry && (
             <button type="button" onClick={removeToday} className="mt-2 px-1 text-[13px] font-semibold text-muted transition hover:text-danger">
-              Heutigen Eintrag löschen
+              {t.profile.deleteToday}
             </button>
           )}
         </>
@@ -104,12 +108,13 @@ export function BodyWeightCard({ entries }: { entries: BodyWeightEntry[] | null 
 
 /** Up or down, with icon and sign; weight change isn't "good" or "bad" per se, so no colors. */
 function Change({ change, days }: { change: number; days: number }) {
+  const t = useT()
   const Icon = change > 0 ? TrendingUp : change < 0 ? TrendingDown : Minus
   return (
     <p className="flex items-center gap-1.5 rounded-full bg-sunken px-3 py-1.5 text-[13px] font-semibold tabular-nums">
       <Icon className="size-3.5" strokeWidth={2.75} />
       {change > 0 ? '+' : ''}
-      {kg.format(change)} kg in {days} {days === 1 ? 'Tag' : 'Tagen'}
+      {t.profile.changeInDays(formatWeight(change), days)}
     </p>
   )
 }
@@ -117,10 +122,11 @@ function Change({ change, days }: { change: number; days: number }) {
 function WeightChart({ entries, today }: { entries: BodyWeightEntry[]; today: string }) {
   const points = weightChartPoints(entries, today, CHART_WIDTH, CHART_HEIGHT)
   const gradientId = useId()
+  const t = useT()
   if (points.length === 0) {
     return (
       <p className="mt-4 rounded-xl bg-sunken px-4 py-3.5 text-[13px] text-muted">
-        {entries.length === 0 ? 'Noch keine Einträge. Trag dein Gewicht unten ein.' : 'Ab zwei Einträgen erscheint hier dein Verlauf der letzten 90 Tage.'}
+        {entries.length === 0 ? t.profile.noEntries : t.profile.twoEntries}
       </p>
     )
   }
@@ -129,7 +135,7 @@ function WeightChart({ entries, today }: { entries: BodyWeightEntry[]; today: st
   const last = points.at(-1)!
   return (
     <figure className="mt-4">
-      <svg viewBox={`-4 -6 ${CHART_WIDTH + 8} ${CHART_HEIGHT + 12}`} className="h-24 w-full" preserveAspectRatio="none" role="img" aria-label="Gewichtsverlauf der letzten 90 Tage">
+      <svg viewBox={`-4 -6 ${CHART_WIDTH + 8} ${CHART_HEIGHT + 12}`} className="h-24 w-full" preserveAspectRatio="none" role="img" aria-label={t.profile.weightChart}>
         <defs>
           <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="var(--figure-highlight)" stopOpacity="0.35" />
@@ -163,7 +169,7 @@ function WeightChart({ entries, today }: { entries: BodyWeightEntry[]; today: st
       </svg>
       <figcaption className="mt-1 flex justify-between text-[11px] text-muted tabular-nums">
         <span>{formatDayMonth(points[0].entry.date)}</span>
-        <span>{points.length} Einträge</span>
+        <span>{t.profile.entries(points.length)}</span>
         <span>{formatDayMonth(last.entry.date)}</span>
       </figcaption>
     </figure>

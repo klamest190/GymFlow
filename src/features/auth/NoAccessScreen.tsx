@@ -2,25 +2,19 @@ import { m } from 'framer-motion'
 import { LogOut, ShieldOff, UserX } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../auth/authContext'
+import { useT, type Messages } from '../../i18n'
 import type { NoAccessReason } from '../../types/models'
 
-const COPY: Record<NoAccessReason, { title: string; text: string; icon: typeof ShieldOff }> = {
-  disabled: {
-    title: 'Zugang gesperrt',
-    text: 'Dein Konto wurde vom Admin deaktiviert. Wende dich an ihn, wenn du wieder trainieren möchtest.',
-    icon: ShieldOff,
-  },
-  'missing-profile': {
-    title: 'Kein Zugang',
-    text: 'Für diesen Login gibt es kein aktives GymFlow-Konto. Zugänge werden ausschließlich vom Admin vergeben.',
-    icon: UserX,
-  },
+const COPY: Record<NoAccessReason, (texts: Messages['auth']) => { title: string; text: string; icon: typeof ShieldOff }> = {
+  disabled: (texts) => ({ title: texts.disabledTitle, text: texts.disabledText, icon: ShieldOff }),
+  'missing-profile': (texts) => ({ title: texts.missingTitle, text: texts.missingText, icon: UserX }),
 }
 
 export function NoAccessScreen({ email, reason }: { email: string | null; reason: NoAccessReason }) {
   const { signOut } = useAuth()
   const [busy, setBusy] = useState(false)
-  const { title, text, icon: Icon } = COPY[reason]
+  const t = useT()
+  const { title, text, icon: Icon } = COPY[reason](t.auth)
 
   return (
     <div className="grid min-h-dvh place-items-center p-4">
@@ -45,7 +39,7 @@ export function NoAccessScreen({ email, reason }: { email: string | null; reason
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-fg py-3.5 text-[15px] font-semibold text-bg transition active:scale-[0.98] disabled:opacity-60"
         >
           <LogOut className="size-4.5" />
-          Abmelden
+          {t.auth.signOut}
         </button>
       </m.div>
     </div>

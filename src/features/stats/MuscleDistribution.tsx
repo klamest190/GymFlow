@@ -1,7 +1,9 @@
 import { m } from 'framer-motion'
 import { useState } from 'react'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
-import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
+import { MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
+import { useT, type Messages } from '../../i18n'
+import { formatNumber } from '../../i18n/format'
 import { addDays, todayKey } from '../../lib/dates'
 import { muscleDistribution } from '../../lib/stats'
 import type { WorkoutLog } from '../../types/models'
@@ -12,7 +14,6 @@ import { settle } from '../../lib/motion'
 type Range = '7' | '30' | '90'
 type Scope = 'primary' | 'all'
 
-const decimal = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 })
 
 /**
  * Sets per muscle group as sorted horizontal bars. Up to twelve groups is too many for a
@@ -20,6 +21,7 @@ const decimal = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 })
  */
 export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; className?: string }) {
   const theme = useChartTheme()
+  const t = useT()
   const [range, setRange] = useState<Range>('30')
   const [scope, setScope] = useState<Scope>('all')
   const rows = muscleDistribution(logs, addDays(todayKey(), -(Number(range) - 1)), scope === 'all')
@@ -27,20 +29,20 @@ export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; cl
 
   return (
     <ChartCard
-      title="Muskelgruppen"
-      subtitle={scope === 'all' ? 'Sätze pro Muskelgruppe, Hilfsmuskeln zählen halb' : 'Sätze pro Muskelgruppe, nur der Hauptmuskel'}
+      title={t.stats.muscleGroups}
+      subtitle={scope === 'all' ? t.stats.setsHalfSecondary : t.stats.setsPrimaryOnly}
       className={className}
-      actions={<SegmentedControl label="Zeitraum" size="sm" value={range} onChange={setRange} options={RANGE_OPTIONS} />}
+      actions={<SegmentedControl label={t.stats.range} size="sm" value={range} onChange={setRange} options={rangeOptions(t)} />}
     >
       {rows.length === 0 ? (
-        <ChartEmpty>Keine Trainings in den letzten {range} Tagen.</ChartEmpty>
+        <ChartEmpty>{t.stats.noTrainingInDays(range)}</ChartEmpty>
       ) : (
         <ul className="flex-1 space-y-2.5">
           {rows.map((row) => (
             <li key={row.muscle} className="grid grid-cols-[96px_1fr_auto] items-center gap-3 text-[13px]">
               <span className="flex min-w-0 items-center gap-1.5 font-medium">
                 <span className={`size-2 shrink-0 rounded-full ${MUSCLE_GROUP_TINTS[row.muscle]}`} />
-                <span className="truncate">{MUSCLE_GROUP_LABELS[row.muscle]}</span>
+                <span className="truncate">{t.catalog.muscles[row.muscle]}</span>
               </span>
               <span className="h-2.5 overflow-hidden rounded-full bg-sunken">
                 <m.span
@@ -52,7 +54,7 @@ export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; cl
                 />
               </span>
               <span className="w-[76px] text-right tabular-nums text-muted">
-                <span className="font-semibold text-fg">{decimal.format(row.sets)}</span> ({Math.round(row.share * 100)} %)
+                <span className="font-semibold text-fg">{formatNumber(row.sets, 1)}</span> ({t.common.percent(Math.round(row.share * 100))})
               </span>
             </li>
           ))}
@@ -60,13 +62,13 @@ export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; cl
       )}
       <div className="mt-4">
         <SegmentedControl
-          label="Muskeln"
+          label={t.stats.muscles}
           size="sm"
           value={scope}
           onChange={setScope}
           options={[
-            { value: 'primary', label: 'Nur Hauptmuskel' },
-            { value: 'all', label: 'Inkl. Hilfsmuskeln' },
+            { value: 'primary', label: t.stats.primaryOnly },
+            { value: 'all', label: t.stats.withSecondary },
           ]}
         />
       </div>
@@ -74,8 +76,8 @@ export function MuscleDistribution({ logs, className }: { logs: WorkoutLog[]; cl
   )
 }
 
-const RANGE_OPTIONS: { value: Range; label: string }[] = [
-  { value: '7', label: '7 T' },
-  { value: '30', label: '30 T' },
-  { value: '90', label: '90 T' },
+const rangeOptions = (t: Messages): { value: Range; label: string }[] => [
+  { value: '7', label: t.stats.days('7') },
+  { value: '30', label: t.stats.days('30') },
+  { value: '90', label: t.stats.days('90') },
 ]

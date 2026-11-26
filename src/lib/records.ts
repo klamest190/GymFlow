@@ -1,3 +1,5 @@
+import { messages } from '../i18n'
+import { formatKg } from '../i18n/format'
 import type { DateKey, WorkoutLog } from '../types/models'
 
 /** Heaviest set for weighted exercises, most reps in one set for bodyweight exercises. */
@@ -79,7 +81,5 @@ export function detectNewRecords(previous: Map<string, PersonalRecord>, next: Ma
   return found
 }
 
-const kg = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 })
-
 /** "62,5 kg" or "15 Wdh." */
-export const formatRecordValue = (kind: RecordKind, value: number) => (kind === 'weight' ? `${kg.format(value)} kg` : `${value} Wdh.`)
+export const formatRecordValue = (kind: RecordKind, value: number) => (kind === 'weight' ? formatKg(value) : messages().common.repsValue(value))

@@ -1,8 +1,7 @@
 import { AnimatePresence, m } from 'framer-motion'
 import { CalendarDays, CloudCheck, CloudOff, LayoutList, LoaderCircle, Lock, Moon, Plus, Sun } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
-import { EXERCISES, getExercise } from '../../data/exercises'
-import { REGION_LABELS } from '../../data/muscleGroups'
+import { exerciseName, getExercise, getExercises } from '../../data/exercises'
 import { Loadable } from '../../components/ui/Loadable'
 import { useToast } from '../../components/ui/toastContext'
 import { useLogsInRange } from '../../hooks/useData'
@@ -10,7 +9,7 @@ import { useDayDraft, type SyncState } from '../../hooks/useDayDraft'
 import { useSession } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
 import { settle, snap } from '../../lib/motion'
-import { formatDaysAgo, formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
+import { daysBetween, formatDaysAgo, formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
 import { buildExerciseHistory } from '../../lib/exerciseHistory'
 import { lastSessionBefore, nextPlannedSet } from '../../lib/plannedSet'
 import { suggestRegion, type RegionSuggestion } from '../../lib/regionSuggestion'
@@ -28,6 +27,7 @@ import { ExercisePicker } from './ExercisePicker'
 import { TemplateSheet } from './TemplateSheet'
 import { WeekStrip } from './WeekStrip'
 import { WeeklyRecapCard } from './WeeklyRecapCard'
+import { useT, type Messages } from '../../i18n'
 
 /**
  * Daily Workout Tracker: pick a day (today or any past day), add exercises from
@@ -43,6 +43,8 @@ export function DailyTracker() {
   const toast = useToast()
   const gamification = useGamification()
   const gate = useGuestGate()
+  const t = useT()
+  const exercises = getExercises()
   // Guests get no templates: the buttons show a lock and explain it.
   const openTemplates = () => (gate.isGuest ? gate.showUpgrade({ kind: 'templates' }) : setTemplatesOpen(true))
   const TemplateIcon = gate.isGuest ? Lock : LayoutList
@@ -78,7 +80,7 @@ export function DailyTracker() {
 
   // Rest only between sets done right now, not while catching up on an earlier day.
   const startRest = (entry: WorkoutEntry, setNumber: number) => {
-    if (isToday) restTimer.start(`Pause nach Satz ${setNumber}, ${entry.exerciseName}`)
+    if (isToday) restTimer.start(t.tracker.restLabel(setNumber, exerciseName(entry.exerciseId, entry.exerciseName)))
   }
 
   // Appends the template's exercises without sets; exercises already on the day stay as they are.
@@ -98,24 +100,24 @@ export function DailyTracker() {
     })
     setTemplatesOpen(false)
     if (added.length === 0) {
-      toast({ tone: 'info', title: 'Schon eingetragen', description: `Alle Übungen aus „${template.name}“ sind an diesem Tag bereits drin.` })
+      toast({ tone: 'info', title: t.tracker.alreadyAddedTitle, description: t.tracker.alreadyAdded(template.name) })
       return
     }
     // Only the first exercise opens its set: that's where the workout starts, and several open cards would crowd the screen.
     openFirstSet(added[0])
     update((current) => [...current, ...added])
-    toast({ tone: 'success', title: `„${template.name}“ eingetragen`, description: `${added.length} ${added.length === 1 ? 'Übung' : 'Übungen'} hinzugefügt.` })
+    toast({ tone: 'success', title: t.tracker.templateApplied(template.name), description: t.tracker.exercisesAdded(added.length) })
   }
 
-  const suggestions = EXERCISES.filter((exercise) => !addedIds.has(exercise.id) && !gate.isLocked(exercise.id)).slice(0, 5)
+  const suggestions = exercises.filter((exercise) => !addedIds.has(exercise.id) && !gate.isLocked(exercise.id)).slice(0, 5)
   // An empty day today suggests the body region that has waited longest.
   const regionSuggestion = isToday
-    ? suggestRegion(gamification?.logs ?? [], EXERCISES.filter((exercise) => !gate.isLocked(exercise.id)), date)
+    ? suggestRegion(gamification?.logs ?? [], exercises.filter((exercise) => !gate.isLocked(exercise.id)), date)
     : null
   const applySuggestion = (suggestion: RegionSuggestion) =>
     applyTemplate({
       id: `suggestion-${suggestion.region}`,
-      name: REGION_LABELS[suggestion.region],
+      name: t.catalog.regions[suggestion.region],
       exercises: suggestion.exercises.map((exercise) => ({ exerciseId: exercise.id, sets: [] })),
       createdAt: 0,
     })
@@ -136,7 +138,7 @@ export function DailyTracker() {
         <div className="space-y-4 lg:col-start-1 lg:row-start-1">
           <div className="flex items-center justify-between px-1 pt-2">
             <h2 className="headline text-[31px]">
-              Übungen
+              {t.tracker.exercises}
               <span className="numeral ml-2 text-[20px] text-muted">{entries.length}</span>
             </h2>
             <div className="flex items-center gap-2">
@@ -146,7 +148,7 @@ export function DailyTracker() {
                 className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-surface-solid active:scale-95"
               >
                 <TemplateIcon className="size-4" strokeWidth={2.5} />
-                Vorlagen
+                {t.tracker.templates}
               </button>
               <button
                 type="button"
@@ -154,7 +156,7 @@ export function DailyTracker() {
                 className={`hidden items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[14px] font-semibold text-accent-ink transition hover:brightness-105 active:scale-95 ${entries.length > 0 ? 'lg:flex' : ''}`}
               >
                 <Plus className="size-4" strokeWidth={3} />
-                Übung hinzufügen
+                {t.tracker.addExercise}
               </button>
             </div>
           </div>
@@ -201,7 +203,7 @@ export function DailyTracker() {
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-4 text-[15px] font-semibold text-accent-ink lg:hidden"
             >
               <Plus className="size-5" strokeWidth={3} />
-              Übung hinzufügen
+              {t.tracker.addExercise}
             </m.button>
           )}
         </div>
@@ -212,7 +214,7 @@ export function DailyTracker() {
             {hasSets && <DaySummary entries={entries} pendingXP={isToday ? (gamification?.pendingXP ?? 0) : 0} />}
             {suggestions.length > 0 && (
               <section className="hidden border-t border-line px-1 pt-5 lg:block">
-                <h2 className="text-[14px] font-semibold text-muted">Schnell hinzufügen</h2>
+                <h2 className="text-[14px] font-semibold text-muted">{t.tracker.quickAdd}</h2>
                 <ul className="-mx-3 mt-2">
                   {suggestions.map((exercise) => (
                     <li key={exercise.id}>
@@ -225,7 +227,7 @@ export function DailyTracker() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[15px] font-semibold tracking-tight">{exercise.name}</span>
                           <span className="text-[12px] text-muted tabular-nums">
-                            Empfohlen: {exercise.defaultSets} × {exercise.defaultReps}
+                            {t.tracker.recommended(exercise.defaultSets, exercise.defaultReps)}
                           </span>
                         </span>
                         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken transition group-hover:bg-fg group-hover:text-bg">
@@ -240,7 +242,7 @@ export function DailyTracker() {
                   onClick={() => setPickerOpen(true)}
                   className="mt-2 text-[14px] font-semibold text-muted underline-offset-4 transition hover:text-fg hover:underline"
                 >
-                  Gesamten Katalog öffnen
+                  {t.tracker.openCatalog}
                 </button>
               </section>
             )}
@@ -251,7 +253,7 @@ export function DailyTracker() {
       <ExercisePicker
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        exercises={EXERCISES}
+        exercises={exercises}
         addedIds={addedIds}
         onAdd={addExercise}
       />
@@ -263,6 +265,7 @@ export function DailyTracker() {
 function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDateChange: (date: DateKey) => void; syncState: SyncState }) {
   const dateInput = useRef<HTMLInputElement>(null)
   const { isDark, toggle } = useTheme()
+  const t = useT()
 
   return (
     <header className="flex items-end justify-between gap-4">
@@ -287,7 +290,7 @@ function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDat
           type="button"
           onClick={toggle}
           className="grid size-10 place-items-center rounded-xl bg-sunken text-muted transition hover:text-fg active:scale-90 lg:hidden"
-          aria-label="Farbschema wechseln"
+          aria-label={t.tracker.toggleTheme}
         >
           {isDark ? <Moon className="size-4.5" /> : <Sun className="size-4.5" />}
         </button>
@@ -295,7 +298,7 @@ function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDat
           type="button"
           onClick={() => dateInput.current?.showPicker()}
           className="relative grid size-10 place-items-center rounded-xl bg-sunken text-muted transition hover:text-fg active:scale-90"
-          aria-label="Datum wählen"
+          aria-label={t.tracker.pickDate}
         >
           <CalendarDays className="size-4.5" />
           <input
@@ -315,17 +318,18 @@ function TrackerHeader({ date, onDateChange, syncState }: { date: DateKey; onDat
 }
 
 function SyncBadge({ state }: { state: SyncState }) {
+  const t = useT()
   if (state === 'idle') return null
   const config = {
-    pending: { icon: LoaderCircle, label: 'Speichert', spin: true },
-    saving: { icon: LoaderCircle, label: 'Speichert', spin: true },
-    saved: { icon: CloudCheck, label: 'Gespeichert', spin: false },
-    error: { icon: CloudOff, label: 'Fehler', spin: false },
+    pending: { icon: LoaderCircle, label: t.tracker.sync.pending, spin: true },
+    saving: { icon: LoaderCircle, label: t.tracker.sync.saving, spin: true },
+    saved: { icon: CloudCheck, label: t.tracker.sync.saved, spin: false },
+    error: { icon: CloudOff, label: t.tracker.sync.error, spin: false },
   }[state]
   const Icon = config.icon
   return (
     <m.span
-      key={config.label}
+      key={state}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       className={`hidden h-10 items-center gap-1.5 px-1 text-[13px] font-medium sm:flex ${
@@ -340,11 +344,11 @@ function SyncBadge({ state }: { state: SyncState }) {
 }
 
 /** "Zuletzt gestern trainiert", "Zuletzt vor 4 Tagen trainiert", "Zuletzt am 12. Okt. trainiert". */
-function lastTrainedText(suggestion: RegionSuggestion) {
-  if (!suggestion.lastDate) return `Noch nicht trainiert: ${suggestion.muscles}.`
-  const label = formatDaysAgo(suggestion.lastDate)
-  if (label === 'Gestern') return 'Zuletzt gestern trainiert.'
-  return label.startsWith('vor') ? `Zuletzt ${label} trainiert.` : `Zuletzt am ${label} trainiert.`
+function lastTrainedText(suggestion: RegionSuggestion, texts: Messages['tracker']) {
+  if (!suggestion.lastDate) return texts.neverTrained(suggestion.muscles)
+  const days = daysBetween(suggestion.lastDate, todayKey())
+  if (days <= 1) return texts.lastTrainedYesterday
+  return days < 7 ? texts.lastTrainedDaysAgo(days) : texts.lastTrainedOn(formatDaysAgo(suggestion.lastDate))
 }
 
 /**
@@ -362,28 +366,29 @@ function EmptyState({
   onApply: (suggestion: RegionSuggestion) => void
   onAdd: () => void
 }) {
+  const t = useT()
   if (!isToday || !suggestion) {
     return (
       <div className="glass rounded-3xl p-5 sm:p-6">
-        <h3 className="headline text-[31px]">{isToday ? 'Bereit fürs Training?' : 'An diesem Tag ist nichts eingetragen'}</h3>
-        <p className="mt-1 text-[15px] text-muted">{isToday ? 'Füge deine erste Übung hinzu.' : 'Trag dein Training nachträglich ein.'}</p>
+        <h3 className="headline text-[31px]">{isToday ? t.tracker.readyTitle : t.tracker.emptyDayTitle}</h3>
+        <p className="mt-1 text-[15px] text-muted">{isToday ? t.tracker.readyText : t.tracker.emptyDayText}</p>
         <button
           type="button"
           onClick={onAdd}
           className="mt-5 flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink transition active:scale-95"
         >
           <Plus className="size-4.5" strokeWidth={3} />
-          Übung hinzufügen
+          {t.tracker.addExercise}
         </button>
       </div>
     )
   }
 
-  const region = REGION_LABELS[suggestion.region]
+  const region = t.catalog.regions[suggestion.region]
   return (
     <div className="glass rounded-3xl p-5 sm:p-6">
-      <h3 className="headline text-[31px]">Heute dran: {region}</h3>
-      <p className="mt-1 text-[15px] text-muted">{lastTrainedText(suggestion)}</p>
+      <h3 className="headline text-[31px]">{t.tracker.regionToday(region)}</h3>
+      <p className="mt-1 text-[15px] text-muted">{lastTrainedText(suggestion, t.tracker)}</p>
       <ul className="mt-4 grid grid-cols-3 gap-2.5">
         {suggestion.exercises.map((exercise) => (
           <li key={exercise.id}>
@@ -400,14 +405,14 @@ function EmptyState({
           className="flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink transition active:scale-95"
         >
           <Plus className="size-4.5" strokeWidth={3} />
-          {region} eintragen
+          {t.tracker.addRegion(region)}
         </button>
         <button
           type="button"
           onClick={onAdd}
           className="rounded-xl bg-sunken px-5 py-3 text-[15px] font-semibold transition hover:bg-surface-solid active:scale-95"
         >
-          Andere Übung
+          {t.tracker.otherExercise}
         </button>
       </div>
     </div>
@@ -415,8 +420,9 @@ function EmptyState({
 }
 
 function EntriesSkeleton() {
+  const t = useT()
   return (
-    <div className="space-y-3" aria-label="Training wird geladen">
+    <div className="space-y-3" aria-label={t.tracker.loading}>
       {[0, 1].map((index) => (
         <div key={index} className="glass rounded-3xl p-5">
           <span className="skeleton block h-4 w-2/5 rounded-md" />

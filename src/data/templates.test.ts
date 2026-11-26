@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { getExercise } from './exercises'
-import { BUILT_IN_TEMPLATES } from './templates'
+import { builtInTemplates } from './templates'
+
+const BUILT_IN_TEMPLATES = builtInTemplates('de')
 
 // Template definitions name exercises by ID and silently skip unknown ones, so a typo would
 // quietly drop an exercise from a day.
@@ -21,4 +23,9 @@ describe('built-in templates', () => {
   it('has unique IDs', () => {
     expect(new Set(BUILT_IN_TEMPLATES.map((template) => template.id)).size).toBe(BUILT_IN_TEMPLATES.length)
   })
+})
+
+it('names the built-in templates in both languages', () => {
+  expect(builtInTemplates('de').map((template) => template.name)).toContain('Ganzkörper')
+  expect(builtInTemplates('en').map((template) => template.name)).toContain('Full body')
 })

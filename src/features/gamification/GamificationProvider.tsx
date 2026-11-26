@@ -9,27 +9,32 @@ import { detectProgressEvents, evaluateProgress, isSameState, type ProgressEvent
 import { repository } from '../../services/repository'
 import type { GamificationState, WorkoutLog } from '../../types/models'
 import { GamificationContext } from './gamificationContext'
-
-const xpFormatter = new Intl.NumberFormat('de-DE')
+import { achievementText, messages } from '../../i18n'
+import { exerciseName } from '../../data/exercises'
+import { formatNumber } from '../../i18n/format'
 
 function celebrate(toast: ShowToast, event: ProgressEvent) {
+  const texts = messages()
+  const t = texts.gamification
   if (event.kind === 'achievement') {
-    const { title, description, icon } = event.achievement
-    toast({ tone: 'reward', eyebrow: 'Erfolg freigeschaltet', title, description, icon })
+    const { icon } = event.achievement
+    const text = achievementText(texts, event.achievement.id)
+    if (!text) return
+    toast({ tone: 'reward', eyebrow: t.achievementUnlocked, title: text.title, description: text.description, icon })
   } else if (event.rankUp) {
     toast({
       tone: 'reward',
-      eyebrow: 'Neuer Rang',
-      title: `Willkommen in ${event.rank.label}!`,
-      description: `Level ${event.level} erreicht. Ab jetzt trainierst du in der ${event.rank.label}-Liga.`,
+      eyebrow: t.newRank,
+      title: t.welcomeToRank(t.ranks[event.rank.id]),
+      description: t.rankReached(event.level, t.ranks[event.rank.id]),
       icon: event.rank.icon,
     })
   } else {
     toast({
       tone: 'reward',
-      eyebrow: 'Level-Up',
-      title: `Level ${event.level} erreicht!`,
-      description: `Noch ${xpFormatter.format(event.xpToNext)} XP bis Level ${event.level + 1}.`,
+      eyebrow: t.levelUp,
+      title: t.levelReached(event.level),
+      description: t.xpToNext(formatNumber(event.xpToNext), event.level + 1),
       icon: TrendingUp,
     })
   }
@@ -106,11 +111,12 @@ function usePersonalRecordToasts(logs: WorkoutLog[] | null, toast: ShowToast) {
       const timer = window.setTimeout(() => {
         pending.current.delete(key)
         celebrated.current.add(key)
+        const t = messages().gamification
         toast({
           tone: 'reward',
-          eyebrow: 'Neue Bestleistung',
-          title: `${record.exerciseName}: ${formatRecordValue(record.kind, record.value)}`,
-          description: `Vorher ${formatRecordValue(record.kind, baseline)}. Stark!`,
+          eyebrow: t.newRecord,
+          title: `${exerciseName(record.exerciseId, record.exerciseName)}: ${formatRecordValue(record.kind, record.value)}`,
+          description: t.recordBefore(formatRecordValue(record.kind, baseline)),
           icon: Medal,
         })
       }, RECORD_SETTLE_MS)

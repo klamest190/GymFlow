@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { EXERCISES } from '../data/exercises'
+import { getExercises } from '../data/exercises'
 import { groupByRegion } from './catalogSections'
+
+const EXERCISES = getExercises('de')
 
 describe('catalog sections', () => {
   const sections = groupByRegion(EXERCISES)

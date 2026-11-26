@@ -1,4 +1,5 @@
 import { CircleCheck, CircleOff, Crown } from 'lucide-react'
+import { useT } from '../../i18n'
 import type { UserProfile } from '../../types/models'
 
 const initials = (user: Pick<UserProfile, 'displayName' | 'email'>) =>
@@ -25,25 +26,27 @@ export function UserAvatar({ user, size = 'md' }: { user: UserProfile; size?: 'm
 }
 
 export function RoleBadge({ role }: { role: UserProfile['role'] }) {
+  const t = useT()
   if (role === 'admin') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-fg px-2.5 py-1 text-[12px] font-semibold text-bg">
         <Crown className="size-3" strokeWidth={2.5} />
-        Admin
+        {t.admin.roleAdmin}
       </span>
     )
   }
-  return <span className="inline-flex rounded-full bg-sunken px-2.5 py-1 text-[12px] font-semibold text-muted">Nutzer</span>
+  return <span className="inline-flex rounded-full bg-sunken px-2.5 py-1 text-[12px] font-semibold text-muted">{t.admin.roleUser}</span>
 }
 
 /** Status with icon + label, so it never relies on color alone. */
 export function StatusBadge({ status }: { status: UserProfile['status'] }) {
+  const t = useT()
   const active = status === 'active'
   const Icon = active ? CircleCheck : CircleOff
   return (
     <span className={`inline-flex items-center gap-1 text-[13px] font-medium ${active ? 'text-accent-fg' : 'text-danger'}`}>
       <Icon className="size-3.5" strokeWidth={2.5} />
-      {active ? 'Aktiv' : 'Gesperrt'}
+      {active ? t.admin.active : t.admin.disabled}
     </span>
   )
 }

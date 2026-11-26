@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { EXERCISES } from '../../../data/exercises'
+import { getExercises } from '../../../data/exercises'
 import { STAGE, projector, type Camera } from './camera'
 import { EXERCISE_ANIMATIONS, partProgress, skeletonAt } from './poses'
 import { LENGTH, add, distance, dot, normalize, reach, scale, seg, slerp, sub, type Vec3 } from './rig'
 import { buildScene, handleAxis, scenePoints, stageLayout, type Shape } from './scene'
+
+const EXERCISES = getExercises('de')
 
 describe('bicep curl', () => {
   const spec = EXERCISE_ANIMATIONS['bicep-curls']

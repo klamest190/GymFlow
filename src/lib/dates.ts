@@ -1,3 +1,5 @@
+import { messages } from '../i18n'
+import { dateFormat } from '../i18n/format'
 import type { DateKey } from '../types/models'
 
 const pad = (value: number) => String(value).padStart(2, '0')
@@ -33,27 +35,30 @@ export function weekDays(key: DateKey): DateKey[] {
   return Array.from({ length: 7 }, (_, index) => addDays(monday, index))
 }
 
-const longFormatter = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
-const fullDateFormatter = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
-const weekdayLongFormatter = new Intl.DateTimeFormat('de-DE', { weekday: 'long' })
-const weekdayFormatter = new Intl.DateTimeFormat('de-DE', { weekday: 'short' })
-const monthFormatter = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' })
+// Formatters follow the app language (see i18n/format.ts), so they are looked up on every call.
+const format = (options: Intl.DateTimeFormatOptions) => (key: DateKey) => dateFormat(options).format(fromDateKey(key))
 
-export const formatLong = (key: DateKey) => longFormatter.format(fromDateKey(key))
-export const formatFullDate = (key: DateKey) => fullDateFormatter.format(fromDateKey(key))
-export const formatWeekday = (key: DateKey) => weekdayFormatter.format(fromDateKey(key)).replace('.', '')
-export const formatMonth = (key: DateKey) => monthFormatter.format(fromDateKey(key))
+/** "Montag, 13. Oktober" / "Monday 13 October" */
+export const formatLong = format({ weekday: 'long', day: 'numeric', month: 'long' })
+/** "13. Oktober 2026" / "13 October 2026" */
+export const formatFullDate = format({ day: 'numeric', month: 'long', year: 'numeric' })
+const formatShortWeekday = format({ weekday: 'short' })
+/** "Mo" / "Mon" */
+export const formatWeekday = (key: DateKey) => formatShortWeekday(key).replace('.', '')
+/** "Oktober 2026" / "October 2026" */
+export const formatMonth = format({ month: 'long', year: 'numeric' })
 export const dayOfMonth = (key: DateKey) => fromDateKey(key).getDate()
+const formatWeekdayLong = format({ weekday: 'long' })
+const formatShortDate = format({ day: 'numeric', month: 'short' })
 
 /** "Heute", "Gestern" or the weekday name ("Montag"). */
 export function relativeDayLabel(key: DateKey): string {
+  const texts = messages().common
   const today = todayKey()
-  if (key === today) return 'Heute'
-  if (key === addDays(today, -1)) return 'Gestern'
-  return weekdayLongFormatter.format(fromDateKey(key))
+  if (key === today) return texts.today
+  if (key === addDays(today, -1)) return texts.yesterday
+  return formatWeekdayLong(key)
 }
-
-const shortDateFormatter = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short' })
 
 /** Whole calendar days from `from` to `to` (positive if `to` is later). */
 export function daysBetween(from: DateKey, to: DateKey): number {
@@ -62,11 +67,12 @@ export function daysBetween(from: DateKey, to: DateKey): number {
 
 /** "Heute", "Gestern", "vor 3 Tagen" or "12. Okt." for anything older than a week. */
 export function formatDaysAgo(key: DateKey): string {
+  const texts = messages().common
   const days = daysBetween(key, todayKey())
-  if (days <= 0) return 'Heute'
-  if (days === 1) return 'Gestern'
-  if (days < 7) return `vor ${days} Tagen`
-  return shortDateFormatter.format(fromDateKey(key))
+  if (days <= 0) return texts.today
+  if (days === 1) return texts.yesterday
+  if (days < 7) return texts.daysAgo(days)
+  return formatShortDate(key)
 }
 
 /** ISO 8601 week number (KW), as used in Germany. */
@@ -78,10 +84,7 @@ export function isoWeek(key: DateKey): number {
   return 1 + Math.round(((date.getTime() - firstThursday.getTime()) / 86_400_000 - 3 + ((firstThursday.getDay() + 6) % 7)) / 7)
 }
 
-const dayMonthFormatter = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'numeric' })
-const weekdayDateFormatter = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })
-
-/** "13.10." */
-export const formatDayMonth = (key: DateKey) => dayMonthFormatter.format(fromDateKey(key))
-/** "Mo., 13. Okt." */
-export const formatWeekdayDate = (key: DateKey) => weekdayDateFormatter.format(fromDateKey(key))
+/** "13.10." / "13/10" */
+export const formatDayMonth = format({ day: 'numeric', month: 'numeric' })
+/** "Mo., 13. Okt." / "Mon 13 Oct" */
+export const formatWeekdayDate = format({ weekday: 'short', day: 'numeric', month: 'short' })

@@ -1,4 +1,5 @@
-import { DIFFICULTY_LABELS, DIFFICULTY_LEVELS } from '../../data/muscleGroups'
+import { DIFFICULTY_LEVELS } from '../../data/muscleGroups'
+import { useT } from '../../i18n'
 import type { Difficulty } from '../../types/models'
 
 const STEPS = [1, 2, 3] as const
@@ -11,9 +12,10 @@ const HEIGHTS = { 1: 6, 2: 9, 3: 12 } as const
  */
 export function DifficultyMeter({ difficulty }: { difficulty: Difficulty }) {
   const level = DIFFICULTY_LEVELS[difficulty]
-  const label = DIFFICULTY_LABELS[difficulty]
+  const t = useT()
+  const label = t.catalog.difficulty[difficulty]
   return (
-    <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap" role="img" aria-label={`Schwierigkeit: ${label}, Stufe ${level} von ${STEPS.length}`}>
+    <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap" role="img" aria-label={t.exercises.difficulty(label, level, STEPS.length)}>
       <span className="flex items-end gap-[2px]" aria-hidden>
         {STEPS.map((step) => (
           <span

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { EXERCISES } from '../../../data/exercises'
+import { getExercises } from '../../../data/exercises'
 import { DEFAULT_TEMPO, waveHeight, type WavePlan } from '../../../lib/tempoWave'
 import { EXERCISE_ANIMATIONS, waveProgress } from './poses'
+
+const EXERCISES = getExercises('de')
 
 const withWave = EXERCISES.filter((exercise) => !exercise.noWave)
 

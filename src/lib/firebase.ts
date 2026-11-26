@@ -6,6 +6,7 @@ import {
   persistentMultipleTabManager,
   type Firestore,
 } from 'firebase/firestore'
+import { getLocale, onLocaleChange } from '../i18n/locale'
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -34,8 +35,10 @@ export function getFirebase() {
     // initializeAuth instead of getAuth: getAuth also bundles the popup/redirect sign-in code
     // (Google etc.), which GymFlow never uses with e-mail/password only.
     auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] })
-    // German texts in Firebase-sent e-mails (password reset).
-    auth.languageCode = 'de'
+    // Firebase-sent e-mails (password reset) in the app language, kept in step when it changes.
+    const firebaseAuth = auth
+    firebaseAuth.languageCode = getLocale()
+    onLocaleChange(() => (firebaseAuth.languageCode = getLocale()))
     // Analytics is optional and unavailable in some browsers (e.g. with tracking protection);
     // loaded lazily so it never delays the first render.
     if (config.measurementId) {

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { EXERCISES } from '../data/exercises'
+import { getExercises } from '../data/exercises'
 import { instructionSteps } from './instructionSteps'
+
+const EXERCISES = [...getExercises('de'), ...getExercises('en')]
 
 describe('instruction steps', () => {
   it('splits running text into sentences', () => {
@@ -11,7 +13,7 @@ describe('instruction steps', () => {
     ])
   })
 
-  it('gives every catalog exercise a short sequence of real sentences', () => {
+  it('gives every catalog exercise a short sequence of real sentences, in both languages', () => {
     for (const exercise of EXERCISES) {
       const steps = instructionSteps(exercise.instructions)
       expect(steps.length, exercise.id).toBeGreaterThanOrEqual(2)

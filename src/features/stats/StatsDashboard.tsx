@@ -4,7 +4,8 @@ import { Loadable } from '../../components/ui/Loadable'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { useIsDesktop } from '../../hooks/useUi'
 import { useWorkoutStats } from '../../hooks/useWorkoutStats'
-import { METRIC_SHORT_LABELS, type Metric } from '../../lib/stats'
+import { type Metric } from '../../lib/stats'
+import { useT } from '../../i18n'
 import { ActivityHeatmap } from './ActivityHeatmap'
 import { ExerciseProgress, PersonalRecords } from './ExerciseProgress'
 import { KpiTiles } from './KpiTiles'
@@ -18,20 +19,21 @@ export function StatsDashboard() {
   const { logs, ready, week, weekStreak, weeks } = useWorkoutStats(user.uid)
   const isDesktop = useIsDesktop()
   const [metric, setMetric] = useState<Metric>('reps')
+  const t = useT()
 
   return (
     <div className="mx-auto max-w-6xl">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="headline text-[39px] lg:text-[49px]">Statistik</h1>
-          <p className="mt-2 text-[15px] text-muted">Die letzten 12 Monate</p>
+          <h1 className="headline text-[39px] lg:text-[49px]">{t.stats.title}</h1>
+          <p className="mt-2 text-[15px] text-muted">{t.stats.period}</p>
         </div>
         <div className="w-full sm:w-72">
           <SegmentedControl
-            label="Kennzahl"
+            label={t.stats.metric}
             value={metric}
             onChange={setMetric}
-            options={METRICS.map((value) => ({ value, label: METRIC_SHORT_LABELS[value] }))}
+            options={METRICS.map((value) => ({ value, label: t.stats.metricsShort[value] }))}
           />
         </div>
       </header>
@@ -57,8 +59,9 @@ export function StatsDashboard() {
 
 /** Mirrors the dashboard layout (KPI row, chart rows) so nothing jumps when the data arrives. */
 function DashboardSkeleton() {
+  const t = useT()
   return (
-    <div className="mt-6 space-y-4 lg:mt-8 lg:space-y-5" aria-busy aria-label="Statistik wird geladen">
+    <div className="mt-6 space-y-4 lg:mt-8 lg:space-y-5" aria-busy aria-label={t.stats.loading}>
       <div className="glass rounded-3xl p-4 sm:p-5">
         <span className="skeleton block h-3.5 w-24 rounded-full" />
         <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-end lg:gap-10">

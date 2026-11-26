@@ -1,10 +1,14 @@
+import { getLocale, type Locale } from '../i18n/locale'
 import type { Exercise } from '../types/models'
+import { EXERCISE_TEXTS_EN } from './exercises.en'
 
 /**
  * The fixed GymFlow exercise catalog. Users cannot add or edit exercises, so the muscle
  * mapping below is the single source of truth for all analytics.
  *
- * Adding an exercise: append a definition with a new, unique slug ID.
+ * The texts below are German; the English ones are in `exercises.en.ts`.
+ * Adding an exercise: append a definition with a new, unique slug ID, add it to
+ * `CATALOG_ORDER` and give it English texts.
  * Never change or reuse an existing ID: logged workouts reference it.
  */
 type ExerciseDefinition = Omit<Exercise, 'searchTerms'> & {
@@ -574,12 +578,6 @@ const DEFINITIONS: ExerciseDefinition[] = [
   },
 ]
 
-/** Holds for every exercise; shown next to each exercise's own breathing cue. */
-export const BREATHING_RULE = 'Grundregel: bei der Anstrengung ausatmen, beim Nachgeben einatmen. Die Luft nicht anhalten.'
-
-const buildSearchTerms = (name: string, aliases: string[]) =>
-  [...new Set([name, ...aliases].map((term) => term.toLowerCase().trim()).filter(Boolean))]
-
 /**
  * Order in the catalog, the picker and the tracker's suggestions: most worth doing first, i.e. a
  * big training effect for little technique. Easy staples lead (one per body region), then the
@@ -619,18 +617,69 @@ export const CATALOG_ORDER = [
   'v-ups',
 ] as const
 
+export type ExerciseId = (typeof CATALOG_ORDER)[number]
+
+/** The language-dependent part of an exercise. */
+export type ExerciseText = Pick<Exercise, 'name' | 'description' | 'instructions' | 'formCues' | 'breathing'> & {
+  /** Extra search keywords in that language. */
+  aliases?: string[]
+}
+
 const catalogRank = (id: string) => {
   const rank = (CATALOG_ORDER as readonly string[]).indexOf(id)
   return rank === -1 ? CATALOG_ORDER.length : rank
 }
 
-/** All exercises in catalog order (see `CATALOG_ORDER`). */
-export const EXERCISES: Exercise[] = DEFINITIONS.map(({ aliases, ...definition }) => ({
-  ...definition,
-  searchTerms: buildSearchTerms(definition.name, aliases),
-})).sort((a, b) => catalogRank(a.id) - catalogRank(b.id) || a.name.localeCompare(b.name, 'de'))
+const normalize = (terms: string[]) => [...new Set(terms.map((term) => term.toLowerCase().trim()).filter(Boolean))]
 
-const EXERCISES_BY_ID = new Map(EXERCISES.map((exercise) => [exercise.id, exercise]))
+const englishText = (id: string): ExerciseText | undefined => EXERCISE_TEXTS_EN[id as ExerciseId]
+
+/**
+ * The catalog in one language. Search finds an exercise by its name in either language, so a
+ * German name still works in the English app and the other way round.
+ */
+function buildCatalog(locale: Locale): Exercise[] {
+  return DEFINITIONS.map(({ aliases, ...definition }) => {
+    const english = englishText(definition.id)
+    const text = locale === 'en' && english ? english : definition
+    return {
+      ...definition,
+      name: text.name,
+      description: text.description,
+      instructions: text.instructions,
+      formCues: text.formCues,
+      breathing: text.breathing,
+      searchTerms: normalize([text.name, definition.name, ...aliases, ...(english ? [english.name, ...(english.aliases ?? [])] : [])]),
+    }
+  }).sort((a, b) => catalogRank(a.id) - catalogRank(b.id) || a.name.localeCompare(b.name, locale))
+}
+
+const catalogs = new Map<Locale, { list: Exercise[]; byId: Map<string, Exercise> }>()
+
+function catalogFor(locale: Locale) {
+  let catalog = catalogs.get(locale)
+  if (!catalog) {
+    const list = buildCatalog(locale)
+    catalog = { list, byId: new Map(list.map((exercise) => [exercise.id, exercise])) }
+    catalogs.set(locale, catalog)
+  }
+  return catalog
+}
+
+/**
+ * All exercises in catalog order (see `CATALOG_ORDER`), in the current language. The array is
+ * the same object until the language changes, so it can serve as a memo dependency.
+ */
+export const getExercises = (locale: Locale = getLocale()) => catalogFor(locale).list
+
+/** Number of exercises in the catalog (the same in every language). */
+export const EXERCISE_COUNT = DEFINITIONS.length
 
 /** Looks up a catalog exercise; `undefined` only for IDs that were removed from the catalog. */
-export const getExercise = (id: string) => EXERCISES_BY_ID.get(id)
+export const getExercise = (id: string, locale: Locale = getLocale()) => catalogFor(locale).byId.get(id)
+
+/**
+ * The exercise's name in the current language. Logged entries store the name they were logged
+ * with, which is only the fallback for exercises no longer in the catalog.
+ */
+export const exerciseName = (exerciseId: string, storedName: string) => getExercise(exerciseId)?.name ?? storedName

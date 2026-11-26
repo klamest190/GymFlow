@@ -8,6 +8,7 @@ import { RANKS } from '../../data/ranks'
 import { repository } from '../../services/repository'
 import { STREAK_BONUS_DAYS, XP_REWARDS } from '../../services/gamificationService'
 import { ExerciseAnimation } from '../exercises/animation/ExerciseAnimation'
+import { useT } from '../../i18n'
 
 const GOAL_OPTIONS = [1, 2, 3, 4, 5, 6, 7]
 const EASE = [0.22, 1, 0.36, 1] as const
@@ -24,10 +25,13 @@ interface Step {
  * completed in `users/{uid}` (see App.tsx), so it appears exactly once per account, on any device.
  */
 export function Onboarding({ onDone }: { onDone: () => void }) {
-  const { user, profile } = useSession()
+  const { user, profile, isGuest } = useSession()
+  const t = useT()
+  const o = t.onboarding
   const [index, setIndex] = useState(0)
   const [direction, setDirection] = useState(1)
-  const firstName = profile.displayName.split(' ')[0] || 'du'
+  // A guest has no name of their own ("Gast" is only a placeholder).
+  const firstName = isGuest ? null : profile.displayName.split(' ')[0] || null
 
   const setGoal = (weeklyGoalDays: number) => {
     haptic()
@@ -36,43 +40,43 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
   const steps: Step[] = [
     {
-      title: `Willkommen, ${firstName}!`,
-      text: 'GymFlow erfasst dein Training schnell und präzise. In vier kurzen Schritten zeigen wir dir das Wichtigste.',
+      title: o.welcome(firstName),
+      text: o.welcomeText,
       visual: <WelcomeVisual />,
     },
     {
-      title: 'Training in Sekunden eintragen',
-      text: 'Unter „Heute“ landet alles, was du an einem Tag trainierst.',
+      title: o.trackerTitle,
+      text: o.trackerText,
       points: [
-        { icon: ListPlus, text: 'Übung hinzufügen, neue Sätze starten mit deinen Werten vom letzten Mal' },
-        { icon: Layers, text: 'Satz hinzufügen und abhaken, danach läuft die Pause' },
-        { icon: CloudCheck, text: 'Speichert automatisch, auch ohne Empfang' },
+        { icon: ListPlus, text: o.trackerAdd },
+        { icon: Layers, text: o.trackerLog },
+        { icon: CloudCheck, text: o.trackerSync },
       ],
       visual: <TrackerVisual />,
     },
     {
-      title: 'Jede Übung erklärt',
-      text: 'Im Katalog zeigt eine Animation die saubere Ausführung. Der Zielmuskel leuchtet grün, dazu gibt es Technik-Hinweise.',
+      title: o.catalogTitle,
+      text: o.catalogText,
       visual: (
         <div className="size-40">
-          <ExerciseAnimation exerciseId="squats" label="Animation: Kniebeugen" />
+          <ExerciseAnimation exerciseId="squats" label={o.squatAnimation} />
         </div>
       ),
     },
     {
-      title: 'Level aufsteigen',
-      text: 'Jedes Training bringt XP, gutgeschrieben am nächsten Tag, wenn der Trainingstag abgeschlossen ist. Mit jedem Level steigst du durch die Ränge, und Erfolge schaltest du dauerhaft frei.',
+      title: o.levelTitle,
+      text: o.levelText,
       points: [
-        { icon: Layers, text: `+${XP_REWARDS.set} XP pro Satz` },
-        { icon: Dumbbell, text: `+1 XP je ${XP_REWARDS.volumeKgPerXP} kg bewegtes Gewicht` },
-        { icon: Trophy, text: `+${XP_REWARDS.workout} XP pro Workout` },
-        { icon: Flame, text: `+${XP_REWARDS.streakBonus} XP für ${STREAK_BONUS_DAYS} Tage in Folge` },
+        { icon: Layers, text: o.xpPerSet(XP_REWARDS.set) },
+        { icon: Dumbbell, text: o.xpPerVolume(XP_REWARDS.volumeKgPerXP) },
+        { icon: Trophy, text: o.xpPerWorkout(XP_REWARDS.workout) },
+        { icon: Flame, text: o.xpPerStreak(XP_REWARDS.streakBonus, STREAK_BONUS_DAYS) },
       ],
       visual: <RanksVisual />,
     },
     {
-      title: 'Dein Wochenziel',
-      text: 'An wie vielen Tagen pro Woche willst du trainieren? Du kannst es jederzeit im Profil ändern.',
+      title: o.goalTitle,
+      text: o.goalText,
       visual: <GoalPicker value={profile.weeklyGoalDays} onChange={setGoal} />,
     },
   ]
@@ -102,7 +106,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         className="w-full max-w-md overflow-hidden rounded-4xl border border-line bg-surface-solid p-5 shadow-float sm:p-6"
       >
         <div className="flex items-center gap-3">
-          <div className="flex flex-1 gap-1.5" aria-label={`Schritt ${index + 1} von ${steps.length}`}>
+          <div className="flex flex-1 gap-1.5" aria-label={o.stepOf(index + 1, steps.length)}>
             {steps.map((_, stepIndex) => (
               <span key={stepIndex} className="h-1 flex-1 overflow-hidden rounded-full bg-sunken">
                 <m.span
@@ -116,7 +120,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           </div>
           {!last && (
             <button type="button" onClick={onDone} className="text-[13px] font-semibold text-muted transition hover:text-fg">
-              Überspringen
+              {o.skip}
             </button>
           )}
         </div>
@@ -161,7 +165,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               type="button"
               onClick={() => go(index - 1)}
               className="grid size-13 shrink-0 place-items-center rounded-2xl bg-sunken text-fg transition hover:bg-surface"
-              aria-label="Zurück"
+              aria-label={o.back}
             >
               <ArrowLeft className="size-5" />
             </button>
@@ -175,11 +179,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             {last ? (
               <>
                 <Check className="size-5" strokeWidth={3} />
-                Los geht’s
+                {o.start}
               </>
             ) : (
               <>
-                Weiter
+                {o.next}
                 <ArrowRight className="size-5" strokeWidth={2.5} />
               </>
             )}
@@ -211,14 +215,15 @@ function WelcomeVisual() {
 
 /** A miniature exercise card whose sets tick off one after another. */
 function TrackerVisual() {
-  const sets = ['10 × 60 kg', '10 × 60 kg', '8 × 62,5 kg']
+  const t = useT()
+  const sets = t.onboarding.sampleSets
   return (
     <div className="w-60 rounded-2xl bg-surface-solid p-3.5 shadow-soft">
-      <p className="text-[14px] font-semibold tracking-tight">Bankdrücken</p>
+      <p className="text-[14px] font-semibold tracking-tight">{t.onboarding.sampleExercise}</p>
       <ul className="mt-2.5 space-y-1.5">
         {sets.map((set, setIndex) => (
           <li key={setIndex} className="flex items-center justify-between rounded-xl bg-sunken px-3 py-1.5 text-[13px] font-medium tabular-nums">
-            <span className="text-muted">Satz {setIndex + 1}</span>
+            <span className="text-muted">{t.onboarding.set(setIndex + 1)}</span>
             <span>{set}</span>
             <m.span
               className="grid size-5 place-items-center rounded-full bg-accent text-accent-ink"
@@ -236,6 +241,7 @@ function TrackerVisual() {
 }
 
 function RanksVisual() {
+  const t = useT()
   return (
     <div className="flex items-end gap-2">
       {RANKS.slice(0, 5).map((rank, rankIndex) => {
@@ -253,7 +259,7 @@ function RanksVisual() {
               width: 36 + rankIndex * 6,
               height: 36 + rankIndex * 6,
             }}
-            title={rank.label}
+            title={t.gamification.ranks[rank.id]}
           >
             <Icon className="size-1/2" strokeWidth={2.2} />
           </m.span>
@@ -264,13 +270,14 @@ function RanksVisual() {
 }
 
 function GoalPicker({ value, onChange }: { value: number; onChange: (days: number) => void }) {
+  const t = useT()
   return (
     <div className="px-4 text-center">
       <p className="text-[44px] font-bold leading-none tracking-tight tabular-nums">
         {value}
-        <span className="ml-1.5 text-[16px] font-semibold text-muted">{value === 1 ? 'Tag' : 'Tage'} / Woche</span>
+        <span className="ml-1.5 text-[16px] font-semibold text-muted">{t.onboarding.daysPerWeek(value)}</span>
       </p>
-      <div className="mt-4 grid grid-cols-7 gap-1 rounded-2xl bg-surface-solid/70 p-1" role="radiogroup" aria-label="Trainingstage pro Woche">
+      <div className="mt-4 grid grid-cols-7 gap-1 rounded-2xl bg-surface-solid/70 p-1" role="radiogroup" aria-label={t.onboarding.goalLabel}>
         {GOAL_OPTIONS.map((days) => {
           const active = value === days
           return (

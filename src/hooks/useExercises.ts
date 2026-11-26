@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import { EXERCISES } from '../data/exercises'
+import { EXERCISE_COUNT, getExercises } from '../data/exercises'
+import { useLocale } from '../i18n'
 import { addDays, todayKey } from '../lib/dates'
 import { buildExerciseHistory, type ExerciseSession } from '../lib/exerciseHistory'
 import { buildWorkoutLog, createEntry } from '../lib/workoutMath'
@@ -12,7 +13,7 @@ export const EXERCISE_HISTORY_DAYS = 90
 const NO_SESSIONS: ExerciseSession[] = []
 
 /** Muscle groups that at least one exercise trains as primary muscle; only these get a filter. */
-export const FILTERABLE_MUSCLES = MUSCLE_GROUPS.filter((group) => EXERCISES.some((exercise) => exercise.primaryMuscle === group))
+export const FILTERABLE_MUSCLES = MUSCLE_GROUPS.filter((group) => getExercises().some((exercise) => exercise.primaryMuscle === group))
 
 export type MuscleFilter = MuscleGroup | 'all'
 
@@ -26,6 +27,8 @@ export function useExercises(userId: string) {
   const { logs, ready } = useLogsInRange(userId, addDays(today, -(EXERCISE_HISTORY_DAYS - 1)), today)
   const [search, setSearch] = useState('')
   const [muscle, setMuscle] = useState<MuscleFilter>('all')
+  // The catalog in the current language; a new array after a language switch.
+  const catalog = getExercises(useLocale())
 
   const history = useMemo(() => buildExerciseHistory(logs), [logs])
   const todayLog = logs.find((log) => log.date === today) ?? null
@@ -34,12 +37,12 @@ export function useExercises(userId: string) {
   const term = search.trim().toLowerCase()
   const exercises = useMemo(
     () =>
-      EXERCISES.filter(
+      catalog.filter(
         (exercise) =>
           (muscle === 'all' || exercise.primaryMuscle === muscle || exercise.secondaryMuscles.includes(muscle)) &&
           (!term || exercise.searchTerms.some((searchTerm) => searchTerm.includes(term))),
       ),
-    [muscle, term],
+    [catalog, muscle, term],
   )
 
   const sessionsOf = useCallback((exerciseId: string) => history.get(exerciseId) ?? NO_SESSIONS, [history])
@@ -65,7 +68,7 @@ export function useExercises(userId: string) {
   return {
     ready,
     exercises,
-    totalCount: EXERCISES.length,
+    totalCount: EXERCISE_COUNT,
     isFiltered: muscle !== 'all' || term !== '',
     search,
     setSearch,

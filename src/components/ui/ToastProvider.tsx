@@ -3,6 +3,7 @@ import { CircleAlert, CircleCheck, Info, Sparkles, X } from 'lucide-react'
 import { useCallback, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { easeOut, settle, snap } from '../../lib/motion'
+import { useT } from '../../i18n'
 import { ToastContext, type Toast, type ToastTone } from './toastContext'
 
 const DURATION_MS = 4500
@@ -19,6 +20,7 @@ const TONES: Record<ToastTone, { icon: typeof Info; className: string }> = {
 /** Toasts on a steel surface (rewards on graphite): top of the screen on phones (clear of the tab bar), bottom right on desktop. */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const t = useT()
 
   const dismiss = useCallback((id: string) => setToasts((current) => current.filter((toast) => toast.id !== id)), [])
 
@@ -83,7 +85,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                     className={`relative grid size-7 shrink-0 place-items-center rounded-lg transition ${
                       reward ? 'text-white/60 hover:bg-white/10 hover:text-white' : 'text-muted hover:bg-sunken hover:text-fg'
                     }`}
-                    aria-label="Hinweis schließen"
+                    aria-label={t.common.dismissToast}
                   >
                     <X className="size-3.5" strokeWidth={2.5} />
                   </button>

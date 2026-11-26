@@ -1,7 +1,8 @@
 import { Flame, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber'
 import type { Trend, WeekComparison } from '../../hooks/useWorkoutStats'
-import { formatWeekday, todayKey } from '../../lib/dates'
+import { formatWeekday, startOfWeek, todayKey } from '../../lib/dates'
+import { useT, type Messages } from '../../i18n'
 import { formatMetric, type Metric } from '../../lib/stats'
 
 interface KpiTilesProps {
@@ -11,24 +12,26 @@ interface KpiTilesProps {
 }
 
 /** `short` stands in on phones, where three columns leave no room for "Wiederholungen". */
-const METRICS: { metric: Metric; label: string; short?: string; unit?: string }[] = [
-  { metric: 'reps', label: 'Wiederholungen', short: 'Wdh.' },
-  { metric: 'sets', label: 'Sätze' },
-  { metric: 'volumeKg', label: 'Volumen', unit: 'kg' },
+const metrics = (t: Messages): { metric: Metric; label: string; short?: string; unit?: string }[] => [
+  { metric: 'reps', label: t.stats.metricsPlain.reps, short: t.stats.metricsShort.reps },
+  { metric: 'sets', label: t.stats.metricsPlain.sets },
+  { metric: 'volumeKg', label: t.stats.metricsPlain.volumeKg, unit: 'kg' },
 ]
 
 /** This week at a glance: progress towards the training-day goal, then the totals as stamped figures. */
 export function KpiTiles({ week, weeklyGoalDays, weekStreak }: KpiTilesProps) {
-  const weekday = formatWeekday(todayKey())
+  const t = useT()
+  const today = todayKey()
+  const monday = startOfWeek(today)
   // "Mo–Mi": the comparison window, shown in the badge tooltip.
-  const comparisonWindow = weekday === 'Mo' ? 'Mo' : `Mo–${weekday}`
+  const comparisonWindow = today === monday ? formatWeekday(monday) : `${formatWeekday(monday)}–${formatWeekday(today)}`
   return (
-    <section aria-label="Diese Woche" className="glass rounded-3xl p-4 sm:p-5">
-      <h2 className="text-[14px] font-semibold text-muted">Diese Woche</h2>
+    <section aria-label={t.stats.thisWeek} className="glass rounded-3xl p-4 sm:p-5">
+      <h2 className="text-[14px] font-semibold text-muted">{t.stats.thisWeek}</h2>
       <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-end lg:gap-10">
         <GoalMeter days={week.thisWeek.days} goal={weeklyGoalDays} weekStreak={weekStreak} />
         <div className="grid grid-cols-3 gap-4">
-          {METRICS.map((item) => (
+          {metrics(t).map((item) => (
             <MetricFigure key={item.metric} {...item} trend={week.trends[item.metric]} comparisonWindow={comparisonWindow} />
           ))}
         </div>
@@ -39,15 +42,16 @@ export function KpiTiles({ week, weeklyGoalDays, weekStreak }: KpiTilesProps) {
 
 /** One plate per goal day: filled plates are training days this week. */
 function GoalMeter({ days, goal, weekStreak }: { days: number; goal: number; weekStreak: number }) {
+  const t = useT()
   const reached = days >= goal
   return (
     <div>
       <p className="flex items-baseline gap-2">
         <span className="numeral text-[61px] leading-[0.85]">{days}</span>
         <span className="numeral text-[25px] text-muted">/ {goal}</span>
-        <span className="ml-1 text-[14px] font-medium text-muted">{reached ? 'Wochenziel erreicht' : 'Trainingstage'}</span>
+        <span className="ml-1 text-[14px] font-medium text-muted">{reached ? t.stats.goalReached : t.stats.trainingDays}</span>
       </p>
-      <div className="mt-3 flex gap-1" role="meter" aria-valuemin={0} aria-valuemax={goal} aria-valuenow={Math.min(days, goal)} aria-label="Wochenziel">
+      <div className="mt-3 flex gap-1" role="meter" aria-valuemin={0} aria-valuemax={goal} aria-valuenow={Math.min(days, goal)} aria-label={t.stats.weeklyGoal}>
         {Array.from({ length: goal }, (_, index) => (
           <span
             key={index}
@@ -58,7 +62,7 @@ function GoalMeter({ days, goal, weekStreak }: { days: number; goal: number; wee
       {weekStreak > 0 && (
         <p className="mt-2.5 flex items-center gap-1 text-[13px] font-medium">
           <Flame className="size-3.5 shrink-0 text-accent-fg" strokeWidth={2.5} />
-          {weekStreak} {weekStreak === 1 ? 'Woche' : 'Wochen'} in Folge
+          {t.stats.weekStreak(weekStreak)}
         </p>
       )}
     </div>
@@ -80,6 +84,7 @@ function MetricFigure({
   trend: Trend
   comparisonWindow: string
 }) {
+  const t = useT()
   return (
     <div className="min-w-0">
       <p className="flex items-baseline gap-1">
@@ -99,7 +104,7 @@ function MetricFigure({
         )}
       </p>
       <p className="mt-1">
-        <TrendBadge change={trend.change} title={`Vorwoche (${comparisonWindow}): ${formatMetric(trend.previous, metric)}`} />
+        <TrendBadge change={trend.change} title={t.stats.previousWeek(comparisonWindow, formatMetric(trend.previous, metric))} />
       </p>
     </div>
   )
@@ -107,10 +112,11 @@ function MetricFigure({
 
 /** Signed change vs. last week; the arrow keeps the direction readable without color. */
 function TrendBadge({ change, title }: { change: number | null; title: string }) {
+  const t = useT()
   if (change === null) {
     return (
       <span title={title} className="text-[12px] text-muted">
-        Vorwoche: –
+        {t.stats.noPreviousWeek}
       </span>
     )
   }
@@ -120,7 +126,7 @@ function TrendBadge({ change, title }: { change: number | null; title: string })
     <span title={title} className={`inline-flex items-center gap-1 text-[12px] font-semibold tabular-nums ${tone}`}>
       <Icon className="size-3.5" strokeWidth={2.5} />
       {change > 0 ? '+' : ''}
-      {change} %<span className="sr-only"> zur Vorwoche</span>
+      {t.common.percent(change)}<span className="sr-only">{t.stats.vsPreviousWeek}</span>
     </span>
   )
 }

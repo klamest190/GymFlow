@@ -2,7 +2,7 @@ import { AnimatePresence, m } from 'framer-motion'
 import { Check, ChevronDown, Lock, Plus, Search } from 'lucide-react'
 import { Suspense, useMemo, useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
-import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '../../data/muscleGroups'
+import { useT } from '../../i18n'
 import { haptic } from '../../hooks/useUi'
 import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../../types/models'
 import { FigureThumb } from '../exercises/animation/FigureThumb'
@@ -26,6 +26,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
   // The row under the mouse demonstrates its exercise in the thumbnail.
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const gate = useGuestGate()
+  const t = useT()
 
   // In body order like the catalog filter, independent of the order of the exercises.
   const availableMuscles = useMemo(
@@ -51,15 +52,15 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
     <Sheet
       open={open}
       onClose={onClose}
-      title="Übung hinzufügen"
-      subtitle={`${exercises.length} Übungen im Katalog`}
+      title={t.tracker.addExercise}
+      subtitle={t.tracker.catalogCount(exercises.length)}
       footer={
         <button
           type="button"
           onClick={onClose}
           className="w-full rounded-xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98]"
         >
-          Fertig
+          {t.common.done}
         </button>
       }
     >
@@ -69,7 +70,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Übung suchen"
+            placeholder={t.tracker.searchExercise}
             className="w-full bg-transparent text-[16px] outline-none placeholder:text-muted"
             type="search"
             enterKeyHint="search"
@@ -77,11 +78,11 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
         </label>
         <div className="no-scrollbar scroll-row mt-3 [--row-inset:--spacing(5)] lg:[--row-inset:--spacing(7)]">
           <button type="button" className={chip(muscle === 'all')} onClick={() => setMuscle('all')}>
-            Alle
+            {t.tracker.allMuscles}
           </button>
           {availableMuscles.map((group) => (
             <button key={group} type="button" className={chip(muscle === group)} onClick={() => setMuscle(group)}>
-              {MUSCLE_GROUP_LABELS[group]}
+              {t.catalog.muscles[group]}
             </button>
           ))}
         </div>
@@ -101,9 +102,9 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                   <FigureThumb exerciseId={exercise.id} dimmed />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[16px] font-semibold tracking-tight text-fg/60">{exercise.name}</span>
-                    <span className="block truncate text-[13px] text-muted">Mit eigenem Zugang</span>
+                    <span className="block truncate text-[13px] text-muted">{t.tracker.withAccount}</span>
                   </span>
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sunken text-muted" aria-label={`${exercise.name} ist gesperrt`}>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sunken text-muted" aria-label={t.tracker.isLocked(exercise.name)}>
                     <Lock className="size-4" strokeWidth={2.5} />
                   </span>
                 </button>
@@ -129,7 +130,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[16px] font-semibold tracking-tight">{exercise.name}</span>
                     <span className="block truncate text-[13px] text-muted">
-                      {MUSCLE_GROUP_LABELS[exercise.primaryMuscle]}, {EQUIPMENT_LABELS[exercise.equipment]}
+                      {t.catalog.muscles[exercise.primaryMuscle]}, {t.catalog.equipment[exercise.equipment]}
                     </span>
                   </span>
                   <ChevronDown className={`size-4 shrink-0 text-muted transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -145,7 +146,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                   className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
                     added ? 'bg-accent text-accent-ink' : 'bg-sunken text-fg hover:bg-accent hover:text-accent-ink'
                   }`}
-                  aria-label={added ? `${exercise.name} bereits hinzugefügt` : `${exercise.name} hinzufügen`}
+                  aria-label={added ? t.tracker.alreadyAddedExercise(exercise.name) : t.tracker.addNamed(exercise.name)}
                 >
                   <AnimatePresence mode="wait" initial={false}>
                     <m.span
@@ -171,14 +172,14 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                     <div className="flex flex-col gap-3 px-2 pb-3 text-[14px] leading-relaxed text-muted sm:flex-row sm:gap-4">
                       <span className="relative mx-auto aspect-square w-full max-w-56 shrink-0 overflow-hidden rounded-2xl bg-sunken sm:mx-0 sm:size-40">
                         <Suspense fallback={null}>
-                          <LazyExerciseAnimation exerciseId={exercise.id} label={`Ausführung: ${exercise.name}`} />
+                          <LazyExerciseAnimation exerciseId={exercise.id} label={t.tracker.demonstration(exercise.name)} />
                         </Suspense>
                       </span>
                       <div className="min-w-0">
                         <p className="text-fg/85">{exercise.description}</p>
                         {exercise.instructions && <InstructionSteps instructions={exercise.instructions} className="mt-3" />}
                         <p className="mt-2 text-[13px] font-medium">
-                          Empfohlen: {exercise.defaultSets} × {exercise.defaultReps}
+                          {t.tracker.recommended(exercise.defaultSets, exercise.defaultReps)}
                         </p>
                       </div>
                     </div>
@@ -189,7 +190,7 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
           )
         })}
         {filtered.length === 0 && (
-          <li className="py-12 text-center text-[15px] text-muted">Keine Übung gefunden.</li>
+          <li className="py-12 text-center text-[15px] text-muted">{t.tracker.noExerciseFound}</li>
         )}
       </ul>
     </Sheet>

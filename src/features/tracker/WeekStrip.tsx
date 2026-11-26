@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { addDays, dayOfMonth, formatFullDate, formatMonth, formatWeekday, todayKey, weekDays } from '../../lib/dates'
 import { settle, snap } from '../../lib/motion'
+import { useT } from '../../i18n'
 import type { DateKey } from '../../types/models'
 
 interface WeekStripProps {
@@ -17,6 +18,7 @@ const SWIPE_THRESHOLD = 60
 /** Seven-day picker. Swipe horizontally (or use the chevrons) to move between weeks. */
 export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
   const [direction, setDirection] = useState<1 | -1>(1)
+  const t = useT()
   const today = todayKey()
   const days = weekDays(selected)
   const isCurrentWeek = days.includes(today)
@@ -29,14 +31,14 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
   }
 
   return (
-    <section className="border-y border-line py-3" aria-label="Woche auswählen">
+    <section className="border-y border-line py-3" aria-label={t.tracker.pickWeek}>
       <div className="mb-1 flex items-center justify-between px-1.5">
         <span className="text-[15px] font-semibold capitalize tracking-tight">{formatMonth(days[0])}</span>
         <div className="flex gap-1">
-          <ChevronButton label="Vorherige Woche" onClick={() => shiftWeek(-1)}>
+          <ChevronButton label={t.tracker.previousWeek} onClick={() => shiftWeek(-1)}>
             <ChevronLeft className="size-4.5" strokeWidth={2.5} />
           </ChevronButton>
-          <ChevronButton label="Nächste Woche" onClick={() => shiftWeek(1)} disabled={isCurrentWeek}>
+          <ChevronButton label={t.tracker.nextWeek} onClick={() => shiftWeek(1)} disabled={isCurrentWeek}>
             <ChevronRight className="size-4.5" strokeWidth={2.5} />
           </ChevronButton>
         </div>
@@ -83,7 +85,7 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
                     isSelected ? 'text-bg' : 'hover:bg-sunken'
                   }`}
                   aria-pressed={isSelected}
-                  aria-label={`${formatFullDate(day)}${isToday ? ', heute' : ''}${hasWorkout ? ', Training eingetragen' : ''}`}
+                  aria-label={t.tracker.dayLabel(formatFullDate(day), isToday, hasWorkout)}
                 >
                   {isSelected && (
                     <m.span layoutId="week-selected" className="absolute inset-0 rounded-xl bg-fg" transition={snap} />
@@ -91,7 +93,7 @@ export function WeekStrip({ selected, onSelect, activeDates }: WeekStripProps) {
                   <span
                     className={`relative text-[12px] ${isSelected ? 'font-medium text-bg/70' : isToday ? 'font-semibold text-fg' : 'font-medium text-muted'}`}
                   >
-                    {isToday ? 'Heute' : formatWeekday(day)}
+                    {isToday ? t.common.today : formatWeekday(day)}
                   </span>
                   <span className="numeral relative text-[25px] leading-none">{dayOfMonth(day)}</span>
                   {/* Training days: a plate-yellow bar, like a collar on the bar. */}

@@ -1,19 +1,7 @@
-import type { Difficulty, Equipment, ExerciseCategory, MuscleGroup } from '../types/models'
+import type { Difficulty, MuscleGroup } from '../types/models'
 
-export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
-  chest: 'Brust',
-  back: 'Rücken',
-  shoulders: 'Schultern',
-  biceps: 'Bizeps',
-  triceps: 'Trizeps',
-  forearms: 'Unterarme',
-  core: 'Bauch',
-  obliques: 'Seitl. Bauch',
-  quads: 'Beine vorn',
-  hamstrings: 'Beine hinten',
-  glutes: 'Gesäß',
-  calves: 'Waden',
-}
+// The names of muscle groups, regions, equipment, categories and difficulty levels are texts:
+// `messages().catalog` (src/i18n/messages/catalog.ts).
 
 /**
  * Twelve muscle groups are too many for a categorical palette, so colors name the body region
@@ -22,13 +10,6 @@ export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
 export type BodyRegion = 'push' | 'pull' | 'core' | 'legs'
 
 export const BODY_REGIONS: BodyRegion[] = ['push', 'pull', 'core', 'legs']
-
-export const REGION_LABELS: Record<BodyRegion, string> = {
-  push: 'Drücken',
-  pull: 'Ziehen',
-  core: 'Rumpf',
-  legs: 'Beine',
-}
 
 /** Tailwind background class per region. */
 export const REGION_TINTS: Record<BodyRegion, string> = {
@@ -57,30 +38,6 @@ export const MUSCLE_REGION: Record<MuscleGroup, BodyRegion> = {
 export const MUSCLE_GROUP_TINTS = Object.fromEntries(
   Object.entries(MUSCLE_REGION).map(([muscle, region]) => [muscle, REGION_TINTS[region]]),
 ) as Record<MuscleGroup, string>
-
-export const EQUIPMENT_LABELS: Record<Equipment, string> = {
-  barbell: 'Langhantel',
-  dumbbell: 'Kurzhantel',
-  machine: 'Maschine',
-  cable: 'Kabelzug',
-  bodyweight: 'Körpergewicht',
-  kettlebell: 'Kettlebell',
-  band: 'Band',
-  other: 'Sonstiges',
-}
-
-export const CATEGORY_LABELS: Record<ExerciseCategory, string> = {
-  strength: 'Kraft',
-  core: 'Core',
-  cardio: 'Cardio',
-  mobility: 'Mobility',
-}
-
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  beginner: 'Einsteiger',
-  intermediate: 'Fortgeschritten',
-  advanced: 'Profi',
-}
 
 /** Position on the three-step difficulty scale (1 = easiest). */
 export const DIFFICULTY_LEVELS: Record<Difficulty, number> = {

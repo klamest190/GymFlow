@@ -6,7 +6,7 @@
  */
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{2,19}$/
 
-export const USERNAME_RULES = '3–20 Zeichen: Kleinbuchstaben, Ziffern, Punkt, Binde- oder Unterstrich.'
+// The rules shown to the admin are a text: `messages().admin.usernameRules`.
 
 export const normalizeUsername = (value: string) => value.trim().toLowerCase()
 

@@ -9,13 +9,15 @@ import { useToast } from '../../components/ui/toastContext'
 import { repository } from '../../services/repository'
 import { ACHIEVEMENTS } from '../../data/achievements'
 import { RANK_BY_ID } from '../../data/ranks'
-import { isValidUsername, normalizeUsername, USERNAME_RULES } from '../../lib/usernames'
+import { isValidUsername, normalizeUsername } from '../../lib/usernames'
+import { useT } from '../../i18n'
+import { dateFormat, formatNumber } from '../../i18n/format'
 import type { UserProfile, UserRole, UserStatus, UserUpdate } from '../../types/models'
 import { LevelBadge } from '../gamification/RankBadge'
 import { RoleBadge, StatusBadge, UserAvatar } from './UserBadges'
 
-const xpFormatter = new Intl.NumberFormat('de-DE')
-const dateTime = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+const formatDateTime = (timestamp: number) =>
+  dateFormat({ day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(timestamp)
 
 export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; onClose: () => void }) {
   const { user: me } = useSession()
@@ -24,6 +26,8 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
+  const t = useT()
+  const a = t.admin
 
   // Keep the last user visible while the sheet animates out. Live list updates refresh the data,
   // but local edits are only reset when the sheet (re)opens or switches to another user.
@@ -53,14 +57,14 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
       await repository.updateUser(shown.id, changes)
       toast({ tone: 'success', title: successTitle })
     } catch (error) {
-      toast({ tone: 'error', title: 'Änderung fehlgeschlagen', description: authErrorMessage(error) })
+      toast({ tone: 'error', title: a.changeFailed, description: authErrorMessage(error) })
     }
   }
 
   const saveName = async () => {
     if (!nameChanged) return
     setBusy('name')
-    await update({ displayName: name.trim() }, 'Name gespeichert')
+    await update({ displayName: name.trim() }, a.nameSaved)
     setBusy(null)
   }
 
@@ -69,9 +73,9 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
     setBusy('username')
     try {
       await repository.setUsername(shown, nextUsername)
-      toast({ tone: 'success', title: 'Benutzername gespeichert', description: `Anmeldung ab jetzt mit „${nextUsername}“.` })
+      toast({ tone: 'success', title: a.usernameSaved, description: a.usernameSavedText(nextUsername) })
     } catch (error) {
-      toast({ tone: 'error', title: 'Benutzername nicht gespeichert', description: authErrorMessage(error) })
+      toast({ tone: 'error', title: a.usernameNotSaved, description: authErrorMessage(error) })
     }
     setBusy(null)
   }
@@ -80,9 +84,9 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
     setBusy('reset')
     try {
       await repository.sendPasswordReset(shown.email)
-      toast({ tone: 'success', title: 'Link zum Zurücksetzen gesendet', description: shown.email })
+      toast({ tone: 'success', title: a.resetSent, description: shown.email })
     } catch (error) {
-      toast({ tone: 'error', title: 'E-Mail nicht gesendet', description: authErrorMessage(error) })
+      toast({ tone: 'error', title: a.mailNotSent, description: authErrorMessage(error) })
     }
     setBusy(null)
   }
@@ -93,18 +97,18 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
       await repository.deleteUser(shown.id)
       toast({
         tone: 'success',
-        title: `${shown.displayName} wurde gelöscht`,
-        description: 'Konto und Trainingsdaten sind entfernt. Den Login kannst du optional in der Firebase Console löschen.',
+        title: a.deleted(shown.displayName),
+        description: a.deletedText,
       })
       onClose()
     } catch (error) {
-      toast({ tone: 'error', title: 'Löschen fehlgeschlagen', description: authErrorMessage(error) })
+      toast({ tone: 'error', title: a.deleteFailed, description: authErrorMessage(error) })
     }
     setBusy(null)
   }
 
   return (
-    <Sheet open={user !== null} onClose={onClose} title="Nutzer verwalten" subtitle={isSelf ? 'Das bist du' : undefined}>
+    <Sheet open={user !== null} onClose={onClose} title={a.manageUser} subtitle={isSelf ? a.thatsYou : undefined}>
       <div className="space-y-6 pb-2">
         <div className="flex items-center gap-4">
           <UserAvatar user={shown} size="lg" />
@@ -120,7 +124,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
           </div>
         </div>
 
-        <Section title="Name">
+        <Section title={a.name}>
           <div className="flex gap-2">
             <input
               value={name}
@@ -141,7 +145,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                   className="flex items-center gap-2 rounded-xl bg-accent px-4 text-[15px] font-semibold text-accent-ink"
                 >
                   {busy === 'name' && <LoaderCircle className="size-4 animate-spin" />}
-                  Speichern
+                  {a.save}
                 </m.button>
               )}
             </AnimatePresence>
@@ -149,13 +153,13 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
         </Section>
 
         <Section
-          title="Benutzername"
+          title={a.username}
           hint={
             username && !usernameValid
-              ? USERNAME_RULES
+              ? a.usernameRules
               : shown.username
-                ? 'Login mit Benutzername oder E-Mail. Nach einer Änderung gilt der alte Benutzername nicht mehr.'
-                : 'Noch kein Benutzername: Anmeldung bisher nur per E-Mail.'
+                ? a.usernameHint
+                : a.noUsername
           }
         >
           <div className="flex gap-2">
@@ -163,7 +167,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
               value={username}
               onChange={(event) => setUsername(event.target.value.toLowerCase())}
               onKeyDown={(event) => event.key === 'Enter' && void saveUsername()}
-              placeholder="z. B. anna.schneider"
+              placeholder={a.usernamePlaceholder}
               maxLength={20}
               autoComplete="off"
               autoCapitalize="none"
@@ -183,74 +187,74 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                   className="flex items-center gap-2 rounded-xl bg-accent px-4 text-[15px] font-semibold text-accent-ink"
                 >
                   {busy === 'username' && <LoaderCircle className="size-4 animate-spin" />}
-                  Speichern
+                  {a.save}
                 </m.button>
               )}
             </AnimatePresence>
           </div>
         </Section>
 
-        <Section title="Rolle" hint={isSelf ? 'Deine eigene Rolle kannst du nicht ändern, damit der Admin-Zugang nie verloren geht.' : undefined}>
+        <Section title={a.role} hint={isSelf ? a.ownRole : undefined}>
           <Locked locked={isSelf}>
             <SegmentedControl<UserRole>
-              label="Rolle"
+              label={a.role}
               value={shown.role}
-              onChange={(role) => role !== shown.role && void update({ role }, role === 'admin' ? 'Zum Admin gemacht' : 'Admin-Rechte entzogen')}
+              onChange={(role) => role !== shown.role && void update({ role }, role === 'admin' ? a.madeAdmin : a.adminRevoked)}
               options={[
-                { value: 'user', label: 'Nutzer' },
-                { value: 'admin', label: 'Admin' },
+                { value: 'user', label: a.roleUser },
+                { value: 'admin', label: a.roleAdmin },
               ]}
             />
           </Locked>
         </Section>
 
         <Section
-          title="Zugang"
+          title={a.access}
           hint={
             isSelf
-              ? 'Du kannst dich nicht selbst sperren.'
-              : 'Gesperrte Nutzer verlieren sofort den Zugriff auf alle Daten. Ihre Trainings bleiben erhalten.'
+              ? a.cannotLockSelf
+              : a.lockHint
           }
         >
           <Locked locked={isSelf}>
             <SegmentedControl<UserStatus>
-              label="Zugang"
+              label={a.access}
               value={shown.status}
-              onChange={(status) => status !== shown.status && void update({ status }, status === 'active' ? 'Zugang aktiviert' : 'Zugang gesperrt')}
+              onChange={(status) => status !== shown.status && void update({ status }, status === 'active' ? a.accessEnabled : a.accessLocked)}
               options={[
-                { value: 'active', label: 'Aktiv' },
-                { value: 'disabled', label: 'Gesperrt' },
+                { value: 'active', label: a.active },
+                { value: 'disabled', label: a.disabled },
               ]}
             />
           </Locked>
         </Section>
 
-        <Section title="Details">
+        <Section title={a.details}>
           <dl className="divide-y divide-line overflow-hidden rounded-2xl bg-sunken text-[14px]">
-            <Row label="Angelegt">{dateTime.format(shown.createdAt)}</Row>
-            <Row label="Zuletzt aktiv">{shown.lastLoginAt ? dateTime.format(shown.lastLoginAt) : 'Noch nie angemeldet'}</Row>
-            <Row label="Wochenziel">{shown.weeklyGoalDays} Tage</Row>
+            <Row label={a.createdAt}>{formatDateTime(shown.createdAt)}</Row>
+            <Row label={a.lastActive}>{shown.lastLoginAt ? formatDateTime(shown.lastLoginAt) : a.neverSignedIn}</Row>
+            <Row label={a.weeklyGoal}>{a.goalDays(shown.weeklyGoalDays)}</Row>
             {shown.gamification ? (
               <>
-                <Row label="Level">
-                  {shown.gamification.level} · {RANK_BY_ID[shown.gamification.rank].label}
+                <Row label={a.level}>
+                  {shown.gamification.level} · {t.gamification.ranks[RANK_BY_ID[shown.gamification.rank].id]}
                 </Row>
-                <Row label="XP gesamt">{xpFormatter.format(shown.gamification.totalXP)}</Row>
-                <Row label="Erfolge">
+                <Row label={a.totalXP}>{formatNumber(shown.gamification.totalXP)}</Row>
+                <Row label={a.achievements}>
                   {ACHIEVEMENTS.filter((achievement) => shown.gamification?.unlockedAchievements[achievement.id]).length} /{' '}
                   {ACHIEVEMENTS.length}
                 </Row>
               </>
             ) : (
-              <Row label="Level">Noch nicht synchronisiert</Row>
+              <Row label={a.level}>{a.notSynced}</Row>
             )}
-            <Row label="Nutzer-ID">
+            <Row label={a.userId}>
               <code className="font-mono text-[12px] text-muted">{shown.id}</code>
             </Row>
           </dl>
         </Section>
 
-        <Section title="Aktionen">
+        <Section title={a.actions}>
           <div className="space-y-2">
             <button
               type="button"
@@ -259,20 +263,19 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
               className="flex w-full items-center gap-3 rounded-xl bg-sunken px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-surface-solid disabled:opacity-60"
             >
               {busy === 'reset' ? <LoaderCircle className="size-4.5 animate-spin text-muted" /> : <KeyRound className="size-4.5 text-muted" />}
-              Link zum Zurücksetzen des Passworts senden
+              {a.sendPasswordReset}
             </button>
 
             {!isSelf &&
               (confirmDelete ? (
                 <div className="rounded-2xl bg-danger/10 p-4">
-                  <p className="text-[14px] font-semibold text-danger">{shown.displayName} endgültig löschen?</p>
+                  <p className="text-[14px] font-semibold text-danger">{a.confirmDelete(shown.displayName)}</p>
                   <p className="mt-1 text-[13px] leading-relaxed text-fg/80">
-                    Konto und alle Trainingsdaten werden gelöscht. Das kann nicht rückgängig gemacht werden. Wenn der Nutzer
-                    später zurückkommen soll, sperre ihn stattdessen.
+                    {a.deleteWarning}
                   </p>
                   <div className="mt-3 flex gap-2">
                     <button type="button" onClick={() => setConfirmDelete(false)} className="flex-1 rounded-xl bg-surface-solid py-2.5 text-[14px] font-semibold">
-                      Abbrechen
+                      {a.cancel}
                     </button>
                     <button
                       type="button"
@@ -281,7 +284,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-danger-fill py-2.5 text-[14px] font-semibold text-white"
                     >
                       {busy === 'delete' && <LoaderCircle className="size-4 animate-spin" />}
-                      Endgültig löschen
+                      {a.deleteForever}
                     </button>
                   </div>
                 </div>
@@ -292,7 +295,7 @@ export function UserDetailSheet({ user, onClose }: { user: UserProfile | null; o
                   className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-[15px] font-medium text-danger transition hover:bg-danger/10"
                 >
                   <Trash2 className="size-4.5" />
-                  Konto löschen
+                  {a.deleteAccount}
                 </button>
               ))}
           </div>

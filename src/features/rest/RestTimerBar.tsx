@@ -5,6 +5,7 @@ import { haptic } from '../../hooks/useUi'
 import { settle, snap } from '../../lib/motion'
 import { formatRestClock, REST_STEP_SECONDS, restRemainingMs } from '../../lib/restTimer'
 import { useRestTimer } from './restTimerContext'
+import { useT } from '../../i18n'
 
 /** Height of the bar on phones; the tab content makes room for it. */
 export const REST_BAR_HEIGHT = 72
@@ -16,6 +17,7 @@ export const REST_BAR_HEIGHT = 72
 export function RestTimerBar() {
   const { rest, adjust, dismiss } = useRestTimer()
   const now = useNow(rest !== null)
+  const t = useT()
 
   // `now` can lag up to one tick behind a rest that just started; never show more than its duration.
   const remaining = rest ? restRemainingMs(rest, Math.max(now, rest.startedAt)) : 0
@@ -31,7 +33,7 @@ export function RestTimerBar() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
           transition={settle}
-          aria-label="Satzpause"
+          aria-label={t.tracker.rest}
           style={{ height: REST_BAR_HEIGHT }}
           className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+64px)] z-40 overflow-hidden border-t border-line bg-surface-solid lg:inset-x-auto lg:bottom-6 lg:right-6 lg:w-95 lg:rounded-3xl lg:border lg:shadow-float"
         >
@@ -44,23 +46,23 @@ export function RestTimerBar() {
           </span>
           <div className="mx-auto flex h-full max-w-md items-center gap-3 px-4 lg:max-w-none">
             <div className="min-w-0 flex-1">
-              <p role="timer" aria-label={over ? 'Pause vorbei' : 'Verbleibende Pause'} className="numeral text-[35px] leading-none tabular-nums">
+              <p role="timer" aria-label={over ? t.tracker.restOver : t.tracker.restRemaining} className="numeral text-[35px] leading-none tabular-nums">
                 {formatRestClock(remaining)}
               </p>
               <p className={`mt-1 truncate text-[13px] font-medium ${over ? 'text-accent-fg' : 'text-muted'}`}>
-                {over ? 'Weiter geht’s' : rest.label}
+                {over ? t.tracker.keepGoing : rest.label}
               </p>
               <span className="sr-only" role="status">
-                {over ? 'Pause vorbei, weiter geht’s.' : ''}
+                {over ? t.tracker.restOverAnnouncement : ''}
               </span>
             </div>
-            <BarButton label={`${REST_STEP_SECONDS} Sekunden weniger`} onClick={() => adjust(-REST_STEP_SECONDS)}>
+            <BarButton label={t.tracker.secondsLess(REST_STEP_SECONDS)} onClick={() => adjust(-REST_STEP_SECONDS)}>
               −15
             </BarButton>
-            <BarButton label={`${REST_STEP_SECONDS} Sekunden mehr`} onClick={() => adjust(REST_STEP_SECONDS)}>
+            <BarButton label={t.tracker.secondsMore(REST_STEP_SECONDS)} onClick={() => adjust(REST_STEP_SECONDS)}>
               +15
             </BarButton>
-            <BarButton label="Pause beenden" onClick={dismiss}>
+            <BarButton label={t.tracker.endRest} onClick={dismiss}>
               <X className="size-4.5" strokeWidth={2.75} />
             </BarButton>
           </div>

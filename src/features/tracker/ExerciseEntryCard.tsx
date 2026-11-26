@@ -2,7 +2,10 @@ import { AnimatePresence, m, useMotionValue, useTransform } from 'framer-motion'
 import { Check, ChevronUp, History, Info, Plus, Trash2, X } from 'lucide-react'
 import { Suspense, useMemo, useState, type ReactNode } from 'react'
 import { NumberStepper } from '../../components/ui/NumberStepper'
-import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
+import { exerciseName } from '../../data/exercises'
+import { MUSCLE_GROUP_TINTS } from '../../data/muscleGroups'
+import { useT, type Messages } from '../../i18n'
+import { formatNumber } from '../../i18n/format'
 import { haptic, useIsTouch } from '../../hooks/useUi'
 import { formatLastTime } from '../../lib/exerciseHistory'
 import { fade, reveal, settle, snap } from '../../lib/motion'
@@ -34,7 +37,6 @@ interface ExerciseEntryCardProps {
 
 const DELETE_THRESHOLD = -110
 
-const weightFormatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 })
 
 /**
  * One exercise of the day as a set log. Logged sets read as stamped numbers ("12 × 5 kg"); below
@@ -44,6 +46,7 @@ const weightFormatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 
  */
 export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChange, onRemove, onSetLogged }: ExerciseEntryCardProps) {
   const isTouch = useIsTouch()
+  const t = useT()
   const [showInfo, setShowInfo] = useState(false)
   // A logged set open for correcting, and the next set being entered (kept outside the card, so it
   // survives a tab switch during the rest). Both can be open at once.
@@ -123,24 +126,24 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
       >
         <header className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="headline truncate text-[25px]">{entry.exerciseName}</h3>
+            <h3 className="headline truncate text-[25px]">{exerciseName(entry.exerciseId, entry.exerciseName)}</h3>
             <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-medium text-muted">
               <span className={`size-2 rounded-full ${MUSCLE_GROUP_TINTS[entry.primaryMuscle]}`} />
-              {MUSCLE_GROUP_LABELS[entry.primaryMuscle]}
+              {t.catalog.muscles[entry.primaryMuscle]}
             </p>
             {previous && (
               <p className="mt-1 flex items-center gap-1.5 text-[13px] font-medium text-fg/80">
                 <History className="size-3.5 text-muted" strokeWidth={2.5} />
-                Letztes Mal: {formatLastTime(previous)}
+                {t.tracker.lastTime(formatLastTime(previous))}
               </p>
             )}
           </div>
           {exercise?.instructions && (
-            <IconButton label="Ausführung anzeigen" active={showInfo} onClick={() => setShowInfo((value) => !value)}>
+            <IconButton label={t.tracker.showInstructions} active={showInfo} onClick={() => setShowInfo((value) => !value)}>
               <Info className="size-4.5" />
             </IconButton>
           )}
-          <IconButton label="Übung entfernen" onClick={remove} danger>
+          <IconButton label={t.tracker.removeExercise} onClick={remove} danger>
             <Trash2 className="size-4.5" />
           </IconButton>
         </header>
@@ -153,7 +156,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                 <div className="flex items-start gap-4">
                   <span className="relative size-24 shrink-0 overflow-hidden rounded-lg bg-surface-solid">
                     <Suspense fallback={null}>
-                      <LazyExerciseAnimation exerciseId={exercise.id} compact label={`Ausführung: ${exercise.name}`} />
+                      <LazyExerciseAnimation exerciseId={exercise.id} compact label={t.tracker.demonstration(exercise.name)} />
                     </Suspense>
                   </span>
                   <p className="min-w-0 self-center font-medium">{exercise.description}</p>
@@ -168,7 +171,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                   ))}
                 </ul>
                 <p className="mt-3 text-[13px] text-muted">
-                  <span className="font-semibold text-fg/85">Atmung:</span> {exercise.breathing}
+                  <span className="font-semibold text-fg/85">{t.tracker.breathing}</span> {exercise.breathing}
                 </p>
               </div>
             </m.div>
@@ -235,7 +238,7 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
                   number={nextNumber}
                   onChange={(patch) => setDraft({ ...draft, ...patch })}
                   action={
-                    <SmallButton label={`Satz ${nextNumber} verwerfen`} onClick={() => setDraft(null)}>
+                    <SmallButton label={t.tracker.discardSet(nextNumber)} onClick={() => setDraft(null)}>
                       <X className="size-4" strokeWidth={2.5} />
                     </SmallButton>
                   }
@@ -260,7 +263,8 @@ export function ExerciseEntryCard({ entry, exercise, previous, fallback, onChang
 
 /** "12 × 5 kg", "12 Wdh." */
 function SetFigures({ entry, values }: { entry: WorkoutEntry; values: SetValues }) {
-  const weight = values.weightKg === null ? '–' : weightFormatter.format(values.weightKg)
+  const t = useT()
+  const weight = values.weightKg === null ? '–' : formatNumber(values.weightKg, 2)
   return (
     <span className="numeral text-[39px] leading-none">
       {values.reps}
@@ -271,16 +275,16 @@ function SetFigures({ entry, values }: { entry: WorkoutEntry; values: SetValues 
           <span className="ml-1 text-[20px] text-muted">kg</span>
         </>
       ) : (
-        <span className="ml-1.5 text-[20px] text-muted">Wdh.</span>
+        <span className="ml-1.5 text-[20px] text-muted">{t.common.reps}</span>
       )}
     </span>
   )
 }
 
-const describeSet = (entry: WorkoutEntry, values: SetValues) =>
+const describeSet = (entry: WorkoutEntry, values: SetValues, texts: Messages['tracker']) =>
   entry.usesWeight
-    ? `${values.reps} Wiederholungen, ${values.weightKg === null ? 'kein Gewicht' : `${weightFormatter.format(values.weightKg)} kg`}`
-    : `${values.reps} Wiederholungen`
+    ? texts.describeSet(values.reps, values.weightKg === null ? texts.noWeight : `${formatNumber(values.weightKg, 2)} kg`)
+    : texts.describeSet(values.reps, null)
 
 /** A logged set as stamped figures: the row opens it for correcting, the bin asks to delete it. */
 function LoggedSet({
@@ -296,12 +300,13 @@ function LoggedSet({
   onSelect: () => void
   onDelete: () => void
 }) {
+  const t = useT()
   return (
     <div className="-mx-2 flex items-center gap-1">
       <button
         type="button"
         onClick={onSelect}
-        aria-label={`Satz ${number} bearbeiten: ${describeSet(entry, set)}`}
+        aria-label={t.tracker.editSet(number, describeSet(entry, set, t.tracker))}
         className="flex min-w-0 flex-1 items-baseline gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-sunken"
       >
         <span className="numeral w-6 text-[16px] text-muted">{number}</span>
@@ -313,8 +318,9 @@ function LoggedSet({
 }
 
 function DeleteButton({ number, onClick }: { number: number; onClick: () => void }) {
+  const t = useT()
   return (
-    <SmallButton label={`Satz ${number} löschen`} onClick={onClick} danger>
+    <SmallButton label={t.tracker.deleteSet(number)} onClick={onClick} danger>
       <Trash2 className="size-4" />
     </SmallButton>
   )
@@ -322,22 +328,23 @@ function DeleteButton({ number, onClick }: { number: number; onClick: () => void
 
 /** Takes the place of a logged set's row until the deletion is confirmed or cancelled. */
 function ConfirmDelete({ number, onCancel, onConfirm }: { number: number; onCancel: () => void; onConfirm: () => void }) {
+  const t = useT()
   return (
-    <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={fade} role="alertdialog" aria-label={`Satz ${number} löschen?`} className="flex items-center gap-2 py-2">
-      <p className="min-w-0 flex-1 text-[15px] font-semibold">Satz {number} löschen?</p>
+    <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={fade} role="alertdialog" aria-label={t.tracker.confirmDeleteSet(number)} className="flex items-center gap-2 py-2">
+      <p className="min-w-0 flex-1 text-[15px] font-semibold">{t.tracker.confirmDeleteSet(number)}</p>
       <button
         type="button"
         onClick={onCancel}
         className="rounded-xl bg-sunken px-4 py-2.5 text-[14px] font-semibold transition hover:bg-fg hover:text-bg"
       >
-        Abbrechen
+        {t.common.cancel}
       </button>
       <button
         type="button"
         onClick={onConfirm}
         className="rounded-xl bg-danger-fill px-4 py-2.5 text-[14px] font-semibold text-white transition hover:brightness-110"
       >
-        Löschen
+        {t.common.delete}
       </button>
     </m.div>
   )
@@ -345,6 +352,7 @@ function ConfirmDelete({ number, onCancel, onConfirm }: { number: number; onCanc
 
 /** Opens the next set for logging. */
 function AddSetButton({ onClick }: { onClick: () => void }) {
+  const t = useT()
   return (
     <m.button
       type="button"
@@ -354,7 +362,7 @@ function AddSetButton({ onClick }: { onClick: () => void }) {
       className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-line py-3.5 text-[15px] font-semibold transition-colors hover:border-fg/40 hover:bg-sunken"
     >
       <Plus className="size-4.5" strokeWidth={2.75} />
-      Satz hinzufügen
+      {t.tracker.addSet}
     </m.button>
   )
 }
@@ -381,7 +389,8 @@ function EditSet({
   wave?: ReactNode
   footer: ReactNode
 }) {
-  const weightLabel = entry.perDumbbell ? 'kg je Hantel' : 'kg'
+  const t = useT()
+  const weightLabel = entry.perDumbbell ? t.tracker.kgPerDumbbell : 'kg'
   return (
     <m.div {...reveal} className="overflow-hidden">
       <div className="knurl my-2 rounded-xl border border-line p-3">
@@ -390,23 +399,23 @@ function EditSet({
             <button
               type="button"
               onClick={onCollapse}
-              aria-label={`Satz ${number} zuklappen`}
+              aria-label={t.tracker.collapseSet(number)}
               aria-expanded
               className="-m-1.5 flex min-w-0 flex-1 items-center gap-1.5 rounded-lg p-1.5 text-left text-[13px] font-semibold transition-colors hover:bg-sunken"
             >
-              Satz {number}
+              {t.tracker.set(number)}
               <ChevronUp className="size-4 text-muted" strokeWidth={2.5} />
             </button>
           ) : (
-            <span className="text-[13px] font-semibold">Satz {number}</span>
+            <span className="text-[13px] font-semibold">{t.tracker.set(number)}</span>
           )}
           {action}
         </div>
         <div className={`mt-2 grid gap-3 sm:flex sm:gap-12 ${entry.usesWeight ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          <Field label="Wdh.">
+          <Field label={t.common.reps}>
             <NumberStepper
               size="lg"
-              label={`Wiederholungen Satz ${number}`}
+              label={t.tracker.repsOfSet(number)}
               value={values.reps}
               step={1}
               min={0}
@@ -418,7 +427,7 @@ function EditSet({
             <Field label={weightLabel}>
               <NumberStepper
                 size="lg"
-                label={`${entry.perDumbbell ? 'Gewicht je Hantel' : 'Gewicht'} Satz ${number}`}
+                label={t.tracker.weightOfSet(number, Boolean(entry.perDumbbell))}
                 value={values.weightKg}
                 step={entry.perDumbbell ? 1 : 2.5}
                 min={0}
@@ -442,17 +451,18 @@ function EditSet({
  * card has one, and a screen gets one yellow surface.
  */
 function LogButton({ number, onClick }: { number: number; onClick: () => void }) {
+  const t = useT()
   return (
     <m.button
       type="button"
       whileTap={{ scale: 0.97 }}
       transition={snap}
       onClick={onClick}
-      aria-label={`Satz ${number} abhaken`}
+      aria-label={t.tracker.logSetLabel(number)}
       className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-fg py-3.5 text-[15px] font-semibold text-bg transition hover:bg-fg/85"
     >
       <Check className="size-4.5" strokeWidth={3} />
-      Satz abhaken
+      {t.tracker.logSet}
     </m.button>
   )
 }

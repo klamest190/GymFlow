@@ -6,7 +6,8 @@ import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { Sheet } from '../../components/ui/Sheet'
 import { useToast } from '../../components/ui/toastContext'
 import { generatePassword, isValidEmail, MIN_PASSWORD_LENGTH } from '../../lib/passwords'
-import { isValidUsername, normalizeUsername, suggestUsername, USERNAME_RULES } from '../../lib/usernames'
+import { isValidUsername, normalizeUsername, suggestUsername } from '../../lib/usernames'
+import { useT } from '../../i18n'
 import { repository } from '../../services/repository'
 import type { UserProfile, UserRole } from '../../types/models'
 
@@ -40,6 +41,8 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<UserProfile | null>(null)
   const [copied, setCopied] = useState(false)
+  const t = useT()
+  const a = t.admin
 
   // Fresh form on every open (state adjustment during render instead of an effect).
   const [wasOpen, setWasOpen] = useState(open)
@@ -69,15 +72,15 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
       if (draft.sendResetMail) {
         try {
           await repository.sendPasswordReset(user.email)
-          mailNote = ' Der Link zum Passwort-Setzen ist unterwegs.'
+          mailNote = a.resetMailSent
         } catch {
-          mailNote = ' Die E-Mail konnte nicht gesendet werden. Teile die Zugangsdaten direkt.'
+          mailNote = a.resetMailFailed
         }
       }
       setCreated(user)
-      toast({ tone: 'success', title: `${user.displayName} wurde angelegt`, description: mailNote.trim() || undefined })
+      toast({ tone: 'success', title: a.created(user.displayName), description: mailNote.trim() || undefined })
     } catch (createError) {
-      setError(authErrorMessage(createError, 'Das Konto konnte nicht angelegt werden.'))
+      setError(authErrorMessage(createError, a.createFailed))
     } finally {
       setBusy(false)
     }
@@ -86,27 +89,27 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
   const copyCredentials = async () => {
     if (!created) return
     await navigator.clipboard.writeText(
-      `GymFlow-Zugang\nBenutzername: ${created.username}\nE-Mail: ${created.email}\nPasswort: ${draft.password}\n${window.location.origin}`,
+      a.credentials(created.username ?? '', created.email, draft.password, window.location.origin),
     )
     setCopied(true)
-    toast({ tone: 'info', title: 'Zugangsdaten kopiert' })
+    toast({ tone: 'info', title: a.credentialsCopied })
   }
 
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title={created ? 'Nutzer angelegt' : 'Nutzer anlegen'}
-      subtitle={created ? created.email : 'Neue Zugänge kann nur der Admin vergeben.'}
+      title={created ? a.userCreated : a.createUser}
+      subtitle={created ? created.email : a.onlyAdmin}
       footer={
         created ? (
           <div className="flex gap-2">
             <button type="button" onClick={copyCredentials} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-sunken py-3.5 text-[15px] font-semibold">
               {copied ? <Check className="size-4.5" strokeWidth={3} /> : <Copy className="size-4.5" />}
-              Zugangsdaten kopieren
+              {a.copyCredentials}
             </button>
             <button type="button" onClick={onClose} className="flex-1 rounded-xl bg-accent py-3.5 text-[15px] font-semibold text-accent-ink">
-              Fertig
+              {a.done}
             </button>
           </div>
         ) : (
@@ -117,7 +120,7 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[16px] font-semibold text-accent-ink transition active:scale-[0.98] disabled:opacity-40 disabled:shadow-none"
           >
             {busy && <LoaderCircle className="size-4.5 animate-spin" />}
-            Nutzer anlegen
+            {a.createUser}
           </button>
         )
       }
@@ -125,17 +128,17 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
       {created ? (
         <div className="space-y-4 pb-2">
           <p className="text-[15px] leading-relaxed text-fg/85">
-            Das Konto ist sofort aktiv. Gib die Zugangsdaten sicher weiter, zum Beispiel persönlich oder über einen Messenger.
-            {draft.sendResetMail && ' Zusätzlich wurde ein Link verschickt, mit dem der Nutzer ein eigenes Passwort festlegen kann.'}
+            {a.accountActive}
+            {draft.sendResetMail && a.linkSentToo}
           </p>
           <dl className="divide-y divide-line overflow-hidden rounded-2xl bg-sunken text-[15px]">
-            <Row label="Name">{created.displayName}</Row>
-            <Row label="Benutzername">{created.username}</Row>
-            <Row label="E-Mail">{created.email}</Row>
-            <Row label="Passwort">
+            <Row label={a.name}>{created.displayName}</Row>
+            <Row label={a.username}>{created.username}</Row>
+            <Row label={a.email}>{created.email}</Row>
+            <Row label={a.password}>
               <code className="font-mono text-[14px]">{draft.password}</code>
             </Row>
-            <Row label="Rolle">{created.role === 'admin' ? 'Admin' : 'Nutzer'}</Row>
+            <Row label={a.role}>{created.role === 'admin' ? a.roleAdmin : a.roleUser}</Row>
           </dl>
         </div>
       ) : (
@@ -146,28 +149,28 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
             void submit()
           }}
         >
-          <Field label="Name">
+          <Field label={a.name}>
             <input
               value={draft.displayName}
               onChange={(event) => {
                 const displayName = event.target.value
                 patch(draft.usernameEdited ? { displayName } : { displayName, username: suggestUsername(displayName) })
               }}
-              placeholder="Vor- und Nachname"
+              placeholder={a.namePlaceholder}
               maxLength={60}
               autoFocus
               className={inputClass}
             />
           </Field>
           <Field
-            label="Benutzername"
-            hint={draft.username && !usernameValid ? USERNAME_RULES : undefined}
-            note={!draft.username || usernameValid ? 'Damit meldet sich der Nutzer an, alternativ zur E-Mail.' : undefined}
+            label={a.username}
+            hint={draft.username && !usernameValid ? a.usernameRules : undefined}
+            note={!draft.username || usernameValid ? a.usernameNote : undefined}
           >
             <input
               value={draft.username}
               onChange={(event) => patch({ username: event.target.value.toLowerCase(), usernameEdited: true })}
-              placeholder="z. B. anna.schneider"
+              placeholder={a.usernamePlaceholder}
               maxLength={20}
               autoComplete="off"
               autoCapitalize="none"
@@ -176,32 +179,32 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
               className={inputClass}
             />
           </Field>
-          <Field label="E-Mail" hint={draft.email && !emailValid ? 'Bitte eine gültige E-Mail-Adresse eingeben.' : undefined}>
+          <Field label={a.email} hint={draft.email && !emailValid ? a.invalidEmail : undefined}>
             <input
               type="email"
               value={draft.email}
               onChange={(event) => patch({ email: event.target.value })}
-              placeholder="name@beispiel.de"
+              placeholder={a.emailPlaceholder}
               inputMode="email"
               autoComplete="off"
               className={inputClass}
             />
           </Field>
-          <Field label="Rolle">
+          <Field label={a.role}>
             <SegmentedControl<UserRole>
-              label="Rolle"
+              label={a.role}
               value={draft.role}
               onChange={(role) => patch({ role })}
               options={[
-                { value: 'user', label: 'Nutzer' },
-                { value: 'admin', label: 'Admin' },
+                { value: 'user', label: a.roleUser },
+                { value: 'admin', label: a.roleAdmin },
               ]}
             />
             {draft.role === 'admin' && (
-              <p className="mt-2 px-1 text-[13px] text-muted">Admins können alle Konten verwalten, aber keine Trainingsdaten bearbeiten.</p>
+              <p className="mt-2 px-1 text-[13px] text-muted">{a.adminNote}</p>
             )}
           </Field>
-          <Field label="Startpasswort" hint={draft.password.length < MIN_PASSWORD_LENGTH ? `Mindestens ${MIN_PASSWORD_LENGTH} Zeichen.` : undefined}>
+          <Field label={a.startPassword} hint={draft.password.length < MIN_PASSWORD_LENGTH ? a.minLength(MIN_PASSWORD_LENGTH) : undefined}>
             <div className="flex items-center gap-1 rounded-2xl bg-sunken pr-1.5 ring-fg/40 focus-within:ring-2">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -210,10 +213,10 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
                 autoComplete="new-password"
                 className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-mono text-[15px] outline-none"
               />
-              <IconButton label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'} onClick={() => setShowPassword((value) => !value)}>
+              <IconButton label={showPassword ? a.hidePassword : a.showPassword} onClick={() => setShowPassword((value) => !value)}>
                 {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
               </IconButton>
-              <IconButton label="Neues Passwort erzeugen" onClick={() => patch({ password: generatePassword() })}>
+              <IconButton label={a.newPassword} onClick={() => patch({ password: generatePassword() })}>
                 <RefreshCw className="size-4.5" />
               </IconButton>
             </div>
@@ -226,8 +229,8 @@ export function CreateUserSheet({ open, onClose }: { open: boolean; onClose: () 
               className="mt-0.5 size-5 shrink-0 accent-[var(--accent-fg)]"
             />
             <span>
-              <span className="block text-[15px] font-medium">Link zum Passwort-Setzen senden</span>
-              <span className="block text-[13px] text-muted">Der Nutzer bekommt eine E-Mail und legt sein eigenes Passwort fest.</span>
+              <span className="block text-[15px] font-medium">{a.sendResetLink}</span>
+              <span className="block text-[13px] text-muted">{a.sendResetLinkText}</span>
             </span>
           </label>
           {error && <p className="rounded-2xl bg-danger/10 px-4 py-3 text-[14px] font-medium text-danger">{error}</p>}

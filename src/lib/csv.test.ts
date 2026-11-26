@@ -43,3 +43,17 @@ it('exports body weights chronologically', () => {
   ])
   expect(lines(csv)).toEqual(['Datum;Körpergewicht (kg)', '2026-10-20;82,4', '2026-10-24;81,9'])
 })
+
+describe('in English', () => {
+  it('uses commas and decimal points, quoting cells that contain a comma', () => {
+    expect(lines(toCsv(['A', 'B'], [[1.5, 'x, y']], 'en'))).toEqual(['A,B', '1.5,"x, y"'])
+  })
+
+  it('writes English headers and muscle names', () => {
+    const csv = workoutsToCsv([log('2026-10-20', [entry('Curls', 1, 12, 7.5, { primary: 'biceps', perDumbbell: true })])], 'en')
+    expect(lines(csv)).toEqual([
+      'Date,Exercise,Muscle group,Set,Reps,Weight (kg),Weight is,Volume (kg)',
+      '2026-10-20,Curls,Biceps,1,12,7.5,per dumbbell,180',
+    ])
+  })
+})

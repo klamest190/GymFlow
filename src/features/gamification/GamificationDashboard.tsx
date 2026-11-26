@@ -16,9 +16,10 @@ import type { DateKey } from '../../types/models'
 import { settle } from '../../lib/motion'
 import { useGamification } from './gamificationContext'
 import { RankBadge } from './RankBadge'
+import { achievementText, ladderRankName, useT } from '../../i18n'
+import { formatNumber } from '../../i18n/format'
 
-const numberFormatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
-const format = (value: number) => numberFormatter.format(value)
+const format = (value: number) => formatNumber(value)
 
 /** Level, rank and achievements of the signed-in user (profile tab). */
 export function GamificationDashboard() {
@@ -39,27 +40,28 @@ export function GamificationDashboard() {
 
 function LevelCard({ evaluation }: { evaluation: ProgressEvaluation }) {
   const { progress, summary, state } = evaluation
+  const t = useT()
+  const g = t.gamification
   const rank = RANK_BY_ID[state.rank]
   const upcoming = nextRank(rank)
   const percent = Math.floor(progress.ratio * 100)
 
   return (
-    <section className="glass relative overflow-hidden rounded-3xl p-4 sm:p-5" aria-label="Level und Rang">
+    <section className="glass relative overflow-hidden rounded-3xl p-4 sm:p-5" aria-label={g.levelAndRank}>
       <div className="relative flex items-center gap-4">
         <RankEmblem rank={rank} level={progress.level} />
         <div className="min-w-0 flex-1">
           <RankBadge rank={rank} />
           <p className="mt-2 flex items-baseline gap-2">
-            <span className="headline text-[25px]">Level</span>
+            <span className="headline text-[25px]">{t.common.level}</span>
             <AnimatedNumber value={progress.level} className="numeral text-[61px] leading-[0.85]" />
           </p>
           <p className="mt-1 text-[13px] text-muted">
-            <AnimatedNumber value={summary.totalXP} className="font-semibold text-fg tabular-nums" /> XP gesamt
+            <AnimatedNumber value={summary.totalXP} className="font-semibold text-fg tabular-nums" />{g.totalXP}
           </p>
           {evaluation.pendingXP > 0 && (
             <p className="mt-0.5 text-[13px] text-muted">
-              <span className="font-semibold text-accent-fg tabular-nums">+{format(evaluation.pendingXP)} XP</span> von heute, gutgeschrieben
-              morgen
+              <span className="font-semibold text-accent-fg tabular-nums">+{format(evaluation.pendingXP)} XP</span>{g.pendingXP}
             </p>
           )}
         </div>
@@ -69,30 +71,30 @@ function LevelCard({ evaluation }: { evaluation: ProgressEvaluation }) {
         <div className="mb-2 flex items-baseline justify-between gap-3 text-[13px]">
           <p className="font-medium">
             <span className="font-semibold tabular-nums">{format(progress.currentXP)}</span>
-            <span className="text-muted"> / {format(progress.requiredXP)} XP bis Level {progress.level + 1}</span>
+            <span className="text-muted">{g.xpToLevel(format(progress.requiredXP), progress.level + 1)}</span>
           </p>
-          <p className="font-semibold tabular-nums">{percent} %</p>
+          <p className="font-semibold tabular-nums">{t.common.percent(percent)}</p>
         </div>
         <XPBar ratio={progress.ratio} current={progress.currentXP} required={progress.requiredXP} level={progress.level} />
         <p className="mt-2 text-[12px] text-muted">
           {upcoming
-            ? `Noch ${upcoming.minLevel - progress.level} Level bis ${upcoming.label}`
-            : 'Höchster Rang erreicht. Respekt!'}
+            ? g.levelsToRank(upcoming.minLevel - progress.level, g.ranks[upcoming.id])
+            : g.topRank}
         </p>
       </div>
 
       <RankLadder current={rank} />
 
       <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <XPSource icon={Layers} label="Sätze" xp={summary.xp.sets} rule={`+${XP_REWARDS.set} je Satz`} />
+        <XPSource icon={Layers} label={g.sourceSets} xp={summary.xp.sets} rule={g.perSet(XP_REWARDS.set)} />
         <XPSource
           icon={Dumbbell}
-          label="Gewicht"
+          label={g.sourceWeight}
           xp={summary.xp.volume}
-          rule={`+1 je ${XP_REWARDS.volumeKgPerXP} kg bewegt, max. ${XP_REWARDS.volumeMaxPerSet} je Satz`}
+          rule={g.perVolume(XP_REWARDS.volumeKgPerXP, XP_REWARDS.volumeMaxPerSet)}
         />
-        <XPSource icon={Trophy} label="Workouts" xp={summary.xp.workouts} rule={`+${XP_REWARDS.workout} je Workout`} />
-        <XPSource icon={Flame} label="Streaks" xp={summary.xp.streaks} rule={`+${XP_REWARDS.streakBonus} je ${STREAK_BONUS_DAYS} Tage am Stück`} />
+        <XPSource icon={Trophy} label={g.sourceWorkouts} xp={summary.xp.workouts} rule={g.perWorkout(XP_REWARDS.workout)} />
+        <XPSource icon={Flame} label={g.sourceStreaks} xp={summary.xp.streaks} rule={g.perStreak(XP_REWARDS.streakBonus, STREAK_BONUS_DAYS)} />
       </div>
     </section>
   )
@@ -121,6 +123,7 @@ function RankEmblem({ rank, level }: { rank: RankDefinition; level: number }) {
 }
 
 function XPBar({ ratio, current, required, level }: { ratio: number; current: number; required: number; level: number }) {
+  const t = useT()
   return (
     <div
       className="knurl relative h-3 overflow-hidden rounded-[3px] bg-sunken"
@@ -128,7 +131,7 @@ function XPBar({ ratio, current, required, level }: { ratio: number; current: nu
       aria-valuemin={0}
       aria-valuemax={required}
       aria-valuenow={current}
-      aria-label={`Fortschritt zu Level ${level + 1}`}
+      aria-label={t.gamification.progressToLevel(level + 1)}
     >
       <m.div
         className="h-full rounded-[3px] bg-accent"
@@ -141,9 +144,10 @@ function XPBar({ ratio, current, required, level }: { ratio: number; current: nu
 }
 
 function RankLadder({ current }: { current: RankDefinition }) {
+  const t = useT()
   const currentIndex = RANKS.indexOf(current)
   return (
-    <ol className="relative mt-5 grid grid-cols-7 gap-1" aria-label="Ränge">
+    <ol className="relative mt-5 grid grid-cols-7 gap-1" aria-label={t.gamification.ranksLabel}>
       {RANKS.map((rank, index) => {
         const reached = index <= currentIndex
         const Icon = rank.icon
@@ -154,14 +158,14 @@ function RankLadder({ current }: { current: RankDefinition }) {
                 rank === current ? 'ring-2 ring-fg ring-offset-2 ring-offset-surface-solid' : ''
               }`}
               style={reached ? { background: rank.gradient, color: rank.ink } : undefined}
-              title={`${rank.label} ab Level ${rank.minLevel}`}
+              title={t.gamification.rankFrom(t.gamification.ranks[rank.id], rank.minLevel)}
             >
               <Icon className="size-4" strokeWidth={2.4} />
             </span>
             <span className={`w-full hyphens-manual text-[10px] font-semibold leading-tight ${rank === current ? 'text-fg' : 'text-muted'}`}>
-              {rank.ladderLabel ?? rank.label}
+              {ladderRankName(t, rank.id)}
             </span>
-            <span className="hidden text-[10px] leading-none text-muted tabular-nums sm:block">Lv {rank.minLevel}</span>
+            <span className="hidden text-[10px] leading-none text-muted tabular-nums sm:block">{t.gamification.levelShort(rank.minLevel)}</span>
           </li>
         )
       })}
@@ -188,16 +192,17 @@ function XPSource({ icon: Icon, label, xp, rule }: { icon: typeof Layers; label:
 // ─── Achievements ────────────────────────────────────────────────────────────
 
 function AchievementGrid({ unlocked, metrics }: { unlocked: Record<string, DateKey>; metrics: ProgressMetrics }) {
+  const t = useT()
   const unlockedCount = ACHIEVEMENTS.filter((achievement) => unlocked[achievement.id]).length
   return (
-    <section className="glass rounded-3xl p-4 sm:p-5" aria-label="Erfolge">
+    <section className="glass rounded-3xl p-4 sm:p-5" aria-label={t.gamification.achievementsTitle}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="headline text-[25px]">Erfolge</h2>
+        <h2 className="headline text-[25px]">{t.gamification.achievementsTitle}</h2>
         <p className="numeral text-[20px] text-muted">
           <span className="text-fg">{unlockedCount}</span> / {ACHIEVEMENTS.length}
         </p>
       </div>
-      <p className="mt-0.5 text-[13px] text-muted">Meilensteine, die du einmal freischaltest und für immer behältst.</p>
+      <p className="mt-0.5 text-[13px] text-muted">{t.gamification.achievementsText}</p>
       <ul className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
         {ACHIEVEMENTS.map((achievement) => (
           <li key={achievement.id}>
@@ -218,6 +223,8 @@ function AchievementTile({
   unlockedOn: DateKey | null
   metrics: ProgressMetrics
 }) {
+  const t = useT()
+  const text = achievementText(t, achievement.id)
   const Icon = achievement.icon
   const unlocked = unlockedOn !== null
   const progress = achievementProgress(achievement, metrics)
@@ -237,8 +244,8 @@ function AchievementTile({
           </span>
         )}
       </span>
-      <p className={`mt-2.5 text-[14px] font-semibold leading-tight tracking-tight ${unlocked ? '' : 'text-muted'}`}>{achievement.title}</p>
-      <p className={`mt-0.5 text-[12px] leading-snug text-muted ${unlocked ? '' : 'opacity-80'}`}>{achievement.description}</p>
+      <p className={`mt-2.5 text-[14px] font-semibold leading-tight tracking-tight ${unlocked ? '' : 'text-muted'}`}>{text?.title ?? achievement.id}</p>
+      <p className={`mt-0.5 text-[12px] leading-snug text-muted ${unlocked ? '' : 'opacity-80'}`}>{text?.description}</p>
 
       <div className="mt-auto w-full pt-2.5">
         {unlocked ? (
@@ -257,11 +264,11 @@ function AchievementTile({
               />
             </div>
             <p className="mt-1 text-[11px] font-medium tabular-nums text-muted">
-              {format(progress.value)} / {format(achievement.threshold)} {achievement.unit}
+              {format(progress.value)} / {format(achievement.threshold)} {t.gamification.units[achievement.unit]}
             </p>
           </>
         ) : (
-          <p className="text-[12px] font-medium text-muted">Noch gesperrt</p>
+          <p className="text-[12px] font-medium text-muted">{t.gamification.stillLocked}</p>
         )}
       </div>
     </div>
@@ -269,8 +276,9 @@ function AchievementTile({
 }
 
 function DashboardSkeleton() {
+  const t = useT()
   return (
-    <div className="space-y-4" aria-busy aria-label="Level wird geladen">
+    <div className="space-y-4" aria-busy aria-label={t.gamification.loading}>
       <div className="glass rounded-3xl p-5">
         <div className="flex items-center gap-4">
           <div className="skeleton size-20 rounded-[26px]" />

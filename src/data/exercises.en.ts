@@ -45,8 +45,8 @@ export const EXERCISE_TEXTS_EN: Record<ExerciseId, ExerciseText> = {
     description: 'The classic isolation exercise for strong biceps.',
     instructions:
       'Stand tall, dumbbells at your sides, palms facing your thighs. ' +
-      'Keep your upper arms pressed to your torso as you bend at the elbows and curl the weights to shoulder height, turning your wrists out until your palms face your shoulders at the top. ' +
-      'Squeeze the biceps briefly at the top and lower slowly, over two to three seconds, turning back as you go.',
+      'Keep your upper arms pressed to your torso as you bend at the elbows and curl the weights to shoulder height, rotating your palms up until they face your shoulders at the top. ' +
+      'Squeeze the biceps briefly at the top and lower slowly, over two to three seconds, rotating back to the neutral grip as you go.',
     formCues: ['No swinging from the back', 'Elbows stay at your sides', 'Straighten fully at the bottom'],
     breathing: 'Breathe out as you curl the dumbbells up, breathe in as you lower them.',
   },
@@ -133,7 +133,7 @@ export const EXERCISE_TEXTS_EN: Record<ExerciseId, ExerciseText> = {
   'one-arm-dumbbell-row': {
     name: 'One-Arm Dumbbell Row',
     aliases: ['single arm row'],
-    description: 'Rowing with one hand, the other supported: for a broad, strong back.',
+    description: 'A one-arm row with the free hand braced on your thigh: for a broad, strong back.',
     instructions:
       'Stand in a split stance with the front knee bent and rest your free hand on your front thigh. ' +
       'Lean your torso far forward with a straight back; the dumbbell hangs below your shoulder in a neutral grip. ' +

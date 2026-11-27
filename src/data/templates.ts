@@ -5,7 +5,10 @@ import { getExercise } from './exercises'
 
 type BuiltInId = keyof ReturnType<typeof messages>['tracker']['builtInTemplates']
 
-/** Ready-made days: a push/pull/legs split, an arm day and one full-body day with push and pull. */
+/**
+ * Ready-made days: a push/pull/legs split, an arm day, one full-body day with push and pull, a harder
+ * full-body day for the next step and a day without dumbbells.
+ */
 const BUILT_IN: { id: BuiltInId; exerciseIds: string[] }[] = [
   {
     id: 'builtin-push',
@@ -18,6 +21,8 @@ const BUILT_IN: { id: BuiltInId; exerciseIds: string[] }[] = [
     exerciseIds: ['bicep-curls', 'hammer-curls', 'close-grip-bench-press', 'overhead-triceps-extension', 'lateral-raises', 'front-raises'],
   },
   { id: 'builtin-full-body', exerciseIds: ['squats', 'wide-grip-bench-press', 'bent-over-row', 'military-press', 'crunches'] },
+  { id: 'builtin-advanced', exerciseIds: ['thrusters', 'bulgarian-split-squat', 'renegade-rows', 'arnold-press', 'v-ups'] },
+  { id: 'builtin-bodyweight', exerciseIds: ['push-ups', 'pike-push-ups', 'diamond-push-ups', 'v-ups'] },
 ]
 
 /** Catalog defaults (sets × reps) for each exercise; weights stay open. */

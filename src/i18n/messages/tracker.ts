@@ -98,6 +98,8 @@ export const tracker = define(
       'builtin-legs-core': 'Beine & Core',
       'builtin-arms-shoulders': 'Arme & Schultern',
       'builtin-full-body': 'Ganzkörper',
+      'builtin-advanced': 'Profi: Ganzkörper',
+      'builtin-bodyweight': 'Ohne Hanteln: Drücken & Core',
     },
 
     // Week strip
@@ -229,6 +231,8 @@ export const tracker = define(
       'builtin-legs-core': 'Legs & core',
       'builtin-arms-shoulders': 'Arms & shoulders',
       'builtin-full-body': 'Full body',
+      'builtin-advanced': 'Advanced: full body',
+      'builtin-bodyweight': 'No dumbbells: push & core',
     },
 
     pickWeek: 'Pick a week',

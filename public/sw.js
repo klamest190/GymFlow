@@ -1,7 +1,7 @@
 // GymFlow service worker: makes the app shell load offline. Workout data is not cached here;
 // Firestore keeps its own offline cache in IndexedDB.
-const CACHE = 'gymflow-v2'
-const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png']
+const CACHE = 'gymflow-v3'
+const APP_SHELL = ['/', '/manifest.webmanifest', '/manifest.en.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)))

@@ -31,8 +31,17 @@ function detectLocale(): Locale {
 let locale: Locale = detectLocale()
 const listeners = new Set<() => void>()
 
+/** The page description and install manifest, which live outside React, follow the language too. */
+const HEAD: Record<Locale, { description: string; manifest: string }> = {
+  de: { description: 'GymFlow – Workouts tracken, Fortschritt sehen.', manifest: '/manifest.webmanifest' },
+  en: { description: 'GymFlow – track workouts, see your progress.', manifest: '/manifest.en.webmanifest' },
+}
+
 function applyLocale() {
-  if (typeof document !== 'undefined') document.documentElement.lang = locale
+  if (typeof document === 'undefined') return
+  document.documentElement.lang = locale
+  document.querySelector('meta[name="description"]')?.setAttribute('content', HEAD[locale].description)
+  document.querySelector('link[rel="manifest"]')?.setAttribute('href', HEAD[locale].manifest)
 }
 applyLocale()
 

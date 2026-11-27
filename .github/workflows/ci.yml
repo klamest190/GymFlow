@@ -1,5 +1,5 @@
-# Runs on every push and pull request: lint, unit tests and build, plus the security rules
-# tests against the Firestore emulator (in parallel, since they need Java and take longer).
+# Runs on every push and pull request: lint, unit tests and build, the end-to-end tests in a
+# browser, and the security rules tests against the Firestore emulator (all three in parallel).
 name: CI
 
 on:
@@ -25,6 +25,28 @@ jobs:
       - run: npm test
       # Without Firebase secrets the build runs in demo mode, which still type-checks and bundles everything.
       - run: npm run build
+
+  e2e:
+    name: End-to-end tests (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Builds the app in demo mode and clicks through it on a simulated phone.
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
 
   rules:
     name: Firestore security rules

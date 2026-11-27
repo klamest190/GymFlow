@@ -62,11 +62,13 @@ Die Firebase-Web-Config liegt in `.env.local` (nicht im Git, Vorlage: `.env.exam
 npm test             # Unit-Tests (Vitest): XP & Level, Rekorde, Wochenrückblick, CSV, Körpergewicht, Statistik, Datum, Benutzernamen, Animationen
 npm run test:watch   # dasselbe im Watch-Modus
 npm run test:rules   # Security Rules gegen den Firestore-Emulator
+npm run test:e2e     # End-to-End-Tests (Playwright): die echte App im Browser, einmalig vorher: npx playwright install chromium
 ```
 
 - **Unit-Tests** liegen neben dem Code (`*.test.ts` in `src/`), gemeinsame Testdaten in `src/test/fixtures.ts`. Sie laufen in der Zeitzone Europe/Berlin, damit Sommer-/Winterzeit überall gleich geprüft wird.
 - **Rules-Tests** (`tests/`) starten den Firestore-Emulator mit dem Projekt `demo-gymflow`, ohne Zugriff auf echte Daten, und prüfen 109 Fälle über alle Rollen hinweg. Voraussetzungen: Firebase CLI und Java 21+ im PATH.
-- **CI:** Die GitHub Action [ci.yml](.github/workflows/ci.yml) führt bei jedem Push Lint, Unit-Tests, Build und die Rules-Tests aus.
+- **End-to-End-Tests** (`e2e/`) bauen die App im Demo-Modus (die Firebase-Werte aus `.env.local` werden dafür geleert, echte Daten werden nie berührt) und klicken sie auf einem simulierten Handy auf Deutsch durch: Anmelden, Einführung mit Wochenziel, Übung hinzufügen, Sätze abhaken, Satzpause (verlängern, beenden, Überzeit), Neuladen, Statistik, Nachtragen an einem früheren Tag mit „Letztes Mal“, Gastmodus mit Schloss und Sprachwechsel. Sie springen in der Zeit mit der Fake-Uhr von Playwright; das geht nur als letzter Schritt eines Tests, weil die Animationen der Uhr des Browsers folgen (siehe Kommentar in `e2e/training.spec.ts`). Bei Fehlern liegen Screenshot und Trace in `test-results/` (`npx playwright show-trace …`).
+- **CI:** Die GitHub Action [ci.yml](.github/workflows/ci.yml) führt bei jedem Push Lint, Unit-Tests, Build, die End-to-End-Tests und die Rules-Tests aus. Schlägt ein End-to-End-Test fehl, hängt der Bericht mit Screenshots als Artefakt am Lauf.
 
 ## Übungskatalog
 

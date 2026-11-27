@@ -26,3 +26,8 @@ dist-ssr
 # Firebase
 service-account*.json
 .firebase/
+
+# Playwright (npm run test:e2e)
+dist-e2e
+test-results
+playwright-report

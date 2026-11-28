@@ -9,10 +9,9 @@ import { useDayDraft, type SyncState } from '../../hooks/useDayDraft'
 import { useSession } from '../../auth/authContext'
 import { useTheme } from '../../hooks/useUi'
 import { settle, snap } from '../../lib/motion'
-import { daysBetween, formatDaysAgo, formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
+import { formatFullDate, relativeDayLabel, todayKey, weekDays } from '../../lib/dates'
 import { buildExerciseHistory } from '../../lib/exerciseHistory'
 import { lastSessionBefore, nextPlannedSet } from '../../lib/plannedSet'
-import { suggestRegion, type RegionSuggestion } from '../../lib/regionSuggestion'
 import { trainingDays } from '../../lib/stats'
 import { createEntry, NEW_ENTRY_REPS, newSetValues, startWeightKg } from '../../lib/workoutMath'
 import type { DateKey, Exercise, WorkoutEntry, WorkoutTemplate } from '../../types/models'
@@ -27,7 +26,7 @@ import { ExercisePicker } from './ExercisePicker'
 import { TemplateSheet } from './TemplateSheet'
 import { WeekStrip } from './WeekStrip'
 import { WeeklyRecapCard } from './WeeklyRecapCard'
-import { useT, type Messages } from '../../i18n'
+import { useT } from '../../i18n'
 
 /**
  * Daily Workout Tracker: pick a day (today or any past day), add exercises from
@@ -110,17 +109,6 @@ export function DailyTracker() {
   }
 
   const suggestions = exercises.filter((exercise) => !addedIds.has(exercise.id) && !gate.isLocked(exercise.id)).slice(0, 5)
-  // An empty day today suggests the body region that has waited longest.
-  const regionSuggestion = isToday
-    ? suggestRegion(gamification?.logs ?? [], exercises.filter((exercise) => !gate.isLocked(exercise.id)), date)
-    : null
-  const applySuggestion = (suggestion: RegionSuggestion) =>
-    applyTemplate({
-      id: `suggestion-${suggestion.region}`,
-      name: t.catalog.regions[suggestion.region],
-      exercises: suggestion.exercises.map((exercise) => ({ exerciseId: exercise.id, sets: [] })),
-      createdAt: 0,
-    })
   // The totals only mean something once a set is logged; until then they would show zeros.
   const hasSets = entries.some((entry) => entry.sets.length > 0)
 
@@ -163,7 +151,7 @@ export function DailyTracker() {
 
           <Loadable ready={ready} skeleton={<EntriesSkeleton />}>
             {entries.length === 0 ? (
-              <EmptyState isToday={isToday} suggestion={regionSuggestion} onApply={applySuggestion} onAdd={() => setPickerOpen(true)} />
+              <EmptyState isToday={isToday} onAdd={() => setPickerOpen(true)} />
             ) : (
               <ul className="space-y-3">
                 <AnimatePresence initial={false} mode="popLayout">
@@ -343,79 +331,24 @@ function SyncBadge({ state }: { state: SyncState }) {
   )
 }
 
-/** "Zuletzt gestern trainiert", "Zuletzt vor 4 Tagen trainiert", "Zuletzt am 12. Okt. trainiert". */
-function lastTrainedText(suggestion: RegionSuggestion, texts: Messages['tracker']) {
-  if (!suggestion.lastDate) return texts.neverTrained(suggestion.muscles)
-  const days = daysBetween(suggestion.lastDate, todayKey())
-  if (days <= 1) return texts.lastTrainedYesterday
-  return days < 7 ? texts.lastTrainedDaysAgo(days) : texts.lastTrainedOn(formatDaysAgo(suggestion.lastDate))
-}
-
 /**
- * An empty day. Today it is an invitation with a concrete start: the region that has waited
- * longest, with three exercises to enter in one tap. An earlier day just offers catching up.
+ * An empty day: the whole card is one quiet invitation to add the first exercise.
+ * An earlier day says the same thing in catch-up words.
  */
-function EmptyState({
-  isToday,
-  suggestion,
-  onApply,
-  onAdd,
-}: {
-  isToday: boolean
-  suggestion: RegionSuggestion | null
-  onApply: (suggestion: RegionSuggestion) => void
-  onAdd: () => void
-}) {
+function EmptyState({ isToday, onAdd }: { isToday: boolean; onAdd: () => void }) {
   const t = useT()
-  if (!isToday || !suggestion) {
-    return (
-      <div className="glass rounded-3xl p-5 sm:p-6">
-        <h3 className="headline text-[31px]">{isToday ? t.tracker.readyTitle : t.tracker.emptyDayTitle}</h3>
-        <p className="mt-1 text-[15px] text-muted">{isToday ? t.tracker.readyText : t.tracker.emptyDayText}</p>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="mt-5 flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink transition active:scale-95"
-        >
-          <Plus className="size-4.5" strokeWidth={3} />
-          {t.tracker.addExercise}
-        </button>
-      </div>
-    )
-  }
-
-  const region = t.catalog.regions[suggestion.region]
   return (
-    <div className="glass rounded-3xl p-5 sm:p-6">
-      <h3 className="headline text-[31px]">{t.tracker.regionToday(region)}</h3>
-      <p className="mt-1 text-[15px] text-muted">{lastTrainedText(suggestion, t.tracker)}</p>
-      <ul className="mt-4 grid grid-cols-3 gap-2.5">
-        {suggestion.exercises.map((exercise) => (
-          <li key={exercise.id}>
-            <FigureThumb exerciseId={exercise.id} className="aspect-square w-full" />
-            <p className="mt-1.5 line-clamp-2 text-[13px] font-semibold leading-snug">{exercise.name}</p>
-          </li>
-        ))}
-      </ul>
-      {/* Stacked at full width on phones, side by side from sm. */}
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-        <button
-          type="button"
-          onClick={() => onApply(suggestion)}
-          className="flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink transition active:scale-95"
-        >
-          <Plus className="size-4.5" strokeWidth={3} />
-          {t.tracker.addRegion(region)}
-        </button>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="rounded-xl bg-sunken px-5 py-3 text-[15px] font-semibold transition hover:bg-surface-solid active:scale-95"
-        >
-          {t.tracker.otherExercise}
-        </button>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onAdd}
+      className="group flex w-full flex-col items-center rounded-3xl border-2 border-dashed border-line px-6 py-12 text-center transition-colors hover:border-fg/30 hover:bg-surface active:scale-[0.99] sm:py-14"
+    >
+      <span className="flex size-16 items-center justify-center rounded-full bg-accent text-accent-ink shadow-[0_8px_24px_-8px_var(--accent)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">
+        <Plus className="size-7" strokeWidth={2.5} />
+      </span>
+      <span className="headline mt-5 text-[27px]">{isToday ? t.tracker.readyTitle : t.tracker.emptyDayTitle}</span>
+      <span className="mt-1 text-[15px] text-muted">{isToday ? t.tracker.readyText : t.tracker.emptyDayText}</span>
+    </button>
   )
 }
 

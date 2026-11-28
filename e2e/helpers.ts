@@ -20,14 +20,17 @@ export async function skipTour(page: Page, skip = 'Überspringen') {
   await expect(tour).toBeHidden()
 }
 
-/** Adds exercises through the picker ("Andere Übung" on an empty day, "Übung hinzufügen" otherwise). */
-export async function addExercises(page: Page, opener: string, names: string[]) {
-  await page.getByRole('main').getByRole('button', { name: opener, exact: true }).click()
+/** Adds exercises through the picker (the empty-day card, `EMPTY_DAY`, or "Übung hinzufügen" otherwise). */
+export async function addExercises(page: Page, opener: string | RegExp, names: string[]) {
+  await page.getByRole('main').getByRole('button', { name: opener, exact: typeof opener === 'string' }).click()
   const picker = page.getByRole('dialog', { name: 'Übung hinzufügen' })
   for (const name of names) await picker.getByRole('button', { name: `${name} hinzufügen` }).click()
   await picker.getByRole('button', { name: 'Fertig' }).click()
   await expect(picker).toBeHidden()
 }
+
+/** An empty day is one big button: "Bereit fürs Training? Füge deine erste Übung hinzu." */
+export const EMPTY_DAY = /Füge deine erste Übung hinzu/
 
 export const exerciseCard = (page: Page, name: string) =>
   page.getByRole('article').filter({ has: page.getByRole('heading', { name, exact: true }) })

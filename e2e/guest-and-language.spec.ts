@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openApp, skipTour } from './helpers.ts'
+import { EMPTY_DAY, openApp, skipTour } from './helpers.ts'
 
 test('a guest can train with the free exercises, the rest stays locked', async ({ page }) => {
   await openApp(page)
@@ -7,7 +7,7 @@ test('a guest can train with the free exercises, the rest stays locked', async (
   await skipTour(page)
 
   // The picker offers the free exercises and locks the others.
-  await page.getByRole('button', { name: 'Andere Übung' }).click()
+  await page.getByRole('button', { name: EMPTY_DAY }).click()
   const picker = page.getByRole('dialog', { name: 'Übung hinzufügen' })
   await expect(picker.getByRole('button', { name: 'Bizeps Curls hinzufügen' })).toBeVisible()
   await expect(picker.getByRole('button', { name: 'Thrusters ist gesperrt' })).toBeVisible()

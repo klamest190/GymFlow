@@ -21,13 +21,6 @@ export const tracker = define(
     readyText: 'Füge deine erste Übung hinzu.',
     emptyDayTitle: 'An diesem Tag ist nichts eingetragen',
     emptyDayText: 'Trag dein Training nachträglich ein.',
-    regionToday: (region: string) => `Heute dran: ${region}`,
-    neverTrained: (muscles: string) => `Noch nicht trainiert: ${muscles}.`,
-    lastTrainedYesterday: 'Zuletzt gestern trainiert.',
-    lastTrainedDaysAgo: (days: number) => `Zuletzt vor ${days} Tagen trainiert.`,
-    lastTrainedOn: (date: string) => `Zuletzt am ${date} trainiert.`,
-    addRegion: (region: string) => `${region} eintragen`,
-    otherExercise: 'Andere Übung',
 
     // Exercise card
     lastTime: (summary: string) => `Letztes Mal: ${summary}`,
@@ -159,13 +152,6 @@ export const tracker = define(
     readyText: 'Add your first exercise.',
     emptyDayTitle: 'Nothing logged on this day',
     emptyDayText: 'Log your training afterwards.',
-    regionToday: (region: string) => `Up today: ${region}`,
-    neverTrained: (muscles: string) => `Not trained yet: ${muscles}.`,
-    lastTrainedYesterday: 'Last trained yesterday.',
-    lastTrainedDaysAgo: (days: number) => `Last trained ${days} days ago.`,
-    lastTrainedOn: (date: string) => `Last trained on ${date}.`,
-    addRegion: (region: string) => `Add ${region}`,
-    otherExercise: 'Other exercise',
 
     lastTime: (summary: string) => `Last time: ${summary}`,
     showInstructions: 'Show how it’s done',

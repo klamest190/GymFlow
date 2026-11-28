@@ -10,8 +10,9 @@ export const GUEST_UID = 'guest'
 export const isGuestUid = (uid: string) => uid === GUEST_UID
 
 /**
- * The exercises a guest can use: the top of the catalog order, easy and effective, covering
- * arms, back, legs, shoulders and chest. The rest of the catalog shows with a lock.
+ * The exercises a guest can use: the top of the catalog order, from the easy staples through
+ * the basic lifts to the isolation work, so every muscle group can be trained in full. Only the
+ * coordination-heavy and advanced exercises at the end of the catalog show with a lock.
  */
 export const GUEST_EXERCISE_IDS: ReadonlySet<string> = new Set([
   'bicep-curls',
@@ -22,6 +23,17 @@ export const GUEST_EXERCISE_IDS: ReadonlySet<string> = new Set([
   'squats',
   'military-press',
   'romanian-deadlift',
+  'bent-over-row',
+  'push-ups',
+  'butterflies',
+  'overhead-triceps-extension',
+  'hammer-curls',
+  'reverse-flys',
+  'crunches',
+  'close-grip-bench-press',
+  'front-raises',
+  'russian-twists',
+  'calf-raises',
 ])
 
 /** The account document of a fresh guest session; it never leaves the device. */

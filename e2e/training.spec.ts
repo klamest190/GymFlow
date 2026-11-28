@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { addExercises, exerciseCard, openApp, signIn, skipTour } from './helpers.ts'
+import { addExercises, EMPTY_DAY, exerciseCard, openApp, signIn, skipTour } from './helpers.ts'
 
 // The core flow on the phone: sign in, take the tour, log sets, rest, and find everything again.
 test('a whole training: sign in, log sets, rest, reload, statistics', async ({ page }) => {
@@ -15,10 +15,9 @@ test('a whole training: sign in, log sets, rest, reload, statistics', async ({ p
   await goalStep.getByRole('button', { name: 'Los geht’s' }).click()
   await expect(page.getByRole('dialog')).toBeHidden()
 
-  // An empty day suggests the region that has waited longest.
+  // An empty day is one invitation to add the first exercise.
   await expect(page.getByRole('heading', { name: 'Heute', level: 1 })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Heute dran: Ziehen' })).toBeVisible()
-  await addExercises(page, 'Andere Übung', ['Bizeps Curls'])
+  await addExercises(page, EMPTY_DAY, ['Bizeps Curls'])
 
   // A new exercise comes with set 1 open, started from the dumbbell weight in the profile.
   const curls = exerciseCard(page, 'Bizeps Curls')
@@ -83,7 +82,7 @@ test('a rest counts on into overtime once it is over', async ({ page }) => {
   await openApp(page)
   await signIn(page)
   await skipTour(page)
-  await addExercises(page, 'Andere Übung', ['Bizeps Curls'])
+  await addExercises(page, EMPTY_DAY, ['Bizeps Curls'])
   await exerciseCard(page, 'Bizeps Curls').getByRole('button', { name: 'Satz 1 abhaken' }).click()
   const rest = page.getByRole('region', { name: 'Satzpause' })
   await expect(rest.getByRole('timer', { name: 'Verbleibende Pause' })).toBeVisible()
@@ -102,8 +101,7 @@ test('a set logged for an earlier day: no rest, and the next training starts fro
   const week = page.getByRole('region', { name: 'Woche auswählen' })
   await week.getByRole('button', { name: 'Vorherige Woche' }).click()
   await week.getByRole('button', { name: /^\d+\. \S+ \d{4}$/ }).first().click()
-  await expect(page.getByRole('heading', { name: 'An diesem Tag ist nichts eingetragen' })).toBeVisible()
-  await addExercises(page, 'Übung hinzufügen', ['Bizeps Curls'])
+  await addExercises(page, /An diesem Tag ist nichts eingetragen/, ['Bizeps Curls'])
   const curls = exerciseCard(page, 'Bizeps Curls')
   await curls.getByRole('button', { name: 'Gewicht je Hantel Satz 1 erhöhen' }).click()
   await curls.getByRole('button', { name: 'Satz 1 abhaken' }).click()
@@ -114,7 +112,7 @@ test('a set logged for an earlier day: no rest, and the next training starts fro
   await week.getByRole('button', { name: 'Nächste Woche' }).click()
   await week.getByRole('button', { name: /, heute/ }).click()
   await expect(curls).toBeHidden()
-  await addExercises(page, 'Andere Übung', ['Bizeps Curls'])
+  await addExercises(page, EMPTY_DAY, ['Bizeps Curls'])
   await expect(curls).toContainText('Letztes Mal: 10 Wdh. mit 6 kg')
   await expect(curls.getByRole('textbox', { name: 'Gewicht je Hantel Satz 1' })).toHaveValue('6')
 })

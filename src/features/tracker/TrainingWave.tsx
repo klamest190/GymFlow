@@ -158,8 +158,9 @@ function signal(moment: WaveMoment, previous: WaveMoment) {
 }
 
 /**
- * The running wave: counts down from 5, then leads through every repetition. `onFinish` after
- * the last one; `onStop` with the repetitions done so far when it is ended early.
+ * The running wave: counts down (`COUNTDOWN_SECONDS`, or less with "Jetzt starten"), then leads
+ * through every repetition. `onFinish` after the last one; `onStop` with the repetitions done so
+ * far when it is ended early.
  */
 export function WaveRun({
   plan,
@@ -180,6 +181,12 @@ export function WaveRun({
 }) {
   const seconds = useMotionValue(-COUNTDOWN_SECONDS)
   const t = useT()
+  // "Jetzt starten" moves the start back so the countdown ends now; a ref for the frame loop.
+  const start = useRef(startedAt)
+  const skipCountdown = () => {
+    haptic()
+    start.current = Math.min(start.current, Date.now() - COUNTDOWN_SECONDS * 1000)
+  }
   const [moment, setMoment] = useState<WaveMoment>(() => waveMoment(plan, 0))
   const shown = useRef(moment)
   const finish = useRef(onFinish)
@@ -197,7 +204,7 @@ export function WaveRun({
 
   // Wall-clock time, so the wave stays right when frames are dropped or the app was in the background.
   useAnimationFrame(() => {
-    const elapsed = Date.now() - startedAt
+    const elapsed = Date.now() - start.current
     seconds.set(elapsed / 1000 - COUNTDOWN_SECONDS)
     const next = waveMoment(plan, elapsed)
     if (sameMoment(next, shown.current)) return
@@ -234,7 +241,7 @@ export function WaveRun({
           </p>
           {/* Breathing follows the effort: out while lifting, in while lowering. */}
           <p className="text-[14px] font-medium text-muted">
-            {moment.phase === 'lift' ? 'Ausatmen' : moment.phase === 'lower' ? 'Einatmen' : counting ? 'Ruhig atmen' : ' '}
+            {moment.phase === 'lift' ? t.tracker.breatheOut : moment.phase === 'lower' ? t.tracker.breatheIn : counting ? t.tracker.breatheCalmly : ' '}
           </p>
         </div>
         {/* In the starting position during the countdown, then one repetition after the other. */}
@@ -243,19 +250,33 @@ export function WaveRun({
       <div className="mt-2">
         <WaveTrack plan={plan} seconds={seconds} anchorSeconds={anchorSeconds} />
       </div>
-      <m.button
-        type="button"
-        whileTap={{ scale: 0.97 }}
-        transition={snap}
-        onClick={() => {
-          haptic()
-          onStop(completedReps(plan, Date.now() - startedAt))
-        }}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-sunken py-3.5 text-[15px] font-semibold transition-colors hover:bg-fg hover:text-bg"
-      >
-        <Square className="size-4" strokeWidth={2.75} />
-        {counting ? t.common.cancel : t.tracker.endEarly}
-      </m.button>
+      <div className="mt-3 flex gap-2">
+        {counting && (
+          <m.button
+            type="button"
+            whileTap={{ scale: 0.97 }}
+            transition={snap}
+            onClick={skipCountdown}
+            className="flex flex-[3] items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[15px] font-semibold text-accent-ink transition hover:brightness-105"
+          >
+            <Play className="size-4" strokeWidth={2.75} />
+            {t.tracker.startNow}
+          </m.button>
+        )}
+        <m.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          transition={snap}
+          onClick={() => {
+            haptic()
+            onStop(completedReps(plan, Date.now() - start.current))
+          }}
+          className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-sunken py-3.5 text-[15px] font-semibold transition-colors hover:bg-fg hover:text-bg"
+        >
+          <Square className="size-4" strokeWidth={2.75} />
+          {counting ? t.common.cancel : t.tracker.endEarly}
+        </m.button>
+      </div>
     </div>
   )
 }

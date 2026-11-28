@@ -6,7 +6,7 @@ import { useT } from '../../i18n'
 import { haptic } from '../../hooks/useUi'
 import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../../types/models'
 import { FigureThumb } from '../exercises/animation/FigureThumb'
-import { LazyExerciseAnimation } from '../exercises/animation/lazyFigures'
+import { LazyAnimationStage } from '../exercises/animation/lazyFigures'
 import { InstructionSteps } from '../exercises/InstructionSteps'
 import { useGuestGate } from '../guest/guestGate'
 
@@ -170,11 +170,10 @@ export function ExercisePicker({ open, onClose, exercises, addedIds, onAdd }: Ex
                     className="overflow-hidden"
                   >
                     <div className="flex flex-col gap-3 px-2 pb-3 text-[14px] leading-relaxed text-muted sm:flex-row sm:gap-4">
-                      <span className="relative mx-auto aspect-square w-full max-w-56 shrink-0 overflow-hidden rounded-2xl bg-sunken sm:mx-0 sm:size-40">
-                        <Suspense fallback={null}>
-                          <LazyExerciseAnimation exerciseId={exercise.id} label={t.tracker.demonstration(exercise.name)} />
-                        </Suspense>
-                      </span>
+                      {/* Turnable like in the catalog: drag sideways or pick an angle. */}
+                      <Suspense fallback={<div className="aspect-square w-full shrink-0 rounded-3xl bg-sunken sm:w-64" />}>
+                        <LazyAnimationStage exercise={exercise} className="w-full shrink-0 sm:w-64" />
+                      </Suspense>
                       <div className="min-w-0">
                         <p className="text-fg/85">{exercise.description}</p>
                         {exercise.instructions && <InstructionSteps instructions={exercise.instructions} className="mt-3" />}

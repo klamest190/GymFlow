@@ -11,8 +11,11 @@ export const DEFAULT_TEMPO: Tempo = { liftSeconds: 2, lowerSeconds: 3 }
 export const MIN_TEMPO_SECONDS = 1
 /** Slower than this per phase and a repetition gets into the very slow range that builds less muscle. */
 export const MAX_TEMPO_SECONDS = 6
-/** Time to get into position between "Welle starten" and the first repetition. */
-export const COUNTDOWN_SECONDS = 5
+/**
+ * Time to put the phone down, pick up the dumbbells and get into position between "Welle starten"
+ * and the first repetition. Whoever is ready sooner starts at once with "Jetzt starten".
+ */
+export const COUNTDOWN_SECONDS = 10
 
 export interface WavePlan {
   tempo: Tempo

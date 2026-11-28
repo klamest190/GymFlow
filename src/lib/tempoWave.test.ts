@@ -45,8 +45,8 @@ describe('waveHeight', () => {
 
 describe('waveMoment', () => {
   it('counts down from 5 before the first repetition', () => {
-    expect(waveMoment(plan, 0)).toEqual({ phase: 'countdown', secondsLeft: 5 })
-    expect(waveMoment(plan, 4100)).toEqual({ phase: 'countdown', secondsLeft: 1 })
+    expect(waveMoment(plan, 0)).toEqual({ phase: 'countdown', secondsLeft: COUNTDOWN_SECONDS })
+    expect(waveMoment(plan, afterCountdown(-0.9))).toEqual({ phase: 'countdown', secondsLeft: 1 })
   })
 
   it('names the phase and the repetition', () => {
